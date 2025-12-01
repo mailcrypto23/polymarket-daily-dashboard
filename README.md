@@ -33,47 +33,55 @@ Built with a focus on **orderbook clarity**, **spread detection**, **mock CLOB d
 
 # 🚀 Key Features (MVP)
 
-### 📈 Spread Scanner (0.1–0.8)
-Quick insights across high-volume Polymarket markets.
+### 📈 Spread Scanner  
+Quick insights across high-volume Polymarket markets based on real-time spreads (0.1–0.8).
 
 ### 📊 Market Digest  
-Biggest movers, new markets, and short-term volatility signals.
+Highlights biggest movers, new markets, and short-term volatility events.
 
 ### 🤖 AI Explainer Panel *(Coming Soon)*  
-Explains *why* a market moved using orderbook dynamics and trade flow.
+Explains *why* a market moved using orderbook pressure + trade flows.
 
 ### 📉 Orderbook Depth  
-Mock CLOB-style visualization for real-world UX preview.
+Mock CLOB-style visualization for accurate UX preview before API whitelist approval.
 
 ### 📱 Mobile UI  
-Responsive design optimized for mobile users.
+Fully responsive and mobile-first.
 
 ### 📦 Mock Data Layer  
-Develop and preview dashboard features **without API access**.
+Allows full UI development **without CLOB API access**.
 
 ---
 
 # 🖼️ Dashboard Previews
 
-> **Note:** All assets in `/assets/` are mock UI previews and do not display real Polymarket market data.
+> **Note:** All preview images in `/assets/` are mock UI designs for demonstration purposes only.
 
 ## 🔥 1. Main Dashboard Overview  
-<p align="center"><img src="assets/1.png" width="90%"></p>
+<p align="center">
+  <img src="assets/1.png" width="90%">
+</p>
 
 ---
 
 ## ⚡ 2. Spread & Liquidity Heatmap  
-<p align="center"><img src="assets/2.png" width="90%"></p>
+<p align="center">
+  <img src="assets/2.png" width="90%">
+</p>
 
 ---
 
 ## 📱 3. Mobile UI & Price Stats  
-<p align="center"><img src="assets/3.png" width="90%"></p>
+<p align="center">
+  <img src="assets/3.png" width="90%">
+</p>
 
 ---
 
 ## 🟢 4. Signals + Orderbook Depth  
-<p align="center"><img src="assets/4.png" width="90%"></p>
+<p align="center">
+  <img src="assets/4.png" width="90%">
+</p>
 
 ---
 
@@ -106,41 +114,41 @@ polymarket-daily-dashboard/
 # 📦 Included Mock Datasets
 
 ### 🟦 `mock_orderbook.json`
-Simulated Polymarket-style orderbook:
-- Bid/Ask levels (L1–L5)  
+Simulated CLOB-style orderbook with:
+- Bid / Ask levels  
+- Depth (L1–L5)  
 - Spread  
 - Liquidity imbalance  
-- Mid-price estimation  
 
 ---
 
 ### 🟧 `mock_trades.json`
-Synthetic 24h trade feed:
-- Timestamps  
-- Price  
-- Size  
-- Side (buy/sell)  
-- Trade impact score  
+Synthetic trade feed including:
+- timestamp  
+- price  
+- size  
+- buy/sell  
+- impact score  
 
 ---
 
 ### 🟥 `mock_spread_history.json`
-Compatible with charts + alerts:
-- Spread movement  
-- Microtrends  
-- Volatility bands  
+Time-series spread tracker for:
+- market heatmaps  
+- microtrend detection  
+- volatility alerts  
 
-These datasets enable **full dashboard development** even before receiving API access.
+> These datasets allow **full UI development without API access**.
 
 ---
 
 # 🛠️ Tech Stack
 
-- **React + Vite**
+- **React (Vite)**
 - **Tailwind CSS**
 - **Recharts**
-- **Mock REST data layer**
-- *(Planned)* CLOB REST + WebSocket stream support
+- **Mock REST Layer**
+- *(Planned: CLOB REST + WebSocket Streaming)*
 
 ---
 
@@ -163,7 +171,6 @@ Frontend (React)
 └── Integration Layer (Soon)
     ├── CLOB REST API
     ├── WebSocket Streams
-    └── Real-time depth + trades
 ```
 
 ---
@@ -171,52 +178,49 @@ Frontend (React)
 # 🔐 API Whitelist Request
 
 📌 **Status:**  
-- Whitelist request submitted  
-- Support ticket active  
-- Awaiting approval from the Polymarket engineering team
+- Request submitted  
+- Ticket open  
+- Awaiting engineering review  
 
-📌 **API Readiness:**  
-This dashboard already supports:
-
-- Markets feed  
+📌 **Integration Ready:**  
+This project is structured for immediate API integration once approved:
 - Orderbook endpoint  
-- Trades endpoint  
-- Real-time streaming (planned)  
-
-Once CLOB API access is granted, integration begins immediately.
+- Markets feed  
+- Trades feed  
+- WebSocket updates  
 
 ---
 
 # 🌟 Why This Dashboard Matters
 
-Polymarket is rapidly expanding, and builders are essential for improving market discovery, analytics, and user experience.
+Polymarket is rapidly expanding — but analytics, spreads, liquidity clarity, and exploration tools still have gaps.
 
-This project contributes to the ecosystem by:
+This dashboard aims to solve that by:
 
-### ✔ Making market discovery easier  
-### ✔ Offering clean spread & liquidity visualization  
-### ✔ Providing UI-ready components for future tools  
-### ✔ Enabling users to interpret orderflow intuitively  
-### ✔ Preparing an AI-powered reasoning layer  
+### ✔ Providing clean orderbook visualizations  
+### ✔ Detecting spreads + liquidity pressure  
+### ✔ Simplifying market discovery  
+### ✔ Preparing for AI-powered reasoning features  
+### ✔ Supporting the builder ecosystem with reusable components  
 
-With official CLOB API access, this dashboard becomes a fully functional analytics suite built on top of Polymarket.
+It's designed as both a **useful public tool** and a **robust builder contribution**.
 
 ---
 
 # 🛠️ Local Development
 
-### Clone the repo
+### Clone
 ```bash
 git clone https://github.com/mailcrypto23/polymarket-daily-dashboard
 cd polymarket-daily-dashboard
 ```
 
-### Install dependencies
+### Install
 ```bash
 npm install
 ```
 
-### Run locally
+### Run
 ```bash
 npm run dev
 ```
@@ -225,38 +229,34 @@ npm run dev
 
 # 🔮 Roadmap (Dec 2025)
 
-### **Phase 1 — UI Complete**  
-✔ Dashboard layout  
+### **Phase 1 — UI Complete**
+✔ Dashboard  
 ✔ Mobile UI  
 ✔ Spread Scanner  
-✔ Mock Data  
-✔ All preview assets uploaded  
+✔ Mock Datasets  
+✔ All Preview Assets  
 
-### **Phase 2 — API Integration**  
-▢ CLOB REST integration  
-▢ WebSocket updates  
-▢ User positions view  
+### **Phase 2 — API Integration**
+▢ CLOB REST  
+▢ WebSocket live updates  
+▢ Positions analyzer  
 
-### **Phase 3 — AI Expansion**  
+### **Phase 3 — AI Assist**
 ▢ AI Explainer  
-▢ Market Chat Assistant  
-▢ Reason Engine  
+▢ Market reasoning  
+▢ Chat assistant  
 
-### **Phase 4 — Alerts & Automation**  
+### **Phase 4 — Alerts System**
 ▢ Spread alerts  
-▢ Volume shocks  
-▢ Liquidity imbalance detection  
+▢ Volume spikes  
+▢ Liquidity shocks  
 
 ---
 
-# 🤝 Contributing
-
-Suggestions, UI ideas, and contributions are welcome.  
-Feel free to open an issue or PR.
+# 🤝 Contributing  
+PRs, ideas, and improvements are welcome!
 
 ---
 
 # 📜 License  
 MIT License — free to use, modify, and distribute.
-
----
