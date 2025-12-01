@@ -1,1 +1,16 @@
 
+{
+  "market_id": "0xPMKT123456789",
+  "timestamp_generated": 1738752000,
+  "trades": [
+    { "timestamp": 1738748400, "side": "buy", "price": 0.488, "size": 320, "tx": "0xabc1" },
+    { "timestamp": 1738748300, "side": "sell", "price": 0.492, "size": 150, "tx": "0xabc2" },
+    { "timestamp": 1738748200, "side": "buy", "price": 0.490, "size": 500, "tx": "0xabc3" },
+    { "timestamp": 1738748100, "side": "buy", "price": 0.487, "size": 200, "tx": "0xabc4" },
+    { "timestamp": 1738748000, "side": "sell", "price": 0.495, "size": 120, "tx": "0xabc5" },
+    { "timestamp": 1738747900, "side": "buy", "price": 0.489, "size": 900, "tx": "0xabc6" },
+    { "timestamp": 1738747800, "side": "sell", "price": 0.493, "size": 300, "tx": "0xabc7" },
+    { "timestamp": 1738747700, "side": "sell", "price": 0.497, "size": 80, "tx": "0xabc8" },
+    { "timestamp": 1738747600, "side": "buy", "price": 0.491, "size": 250, "tx": "0xabc9" }
+  ]
+}
