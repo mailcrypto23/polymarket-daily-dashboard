@@ -1,2 +1,0 @@
-import React from 'react'
-export default function Topbar(){return (<header className='topbar card' role='banner'><div style={{display:'flex',gap:12,alignItems:'center'}}><div style={{fontWeight:800,fontSize:18}}>Polymarket Daily</div><div className='hdr' style={{marginLeft:12}}>Hybrid Dashboard • Option 3</div></div><div style={{display:'flex',gap:12,alignItems:'center'}}><div className='badge'>Live</div><div style={{width:40,height:40,borderRadius:999,background:'linear-gradient(90deg,#9a5bff,#00ff89)'}}></div></div></header>)}
