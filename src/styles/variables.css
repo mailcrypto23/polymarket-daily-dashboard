@@ -1,0 +1,6 @@
+:root{
+  --glass-bg: rgba(255,255,255,0.03);
+  --glass-border: rgba(255,255,255,0.06);
+  --accent-cyan: #06b6d4;
+  --accent-magenta: #a78bfa;
+}
