@@ -1,1 +1,40 @@
-﻿[]
+[
+  {
+    "rank": 1,
+    "name": "Bitcoin",
+    "symbol": "BTC",
+    "price": 90225.56,
+    "change1h": -0.16,
+    "change24h": -0.22,
+    "change7d": -2.93,
+    "marketCap": "1,800,000,000,000",
+    "volume24h": "67,451,818,041",
+    "circulating": "19,960,000 BTC"
+  },
+  {
+    "rank": 2,
+    "name": "Ethereum",
+    "symbol": "ETH",
+    "price": 3191.90,
+    "change1h": 0.12,
+    "change24h": -3.67,
+    "change7d": 0.02,
+    "marketCap": "385,263,249,574",
+    "volume24h": "33,506,403,272",
+    "circulating": "120,690,000 ETH"
+  },
+  {
+    "rank": 3,
+    "name": "Solana",
+    "symbol": "SOL",
+    "price": 131.00,
+    "change1h": -0.03,
+    "change24h": 4.47,
+    "change7d": -2.80,
+    "marketCap": "73,595,540,392",
+    "volume24h": "6,430,415,391",
+    "circulating": "561,770,000 SOL"
+  }
+]
+
+
