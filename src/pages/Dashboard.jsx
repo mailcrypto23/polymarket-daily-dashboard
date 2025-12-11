@@ -1,52 +1,97 @@
-import React, { useEffect, useState } from "react";
-import { fetchMarkets } from "../services/markets";
-import { fetchPortfolio } from "../services/portfolio";
-import { fetchOrderbook } from "../services/orderbook";
+// src/pages/Dashboard.jsx
+import React, { useEffect, useState } from 'react';
+import NeonPriceTicker from '../components/NeonPriceTicker'; // keep if you have it
+import { fetchMarkets } from '../services/markets';
+import './dashboard.css'; // optional, keep your styles
+
+function MarketCard({ m }) {
+  // m: { id, symbol, name, price, change24h, volume24h, marketCap }
+  return (
+    <div className="market-card" style={{ padding: 16, borderRadius: 12, background: 'rgba(255,255,255,0.02)' }}>
+      <div style={{display:'flex', justifyContent:'space-between', alignItems:'center'}}>
+        <div>
+          <div style={{fontSize:12, opacity:.8}}>{m.name}</div>
+          <div style={{fontSize:18, fontWeight:700}}>{m.symbol} — ${Number(m.price).toLocaleString()}</div>
+        </div>
+        <div style={{textAlign:'right'}}>
+          <div style={{color: m.change24h >= 0 ? '#6ee7b7' : '#fb7185'}}>{m.change24h?.toFixed?.(2) ?? '0'}%</div>
+          <div style={{fontSize:12, opacity:.7}}>${Number(m.volume24h || 0).toLocaleString()}</div>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 export default function Dashboard() {
   const [markets, setMarkets] = useState([]);
-  const [portfolio, setPortfolio] = useState(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    loadData();
+    let mounted = true;
+    (async () => {
+      setLoading(true);
+      try {
+        const data = await fetchMarkets();
+        if (!mounted) return;
+        // data shape may be array or object; normalise to array
+        const list = Array.isArray(data) ? data : (data.markets || data.items || []);
+        setMarkets(list);
+      } catch (err) {
+        console.error('fetchMarkets error', err);
+      } finally {
+        if (mounted) setLoading(false);
+      }
+    })();
+    return () => { mounted = false; };
   }, []);
 
-  async function loadData() {
-    const m = await fetchMarkets();
-    const p = await fetchPortfolio();
-    setMarkets(m);
-    setPortfolio(p);
-  }
-
   return (
-    <div className="p-6 text-white">
-      <h1 className="text-2xl font-bold mb-4">Dashboard ⚡ Premium</h1>
-
-      <div className="grid grid-cols-3 gap-4 mb-6">
-        <div className="bg-gray-800 p-4 rounded-xl">Earnings Today<br/>234</div>
-        <div className="bg-gray-800 p-4 rounded-xl">Expenses Today<br/>0</div>
-        <div className="bg-gray-800 p-4 rounded-xl">Net Today<br/>136</div>
+    <div style={{ padding: 20 }}>
+      <div style={{ display:'flex', gap:12, alignItems:'center' }}>
+        <NeonPriceTicker />
       </div>
 
-      <h2 className="text-xl font-semibold mb-3">Markets</h2>
-      <div className="grid grid-cols-4 gap-4">
-        {markets.map((m) => (
-          <div key={m.symbol} className="bg-gray-800 p-4 rounded-xl">
-            <div className="text-lg font-bold">{m.name}</div>
-            <div className="text-gray-300">{m.symbol}</div>
-            <div className="text-green-300">${m.price}</div>
-            <div className="text-sm text-gray-400">{m.change24h}%</div>
+      <h2 style={{ marginTop: 16 }}>Dashboard — Premium</h2>
+
+      <div style={{
+        display:'grid',
+        gridTemplateColumns: 'repeat(3, 1fr)',
+        gap: '12px',
+        marginTop: '12px'
+      }}>
+        <div className="premium-card">
+          <div className="premium-metric">
+            <div className="label">Today</div>
+            <div className="value">234</div>
           </div>
-        ))}
+        </div>
+        <div className="premium-card">
+          <div className="premium-metric">
+            <div className="label">Today</div>
+            <div className="value">0</div>
+          </div>
+        </div>
+        <div className="premium-card">
+          <div className="premium-metric">
+            <div className="label">Today</div>
+            <div className="value">136</div>
+          </div>
+        </div>
       </div>
 
-      <h2 className="text-xl font-semibold mt-10 mb-3">Portfolio</h2>
-      {portfolio && (
-        <div className="bg-gray-800 p-4 rounded-xl">
-          <div>Total Value: ${portfolio.totalValue}</div>
-          <div>PNL Today: {portfolio.pnlToday}</div>
+      <section style={{ marginTop: 18 }}>
+        <h3>Markets (sample)</h3>
+
+        {loading && <div style={{ marginTop: 12 }}>Loading markets…</div>}
+
+        {!loading && markets.length === 0 && (
+          <div style={{ marginTop: 12, opacity: 0.8 }}>No market data found — check <code>src/mock-data/markets.json</code> or <code>src/services/markets.js</code>.</div>
+        )}
+
+        <div style={{ display:'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap:12, marginTop:12 }}>
+          {markets.map((m) => <MarketCard key={m.id || m.symbol} m={m} />)}
         </div>
-      )}
+      </section>
     </div>
   );
 }
