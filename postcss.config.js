@@ -1,8 +1,9 @@
-﻿// placeholder postcss cexport default {
+export default {
   plugins: {
     tailwindcss: {},
-    autoprefixer: {},
-  },
-};
-onfig
+    autoprefixer: {}
+  }
+}
+
+
 
