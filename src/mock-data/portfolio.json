@@ -1,1 +1,11 @@
-﻿{}
+{
+  "totalValue": 52345.92,
+  "holdings": [
+    { "symbol": "ETH", "amount": 1.234, "price": 3191.9 },
+    { "symbol": "BTC", "amount": 0.052, "price": 90225.56 },
+    { "symbol": "SOL", "amount": 14.12, "price": 131.0 },
+    { "symbol": "USDT", "amount": 2000, "price": 1 }
+  ]
+}
+
+
