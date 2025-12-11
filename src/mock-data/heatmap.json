@@ -1,1 +1,10 @@
-﻿[]
+{
+  "BTC": { "price": 90225.56, "change24h": -0.22, "marketCap": "1.80T" },
+  "ETH": { "price": 3191.9, "change24h": -3.67, "marketCap": "385B" },
+  "SOL": { "price": 131.0, "change24h": 4.47, "marketCap": "73B" },
+  "BNB": { "price": 865.55, "change24h": 0.22, "marketCap": "119B" },
+  "XRP": { "price": 2.00, "change24h": -0.64, "marketCap": "121B" },
+  "USDT": { "price": 1.0, "change24h": 0.01, "marketCap": "186B" }
+}
+
+
