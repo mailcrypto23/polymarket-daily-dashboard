@@ -1,0 +1,9 @@
+﻿:root{
+  --premium-bg: linear-gradient(180deg, #061024 0%, #07102a 100%);
+  --premium-card: rgba(255,255,255,0.03);
+  --premium-glow: rgba(124,58,237,0.12);
+  --premium-accent: #7c3aed;
+  --premium-border: rgba(255,255,255,0.06);
+  --glass-blur: 12px;
+  --glass-saturation: 120%;
+}

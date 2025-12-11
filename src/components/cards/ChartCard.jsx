@@ -1,0 +1,1 @@
+﻿export default ()=> 'ChartCard placeholder';

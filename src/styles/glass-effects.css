@@ -1,0 +1,14 @@
+﻿.glass-card {
+  background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));
+  backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturation));
+  border: 1px solid var(--premium-border);
+  border-radius: 14px;
+  box-shadow: 0 8px 30px rgba(2,6,23,0.6);
+  padding: 12px;
+}
+.glass-ghost {
+  background: transparent;
+  border: 1px solid rgba(255,255,255,0.03);
+  border-radius: 10px;
+  padding: 10px;
+}

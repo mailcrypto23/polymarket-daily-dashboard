@@ -1,0 +1,1 @@
+﻿export default ()=> 'MetricCard placeholder';

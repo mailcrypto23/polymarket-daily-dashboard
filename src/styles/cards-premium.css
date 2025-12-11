@@ -1,0 +1,5 @@
+﻿.premium-metric {
+  display:flex; flex-direction:column; gap:6px;
+}
+.premium-metric .label { font-size:12px; opacity:0.8; }
+.premium-metric .value { font-size:20px; font-weight:700; color: var(--premium-accent); }
