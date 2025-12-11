@@ -2,27 +2,29 @@
   "name": "polymarket-daily-dashboard-premium",
   "version": "0.1.0",
   "private": true,
+
   "scripts": {
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview"
   },
+
   "dependencies": {
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
-    "react-router-dom": "^6.14.1",
+    "react-router-dom": "^6.22.0",
     "recharts": "^2.6.2",
     "clsx": "^2.1.0",
     "framer-motion": "^10.16.4",
     "lucide-react": "^0.312.0"
   },
+
   "devDependencies": {
-    "vite": "^5.0.0",
+    "vite": "^5.0.12",
+    "@vitejs/plugin-react": "^4.2.0",
+
     "tailwindcss": "^3.4.14",
-    "autoprefixer": "^10.4.14",
-    "postcss": "^8.4.24",
-    "@vitejs/plugin-react": "^4.2.0"
+    "postcss": "^8.4.35",
+    "autoprefixer": "^10.4.17"
   }
 }
-
-
