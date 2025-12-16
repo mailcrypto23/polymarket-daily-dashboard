@@ -1,48 +1,34 @@
 // File: src/pages/OrderbookPage.jsx
 import React from "react";
 
-export default function OrderbookPage({ market }) {
-  if (!market || !market.orderbook) {
-    return (
-      <div className="text-sm opacity-70">
-        No orderbook data (mock demo)
-      </div>
-    );
+function OrderbookList({ title, entries }) {
+  if (!entries || entries.length === 0) {
+    return <div className="text-sm opacity-60">No data</div>;
   }
 
-  const { bids = [], asks = [] } = market.orderbook;
+  return (
+    <div>
+      <div className="text-xs opacity-70 mb-2">{title}</div>
+      <div className="space-y-1 text-sm">
+        {entries.slice(0, 8).map((e, i) => (
+          <div key={i} className="flex justify-between">
+            <span>{e.price}</span>
+            <span className="opacity-70">{e.size}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+export default function OrderbookPage({ market }) {
+  const bids = market?.orderbook?.bids || [];
+  const asks = market?.orderbook?.asks || [];
 
   return (
-    <div className="grid grid-cols-2 gap-4 text-sm">
-      {/* BIDS */}
-      <div>
-        <div className="mb-2 text-xs opacity-70">Bids</div>
-        {bids.length === 0 ? (
-          <div className="opacity-60">No bids</div>
-        ) : (
-          bids.slice(0, 8).map((b, i) => (
-            <div key={i} className="flex justify-between">
-              <span>{b.price}</span>
-              <span className="opacity-70">{b.size}</span>
-            </div>
-          ))
-        )}
-      </div>
-
-      {/* ASKS */}
-      <div>
-        <div className="mb-2 text-xs opacity-70">Asks</div>
-        {asks.length === 0 ? (
-          <div className="opacity-60">No asks</div>
-        ) : (
-          asks.slice(0, 8).map((a, i) => (
-            <div key={i} className="flex justify-between">
-              <span>{a.price}</span>
-              <span className="opacity-70">{a.size}</span>
-            </div>
-          ))
-        )}
-      </div>
+    <div className="grid grid-cols-2 gap-4">
+      <OrderbookList title="Bids" entries={bids} />
+      <OrderbookList title="Asks" entries={asks} />
     </div>
   );
 }
