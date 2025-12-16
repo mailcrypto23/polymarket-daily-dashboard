@@ -1,19 +1,18 @@
-// File: src/pages/OrderbookPage.jsx
+// src/pages/OrderbookPage.jsx
 import React from "react";
 
-function OrderbookList({ title, entries }) {
-  if (!entries || entries.length === 0) {
-    return <div className="text-sm opacity-60">No data</div>;
-  }
-
+function Column({ title, data }) {
   return (
     <div>
       <div className="text-xs opacity-70 mb-2">{title}</div>
       <div className="space-y-1 text-sm">
-        {entries.slice(0, 8).map((e, i) => (
+        {data.length === 0 && (
+          <div className="opacity-50">No data</div>
+        )}
+        {data.slice(0, 8).map((row, i) => (
           <div key={i} className="flex justify-between">
-            <span>{e.price}</span>
-            <span className="opacity-70">{e.size}</span>
+            <span>{row.price}</span>
+            <span className="opacity-60">{row.size}</span>
           </div>
         ))}
       </div>
@@ -27,8 +26,8 @@ export default function OrderbookPage({ market }) {
 
   return (
     <div className="grid grid-cols-2 gap-4">
-      <OrderbookList title="Bids" entries={bids} />
-      <OrderbookList title="Asks" entries={asks} />
+      <Column title="Bids" data={bids} />
+      <Column title="Asks" data={asks} />
     </div>
   );
 }
