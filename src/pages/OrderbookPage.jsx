@@ -1,53 +1,48 @@
-// src/pages/OrderbookPage.jsx
-import React, { useEffect, useState } from "react";
-import { fetchOrderbook } from "../services/orderbook";
+// File: src/pages/OrderbookPage.jsx
+import React from "react";
 
-export default function OrderbookPage() {
-  const [book, setBook] = useState(null);
+export default function OrderbookPage({ market }) {
+  if (!market || !market.orderbook) {
+    return (
+      <div className="text-sm opacity-70">
+        No orderbook data (mock demo)
+      </div>
+    );
+  }
 
-  useEffect(() => {
-    fetchOrderbook().then(setBook);
-  }, []);
+  const { bids = [], asks = [] } = market.orderbook;
 
   return (
-    <div className="p-6 text-white">
-      <h1 className="text-3xl font-bold mb-6">Orderbook</h1>
+    <div className="grid grid-cols-2 gap-4 text-sm">
+      {/* BIDS */}
+      <div>
+        <div className="mb-2 text-xs opacity-70">Bids</div>
+        {bids.length === 0 ? (
+          <div className="opacity-60">No bids</div>
+        ) : (
+          bids.slice(0, 8).map((b, i) => (
+            <div key={i} className="flex justify-between">
+              <span>{b.price}</span>
+              <span className="opacity-70">{b.size}</span>
+            </div>
+          ))
+        )}
+      </div>
 
-      {!book ? (
-        <div className="opacity-60">Loading mock orderbook…</div>
-      ) : (
-        <div className="grid grid-cols-2 gap-6">
-          {/* BIDS */}
-          <div className="bg-[#172033] p-5 rounded-xl">
-            <h3 className="text-xl font-bold mb-2 text-green-400">Bids</h3>
-            {book.bids.length === 0 ? (
-              <div className="opacity-60">No bids</div>
-            ) : (
-              book.bids.map((b, i) => (
-                <div key={i} className="flex justify-between border-b border-white/10 py-2">
-                  <span>{b.price}</span>
-                  <span>{b.size}</span>
-                </div>
-              ))
-            )}
-          </div>
-
-          {/* ASKS */}
-          <div className="bg-[#331722] p-5 rounded-xl">
-            <h3 className="text-xl font-bold mb-2 text-red-400">Asks</h3>
-            {book.asks.length === 0 ? (
-              <div className="opacity-60">No asks</div>
-            ) : (
-              book.asks.map((a, i) => (
-                <div key={i} className="flex justify-between border-b border-white/10 py-2">
-                  <span>{a.price}</span>
-                  <span>{a.size}</span>
-                </div>
-              ))
-            )}
-          </div>
-        </div>
-      )}
+      {/* ASKS */}
+      <div>
+        <div className="mb-2 text-xs opacity-70">Asks</div>
+        {asks.length === 0 ? (
+          <div className="opacity-60">No asks</div>
+        ) : (
+          asks.slice(0, 8).map((a, i) => (
+            <div key={i} className="flex justify-between">
+              <span>{a.price}</span>
+              <span className="opacity-70">{a.size}</span>
+            </div>
+          ))
+        )}
+      </div>
     </div>
   );
 }
