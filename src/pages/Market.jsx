@@ -1,12 +1,10 @@
-import Market from "./Market";
-import OrderbookPage from "./OrderbookPage";
 // File: src/pages/Market.jsx
 import React from "react";
 
 export default function Market({ markets = [], onSelect }) {
   if (!markets.length) {
     return (
-      <div className="p-6 text-sm opacity-70 text-center">
+      <div className="p-6 text-center text-sm opacity-70">
         No market mock-data found.
       </div>
     );
@@ -29,7 +27,7 @@ export default function Market({ markets = [], onSelect }) {
               onClick={() => onSelect?.(m)}
               className="cursor-pointer hover:bg-[#0e1726]"
             >
-              <td className="py-3 font-medium">{m.pair}</td>
+              <td className="py-2 font-medium">{m.pair}</td>
               <td>{m.price}</td>
               <td>{m.volume24h}</td>
             </tr>
@@ -39,4 +37,3 @@ export default function Market({ markets = [], onSelect }) {
     </div>
   );
 }
-
