@@ -13,41 +13,32 @@ export default function SidebarMarketCards() {
       {markets.map((m) => (
         <div
           key={m.title}
-          className="
-            relative mx-2 p-3 rounded-xl text-white
-            bg-gradient-to-r from-indigo-600/70 via-purple-600/70 to-violet-600/70
-          "
+          className="relative mx-2 p-3 rounded-xl text-white
+                     bg-gradient-to-r from-indigo-600 via-purple-600 to-violet-600"
         >
-          {/* Ticket cut */}
-          <div
-            className="absolute -top-2 left-1/2 -translate-x-1/2
-                       w-4 h-4 rounded-full"
-            style={{ background: "#0b1220" }}
-          />
-          <div
-            className="absolute -bottom-2 left-1/2 -translate-x-1/2
-                       w-4 h-4 rounded-full"
-            style={{ background: "#0b1220" }}
-          />
+          {/* Ticket cuts */}
+          <div className="absolute -top-2 left-1/2 -translate-x-1/2
+                          w-4 h-4 rounded-full bg-premiumDark" />
+          <div className="absolute -bottom-2 left-1/2 -translate-x-1/2
+                          w-4 h-4 rounded-full bg-premiumDark" />
 
           <div className="text-[10px] opacity-80">{m.date}</div>
           <div className="text-sm font-semibold leading-tight">
             {m.title}
           </div>
 
-          {/* Disabled YES / NO */}
           <div className="mt-2 flex gap-2">
             <button
               disabled
               className="flex-1 py-1 rounded-full text-[11px]
-                         bg-white/15 text-white/50 cursor-not-allowed"
+                         bg-white/20 text-white/60 cursor-not-allowed"
             >
               YES
             </button>
             <button
               disabled
               className="flex-1 py-1 rounded-full text-[11px]
-                         bg-black/20 text-white/50 cursor-not-allowed"
+                         bg-black/20 text-white/60 cursor-not-allowed"
             >
               NO
             </button>
