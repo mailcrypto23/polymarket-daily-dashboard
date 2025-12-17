@@ -1,36 +1,16 @@
-import React from "react";
+import CandlesChart from "../charts/CandlesChart";
 
-export default function ChartCard({ trades = [] }) {
+export default function ChartCard({ title = "Price Chart", pair }) {
   return (
-    <div className="rounded-xl bg-[#0b1220] border border-white/5 p-5">
-      <div className="text-sm text-gray-400 mb-3">Recent Trades</div>
+    <div className="bg-premiumCard rounded-xl p-4 h-full">
+      <div className="flex justify-between items-center mb-3">
+        <h3 className="font-semibold">{title}</h3>
+        <span className="text-xs opacity-70">{pair}</span>
+      </div>
 
-      {trades.length === 0 && (
-        <div className="text-sm text-gray-500">No activity</div>
-      )}
-
-      <div className="space-y-2">
-        {trades.slice(0, 5).map((t, i) => (
-          <div
-            key={i}
-            className="flex justify-between text-sm"
-          >
-            <span
-              className={
-                t.side === "BUY"
-                  ? "text-green-400"
-                  : "text-red-400"
-              }
-            >
-              {t.side}
-            </span>
-            <span className="text-white">{t.price}</span>
-            <span className="text-gray-500">{t.qty}</span>
-          </div>
-        ))}
+      <div className="h-[260px]">
+        <CandlesChart />
       </div>
     </div>
   );
 }
-
-
