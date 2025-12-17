@@ -40,10 +40,8 @@ export default function Dashboard() {
   };
 
   useEffect(() => {
-    if (mockMarkets?.length) {
-      setMarkets(mockMarkets);
-      setSelected(mockMarkets[0]);
-    }
+    setMarkets(mockMarkets || []);
+    setSelected(mockMarkets?.[0] || null);
   }, []);
 
   return (
@@ -64,13 +62,10 @@ export default function Dashboard() {
           <NeonPriceTicker pair={`${activeMarket}/USDT`} />
         </div>
 
-        {/* LAST TRADE */}
         <LastTradeCard trade={lastTrade} />
 
-        {/* TOP OPPORTUNITIES */}
         <TopOpportunities />
 
-        {/* MARKET SELECTOR */}
         <MarketSelector
           active={activeMarket}
           onChange={setActiveMarket}
@@ -78,66 +73,57 @@ export default function Dashboard() {
 
         {/* CHARTS */}
         <section className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <Chart title="Price Movement">
+          <div className="bg-premiumCard p-4 rounded-lg">
+            <h3 className="font-semibold mb-2">Price Movement</h3>
             <LinePriceChart market={activeMarket} />
-          </Chart>
+          </div>
 
-          <Chart title="Market Depth">
+          <div className="bg-premiumCard p-4 rounded-lg">
+            <h3 className="font-semibold mb-2">Market Depth</h3>
             <MarketDepth market={activeMarket} />
-          </Chart>
+          </div>
 
-          <Chart title="Liquidity Heatmap">
+          <div className="bg-premiumCard p-4 rounded-lg">
+            <h3 className="font-semibold mb-2">Liquidity Heatmap</h3>
             <LiquidityHeatmap market={activeMarket} />
-          </Chart>
+          </div>
 
-          <Chart title="Spread Scanner">
+          <div className="bg-premiumCard p-4 rounded-lg">
+            <h3 className="font-semibold mb-2">Spread Scanner</h3>
             <SpreadScanner market={activeMarket} />
-          </Chart>
+          </div>
         </section>
 
-        {/* YES / NO ORDERFLOW */}
+        {/* YES / NO */}
         <section className="bg-premiumCard p-4 rounded-lg">
-          <h3 className="font-semibold mb-3">
-            YES / NO Liquidity
-          </h3>
-          <YesNoOrderbook market={activeMarket} />
+          <h3 className="font-semibold mb-3">YES / NO Liquidity</h3>
+          <YesNoOrderbook market={selected} />
         </section>
 
-        {/* MARKETS TABLE */}
+        {/* MARKETS */}
         <section>
           <h2 className="text-xl font-medium mb-3">Markets</h2>
           <div className="bg-premiumCard p-4 rounded-lg">
-            <MarketsTable
-              markets={markets}
-              onSelect={setSelected}
-            />
+            <MarketsTable markets={markets} onSelect={setSelected} />
           </div>
         </section>
 
         {/* ORDERBOOK + PORTFOLIO */}
         <section className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <Chart title="Orderbook">
+          <div className="bg-premiumCard p-4 rounded-lg">
+            <h3 className="font-semibold mb-3">Orderbook</h3>
             <OrderbookWidget market={selected} />
-          </Chart>
+          </div>
 
-          <Chart title="Portfolio">
+          <div className="bg-premiumCard p-4 rounded-lg">
+            <h3 className="font-semibold mb-3">Portfolio</h3>
             <div className="text-2xl font-bold">$0.00</div>
             <p className="text-sm opacity-70 mt-2">
               Mock demo — API replaces this
             </p>
-          </Chart>
+          </div>
         </section>
       </main>
-    </div>
-  );
-}
-
-/* Small helper */
-function Chart({ title, children }) {
-  return (
-    <div className="bg-premiumCard p-4 rounded-lg">
-      <h3 className="font-semibold mb-2">{title}</h3>
-      {children}
     </div>
   );
 }
