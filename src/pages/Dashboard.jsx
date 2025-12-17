@@ -7,7 +7,6 @@ import Sidebar from "../components/Sidebar";
 import NeonPriceTicker from "../components/NeonPriceTicker";
 
 /* Phase-1 Core Sections */
-import QuickActions from "../components/QuickActions";
 import SlidingStats from "../components/SlidingStats";
 import TopOpportunities from "../components/TopOpportunities";
 
@@ -75,4 +74,5 @@ export default function Dashboard() {
     </div>
   );
 }
+
 
