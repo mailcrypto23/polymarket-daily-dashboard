@@ -1,34 +1,38 @@
 import React, { useEffect, useState } from "react";
 
+/* Layout */
 import Sidebar from "../components/Sidebar";
+
+/* UI */
 import PremiumCard from "../components/PremiumCard";
 import NeonPriceTicker from "../components/NeonPriceTicker";
-
 import LastTradeCard from "../components/cards/LastTradeCard";
 
+/* Tables / Widgets */
 import MarketsTable from "../components/MarketsTable";
 import OrderbookWidget from "../components/OrderbookWidget";
 
-/* 📊 Charts */
+/* Charts */
 import LinePriceChart from "../components/charts/LinePriceChart";
 import MarketDepth from "../components/charts/MarketDepth";
 import LiquidityHeatmap from "../components/charts/LiquidityHeatmap";
 import SpreadScanner from "../components/charts/SpreadScanner";
 
-/* 🔁 Orderflow */
+/* Orderflow */
 import MarketSelector from "../components/orderflow/MarketSelector";
 import YesNoOrderbook from "../components/orderflow/YesNoOrderbook";
 
-/* 🧪 Mock Data */
+/* Mock Data */
 import mockMarkets from "../mock-data/markets.json";
-import orderbook from "../mock-data/orderbook.json";
 
 export default function Dashboard() {
   const [markets, setMarkets] = useState([]);
-  const [selectedMarket, setSelectedMarket] = useState("ETH");
-
   const [selected, setSelected] = useState(null);
 
+  /* GLOBAL selected market (ETH / BTC / SOL) */
+  const [activeMarket, setActiveMarket] = useState("ETH");
+
+  /* Mock last trade (API-ready later) */
   const [lastTrade] = useState({
     id: "TX-12885",
     pair: "ETH/USDT",
@@ -56,7 +60,7 @@ export default function Dashboard() {
               Hybrid dashboard · Mock live demo
             </p>
           </div>
-          <NeonPriceTicker pair={`${selectedMarket}/USDT`} />
+          <NeonPriceTicker pair={`${activeMarket}/USDT`} />
         </div>
 
         {/* METRICS */}
@@ -69,44 +73,39 @@ export default function Dashboard() {
         {/* LAST TRADE */}
         <LastTradeCard trade={lastTrade} />
 
-        {/* 📈 CHARTS ROW */}
+        {/* MARKET SELECTOR */}
+        <MarketSelector
+          active={activeMarket}
+          onChange={setActiveMarket}
+        />
+
+        {/* CHARTS GRID */}
         <section className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <div className="bg-premiumCard p-4 rounded-lg">
-            <h3 className="font-semibold mb-3">Price Chart</h3>
-            <LinePriceChart market={selectedMarket} />
+            <h3 className="font-semibold mb-2">Price Chart</h3>
+            <LinePriceChart market={activeMarket} />
           </div>
 
           <div className="bg-premiumCard p-4 rounded-lg">
-            <h3 className="font-semibold mb-3">Market Depth</h3>
-            <MarketDepth market={selectedMarket} />
+            <h3 className="font-semibold mb-2">Market Depth</h3>
+            <MarketDepth market={activeMarket} />
+          </div>
+
+          <div className="bg-premiumCard p-4 rounded-lg">
+            <h3 className="font-semibold mb-2">Liquidity Heatmap</h3>
+            <LiquidityHeatmap market={activeMarket} />
+          </div>
+
+          <div className="bg-premiumCard p-4 rounded-lg">
+            <h3 className="font-semibold mb-2">Spread Scanner</h3>
+            <SpreadScanner market={activeMarket} />
           </div>
         </section>
 
-        {/* 🔥 LIQUIDITY + SPREAD */}
-        <section className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <div className="bg-premiumCard p-4 rounded-lg">
-            <h3 className="font-semibold mb-3">Liquidity Heatmap</h3>
-            <LiquidityHeatmap market={selectedMarket} />
-          </div>
-
-          <div className="bg-premiumCard p-4 rounded-lg">
-            <h3 className="font-semibold mb-3">Spread Scanner</h3>
-            <SpreadScanner />
-          </div>
-        </section>
-
-        {/* 🟢 POLYMARKET STYLE YES / NO ORDERFLOW */}
-        <section className="bg-premiumCard p-4 rounded-lg space-y-4">
-          <div className="flex justify-between items-center">
-            <h3 className="font-semibold">YES / NO Liquidity</h3>
-            <MarketSelector
-              markets={Object.keys(orderbook)}
-              selected={selectedMarket}
-              onChange={setSelectedMarket}
-            />
-          </div>
-
-          <YesNoOrderbook data={orderbook[selectedMarket]} />
+        {/* YES / NO ORDERFLOW */}
+        <section className="bg-premiumCard p-4 rounded-lg">
+          <h3 className="font-semibold mb-3">YES / NO Liquidity</h3>
+          <YesNoOrderbook market={activeMarket} />
         </section>
 
         {/* MARKETS TABLE */}
