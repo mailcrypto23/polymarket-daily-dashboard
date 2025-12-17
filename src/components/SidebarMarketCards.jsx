@@ -6,8 +6,8 @@ const markets = [
 
 export default function SidebarMarketCards() {
   return (
-    <div className="mt-4 space-y-3">
-      <h4 className="px-2 text-[11px] uppercase tracking-wide text-white/50">
+    <div className="mt-6 space-y-3">
+      <h4 className="px-3 text-[11px] uppercase tracking-wide text-white/50">
         Upcoming & Ongoing
       </h4>
 
@@ -15,35 +15,47 @@ export default function SidebarMarketCards() {
         <div
           key={m.title}
           className="
-            relative mx-1 px-4 py-3 rounded-xl
+            relative mx-2 p-3 rounded-xl text-white
             bg-gradient-to-r from-indigo-600/70 via-purple-600/70 to-violet-600/70
-            text-white
-            cursor-pointer
-            hover:brightness-110 transition
           "
         >
-          {/* ===== Ticket cut (top) ===== */}
+          {/* Ticket cut */}
           <div
             className="absolute -top-2 left-1/2 -translate-x-1/2
                        w-4 h-4 rounded-full"
             style={{ background: "#0b1220" }}
           />
-
-          {/* ===== Ticket cut (bottom) ===== */}
           <div
             className="absolute -bottom-2 left-1/2 -translate-x-1/2
                        w-4 h-4 rounded-full"
             style={{ background: "#0b1220" }}
           />
 
-          <div className="text-[11px] opacity-80">{m.date}</div>
-
+          {/* Content */}
+          <div className="text-[10px] opacity-80">{m.date}</div>
           <div className="text-sm font-semibold leading-tight">
             {m.title}
           </div>
-
-          <div className="mt-1 text-[10px] opacity-80">
+          <div className="text-[10px] opacity-80 mb-2">
             {m.status}
+          </div>
+
+          {/* YES / NO (disabled) */}
+          <div className="flex gap-2">
+            <button
+              disabled
+              className="flex-1 py-1 rounded-full text-[11px] font-semibold
+                         bg-white/15 text-white/50 cursor-not-allowed"
+            >
+              YES
+            </button>
+            <button
+              disabled
+              className="flex-1 py-1 rounded-full text-[11px] font-semibold
+                         bg-black/20 text-white/50 cursor-not-allowed"
+            >
+              NO
+            </button>
           </div>
         </div>
       ))}
