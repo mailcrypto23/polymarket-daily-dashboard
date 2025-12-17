@@ -1,4 +1,4 @@
-export default function MarketSelector({ value, onChange }) {
+export default function MarketSelector({ active, onChange }) {
   const markets = ["ETH", "BTC", "SOL", "XRP"];
 
   return (
@@ -8,7 +8,7 @@ export default function MarketSelector({ value, onChange }) {
           key={m}
           onClick={() => onChange(m)}
           className={`px-3 py-1 rounded text-sm ${
-            value === m
+            active === m
               ? "bg-purple-600"
               : "bg-premiumCard opacity-70"
           }`}
