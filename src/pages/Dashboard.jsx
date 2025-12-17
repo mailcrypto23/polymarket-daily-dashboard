@@ -28,23 +28,22 @@ import mockMarkets from "../mock-data/markets.json";
 export default function Dashboard() {
   const [markets, setMarkets] = useState([]);
   const [selected, setSelected] = useState(null);
-
-  /* Global active market */
   const [activeMarket, setActiveMarket] = useState("ETH");
 
-  /* Mock last trade */
-  const [lastTrade] = useState({
+  const lastTrade = {
     id: "TX-12885",
     pair: "ETH/USDT",
     side: "BUY",
     price: "3191.90",
     size: "0.42 ETH",
     time: Date.now(),
-  });
+  };
 
   useEffect(() => {
-    setMarkets(mockMarkets);
-    setSelected(mockMarkets[0]);
+    if (mockMarkets?.length) {
+      setMarkets(mockMarkets);
+      setSelected(mockMarkets[0]);
+    }
   }, []);
 
   return (
@@ -52,7 +51,7 @@ export default function Dashboard() {
       <Sidebar />
 
       <main className="flex-1 p-6 space-y-8">
-        {/* ================= HEADER ================= */}
+        {/* HEADER */}
         <div className="flex justify-between items-center">
           <div>
             <h1 className="text-3xl font-semibold">
@@ -65,42 +64,38 @@ export default function Dashboard() {
           <NeonPriceTicker pair={`${activeMarket}/USDT`} />
         </div>
 
-        {/* ================= LAST TRADE ================= */}
+        {/* LAST TRADE */}
         <LastTradeCard trade={lastTrade} />
 
-        {/* ================= TOP OPPORTUNITIES ================= */}
+        {/* TOP OPPORTUNITIES */}
         <TopOpportunities />
 
-        {/* ================= MARKET SELECTOR ================= */}
+        {/* MARKET SELECTOR */}
         <MarketSelector
           active={activeMarket}
           onChange={setActiveMarket}
         />
 
-        {/* ================= CHARTS ================= */}
+        {/* CHARTS */}
         <section className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <div className="bg-premiumCard p-4 rounded-lg">
-            <h3 className="font-semibold mb-2">Price Movement</h3>
+          <Chart title="Price Movement">
             <LinePriceChart market={activeMarket} />
-          </div>
+          </Chart>
 
-          <div className="bg-premiumCard p-4 rounded-lg">
-            <h3 className="font-semibold mb-2">Market Depth</h3>
+          <Chart title="Market Depth">
             <MarketDepth market={activeMarket} />
-          </div>
+          </Chart>
 
-          <div className="bg-premiumCard p-4 rounded-lg">
-            <h3 className="font-semibold mb-2">Liquidity Heatmap</h3>
+          <Chart title="Liquidity Heatmap">
             <LiquidityHeatmap market={activeMarket} />
-          </div>
+          </Chart>
 
-          <div className="bg-premiumCard p-4 rounded-lg">
-            <h3 className="font-semibold mb-2">Spread Scanner</h3>
+          <Chart title="Spread Scanner">
             <SpreadScanner market={activeMarket} />
-          </div>
+          </Chart>
         </section>
 
-        {/* ================= YES / NO ORDERFLOW ================= */}
+        {/* YES / NO ORDERFLOW */}
         <section className="bg-premiumCard p-4 rounded-lg">
           <h3 className="font-semibold mb-3">
             YES / NO Liquidity
@@ -108,7 +103,7 @@ export default function Dashboard() {
           <YesNoOrderbook market={activeMarket} />
         </section>
 
-        {/* ================= MARKETS TABLE ================= */}
+        {/* MARKETS TABLE */}
         <section>
           <h2 className="text-xl font-medium mb-3">Markets</h2>
           <div className="bg-premiumCard p-4 rounded-lg">
@@ -119,22 +114,30 @@ export default function Dashboard() {
           </div>
         </section>
 
-        {/* ================= ORDERBOOK + PORTFOLIO ================= */}
+        {/* ORDERBOOK + PORTFOLIO */}
         <section className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <div className="bg-premiumCard p-4 rounded-lg">
-            <h3 className="font-semibold mb-3">Orderbook</h3>
+          <Chart title="Orderbook">
             <OrderbookWidget market={selected} />
-          </div>
+          </Chart>
 
-          <div className="bg-premiumCard p-4 rounded-lg">
-            <h3 className="font-semibold mb-3">Portfolio</h3>
+          <Chart title="Portfolio">
             <div className="text-2xl font-bold">$0.00</div>
             <p className="text-sm opacity-70 mt-2">
               Mock demo — API replaces this
             </p>
-          </div>
+          </Chart>
         </section>
       </main>
+    </div>
+  );
+}
+
+/* Small helper */
+function Chart({ title, children }) {
+  return (
+    <div className="bg-premiumCard p-4 rounded-lg">
+      <h3 className="font-semibold mb-2">{title}</h3>
+      {children}
     </div>
   );
 }
