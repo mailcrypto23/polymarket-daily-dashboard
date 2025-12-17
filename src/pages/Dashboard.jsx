@@ -10,7 +10,7 @@ import NeonPriceTicker from "../components/NeonPriceTicker";
 import QuickActions from "../components/QuickActions";
 import SlidingStats from "../components/SlidingStats";
 import TopOpportunities from "../components/TopOpportunities";
-import MarketCarousel from "../components/MarketCarousel";
+
 
 /* Charts */
 import LinePriceChart from "../components/charts/LinePriceChart";
@@ -71,10 +71,8 @@ export default function Dashboard() {
             <SpreadScanner market={activeMarket} />
           </div>
         </section>
-
-        {/* ================= UPCOMING / ONGOING ================= */}
-        <MarketCarousel />
       </main>
     </div>
   );
 }
+
