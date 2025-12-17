@@ -3,7 +3,7 @@ import React, { useEffect, useState } from "react";
 import Sidebar from "../components/Sidebar";
 import PremiumCard from "../components/PremiumCard";
 import NeonPriceTicker from "../components/NeonPriceTicker";
-import LastTradeCard from "../components/LastTradeCard";
+import LastTradeCard from "../components/cards/LastTradeCard";
 
 import MarketsTable from "../components/MarketsTable";
 import OrderbookWidget from "../components/OrderbookWidget";
@@ -84,3 +84,4 @@ export default function Dashboard() {
     </div>
   );
 }
+
