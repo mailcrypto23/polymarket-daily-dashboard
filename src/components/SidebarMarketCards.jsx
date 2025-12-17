@@ -1,14 +1,13 @@
 const markets = [
-  { title: "Fed Decision", date: "Jan 29", status: "Ongoing" },
-  { title: "Trump VP Pick", date: "Feb 3", status: "Upcoming" },
-  { title: "ETH ETF Approval", date: "Mar 15", status: "Upcoming" },
+  { title: "Trump VP Pick", date: "Feb 3" },
+  { title: "ETH ETF Approval", date: "Mar 15" },
 ];
 
 export default function SidebarMarketCards() {
   return (
     <div className="mt-6 space-y-3">
       <h4 className="px-3 text-[11px] uppercase tracking-wide text-white/50">
-        Upcoming & Ongoing
+        Upcoming
       </h4>
 
       {markets.map((m) => (
@@ -31,27 +30,23 @@ export default function SidebarMarketCards() {
             style={{ background: "#0b1220" }}
           />
 
-          {/* Content */}
           <div className="text-[10px] opacity-80">{m.date}</div>
           <div className="text-sm font-semibold leading-tight">
             {m.title}
           </div>
-          <div className="text-[10px] opacity-80 mb-2">
-            {m.status}
-          </div>
 
-          {/* YES / NO (disabled) */}
-          <div className="flex gap-2">
+          {/* Disabled YES / NO */}
+          <div className="mt-2 flex gap-2">
             <button
               disabled
-              className="flex-1 py-1 rounded-full text-[11px] font-semibold
+              className="flex-1 py-1 rounded-full text-[11px]
                          bg-white/15 text-white/50 cursor-not-allowed"
             >
               YES
             </button>
             <button
               disabled
-              className="flex-1 py-1 rounded-full text-[11px] font-semibold
+              className="flex-1 py-1 rounded-full text-[11px]
                          bg-black/20 text-white/50 cursor-not-allowed"
             >
               NO
