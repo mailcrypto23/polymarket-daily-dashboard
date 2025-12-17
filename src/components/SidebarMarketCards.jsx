@@ -8,7 +8,7 @@ export default function SidebarMarketCards() {
   return (
     <div className="mt-6 space-y-3">
       <h4 className="px-3 text-[11px] uppercase tracking-wide text-white/50">
-        Upcoming & Ongoing
+        Upcoming
       </h4>
 
       {markets.map((m) => (
