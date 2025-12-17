@@ -5,7 +5,6 @@ import Sidebar from "../components/Sidebar";
 
 /* UI */
 import NeonPriceTicker from "../components/NeonPriceTicker";
-import LastTradeCard from "../components/cards/LastTradeCard";
 
 /* Data widgets */
 import TopOpportunities from "../components/TopOpportunities";
@@ -30,18 +29,9 @@ export default function Dashboard() {
   const [selected, setSelected] = useState(null);
   const [activeMarket, setActiveMarket] = useState("ETH");
 
-  const lastTrade = {
-    id: "TX-12885",
-    pair: "ETH/USDT",
-    side: "BUY",
-    price: "3191.90",
-    size: "0.42 ETH",
-    time: Date.now(),
-  };
-
   useEffect(() => {
-    setMarkets(mockMarkets || []);
-    setSelected(mockMarkets?.[0] || null);
+    setMarkets(mockMarkets);
+    setSelected(mockMarkets[0]);
   }, []);
 
   return (
@@ -49,7 +39,7 @@ export default function Dashboard() {
       <Sidebar />
 
       <main className="flex-1 p-6 space-y-8">
-        {/* HEADER */}
+        {/* ================= HEADER ================= */}
         <div className="flex justify-between items-center">
           <div>
             <h1 className="text-3xl font-semibold">
@@ -62,16 +52,16 @@ export default function Dashboard() {
           <NeonPriceTicker pair={`${activeMarket}/USDT`} />
         </div>
 
-        <LastTradeCard trade={lastTrade} />
-
+        {/* ================= TOP OPPORTUNITIES (MOVED UP) ================= */}
         <TopOpportunities />
 
+        {/* ================= MARKET SELECTOR ================= */}
         <MarketSelector
-          active={activeMarket}
+          value={activeMarket}
           onChange={setActiveMarket}
         />
 
-        {/* CHARTS */}
+        {/* ================= CHARTS ================= */}
         <section className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <div className="bg-premiumCard p-4 rounded-lg">
             <h3 className="font-semibold mb-2">Price Movement</h3>
@@ -94,21 +84,24 @@ export default function Dashboard() {
           </div>
         </section>
 
-        {/* YES / NO */}
+        {/* ================= YES / NO LIQUIDITY ================= */}
         <section className="bg-premiumCard p-4 rounded-lg">
           <h3 className="font-semibold mb-3">YES / NO Liquidity</h3>
           <YesNoOrderbook market={selected} />
         </section>
 
-        {/* MARKETS */}
+        {/* ================= MARKETS TABLE ================= */}
         <section>
           <h2 className="text-xl font-medium mb-3">Markets</h2>
           <div className="bg-premiumCard p-4 rounded-lg">
-            <MarketsTable markets={markets} onSelect={setSelected} />
+            <MarketsTable
+              markets={markets}
+              onSelect={setSelected}
+            />
           </div>
         </section>
 
-        {/* ORDERBOOK + PORTFOLIO */}
+        {/* ================= ORDERBOOK + PORTFOLIO ================= */}
         <section className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <div className="bg-premiumCard p-4 rounded-lg">
             <h3 className="font-semibold mb-3">Orderbook</h3>
