@@ -1,36 +1,35 @@
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import {
   LineChart,
   Line,
   ResponsiveContainer,
   XAxis,
   YAxis,
-  Tooltip,
+  Tooltip
 } from "recharts";
 
-const generatePoint = (last) => {
-  const change = (Math.random() - 0.5) * 15;
-  return Math.max(100, last + change);
-};
+function generatePoint(prev) {
+  const delta = (Math.random() - 0.5) * 4;
+  return Math.max(1000, prev + delta);
+}
 
 export default function LinePriceChart() {
   const [data, setData] = useState(
-    Array.from({ length: 30 }).map((_, i) => ({
-      time: i,
-      price: 3200 + Math.random() * 40,
+    Array.from({ length: 30 }, (_, i) => ({
+      t: i,
+      price: 3200 + Math.random() * 10
     }))
   );
 
   useEffect(() => {
     const interval = setInterval(() => {
-      setData((prev) => {
-        const lastPrice = prev[prev.length - 1].price;
-        const next = generatePoint(lastPrice);
-
-        return [
-          ...prev.slice(1),
-          { time: prev[prev.length - 1].time + 1, price: next },
-        ];
+      setData(prev => {
+        const last = prev[prev.length - 1];
+        const next = {
+          t: last.t + 1,
+          price: generatePoint(last.price)
+        };
+        return [...prev.slice(1), next];
       });
     }, 1000);
 
@@ -38,10 +37,10 @@ export default function LinePriceChart() {
   }, []);
 
   return (
-    <ResponsiveContainer width="100%" height={220}>
+    <ResponsiveContainer width="100%" height={180}>
       <LineChart data={data}>
-        <XAxis hide />
-        <YAxis hide />
+        <XAxis dataKey="t" hide />
+        <YAxis domain={["auto", "auto"]} hide />
         <Tooltip />
         <Line
           type="monotone"
