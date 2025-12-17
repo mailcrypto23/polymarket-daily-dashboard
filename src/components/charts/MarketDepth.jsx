@@ -1,16 +1,17 @@
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import {
   AreaChart,
   Area,
-  ResponsiveContainer,
+  ResponsiveContainer
 } from "recharts";
 
-const genDepth = () =>
-  Array.from({ length: 20 }).map((_, i) => ({
-    level: i,
-    bids: Math.random() * 100,
-    asks: Math.random() * 100,
+function genDepth() {
+  return Array.from({ length: 20 }, (_, i) => ({
+    x: i,
+    bid: Math.random() * 100 + 50,
+    ask: Math.random() * 100 + 50
   }));
+}
 
 export default function MarketDepth() {
   const [data, setData] = useState(genDepth());
@@ -18,23 +19,23 @@ export default function MarketDepth() {
   useEffect(() => {
     const interval = setInterval(() => {
       setData(genDepth());
-    }, 1200);
+    }, 1000);
 
     return () => clearInterval(interval);
   }, []);
 
   return (
-    <ResponsiveContainer width="100%" height={220}>
+    <ResponsiveContainer width="100%" height={180}>
       <AreaChart data={data}>
         <Area
           type="monotone"
-          dataKey="bids"
+          dataKey="bid"
           stroke="#22c55e"
           fill="#22c55e33"
         />
         <Area
           type="monotone"
-          dataKey="asks"
+          dataKey="ask"
           stroke="#ef4444"
           fill="#ef444433"
         />
