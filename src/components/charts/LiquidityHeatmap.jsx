@@ -1,71 +1,82 @@
-import React, { useState } from "react";
+import { useState } from "react";
 
-const TIMEFRAMES = ["5m", "15m", "1h"];
+const timeframes = ["5m", "15m", "1h"];
 
-// mock premium liquidity data
-const generateHeatmap = () =>
-  Array.from({ length: 5 }).map(() =>
-    Array.from({ length: 12 }).map(() => ({
-      price: (3000 + Math.random() * 500).toFixed(0),
-      side: Math.random() > 0.5 ? "YES" : "NO",
-      liquidity: (Math.random() * 2.5).toFixed(2),
-      strength: Math.random() > 0.7 ? "Whale" : "Normal",
-    }))
+function generateHeatmap() {
+  return Array.from({ length: 5 }).map(() =>
+    Array.from({ length: 12 }).map(() => {
+      const intensity = Math.random();
+      return {
+        price: (3200 + Math.random() * 40).toFixed(2),
+        side: Math.random() > 0.5 ? "YES" : "NO",
+        liquidity: `$${(Math.random() * 2 + 0.3).toFixed(2)}M`,
+        strength:
+          intensity > 0.7
+            ? "Strong"
+            : intensity > 0.4
+            ? "Medium"
+            : "Thin",
+        intensity,
+      };
+    })
   );
+}
 
-export default function LiquidityHeatmap({ market }) {
+export default function LiquidityHeatmap() {
   const [timeframe, setTimeframe] = useState("15m");
   const [data, setData] = useState(generateHeatmap());
   const [hover, setHover] = useState(null);
 
-  const onTimeChange = (t) => {
-    setTimeframe(t);
+  const changeTimeframe = (tf) => {
+    setTimeframe(tf);
     setData(generateHeatmap());
   };
 
   return (
     <div className="relative">
-
-      {/* ===== HEADER ===== */}
+      {/* HEADER */}
       <div className="flex justify-between items-center mb-3">
         <h3 className="font-semibold">Liquidity Heatmap</h3>
 
-        {/* Legend */}
-        <div className="text-[11px] text-white/70 flex items-center gap-1">
+        {/* LEGEND */}
+        <div className="flex items-center gap-1 text-xs opacity-80">
           <span>Low</span>
-          <span className="w-3 h-3 bg-purple-900 rounded-sm" />
-          <span className="w-3 h-3 bg-purple-700 rounded-sm" />
-          <span className="w-3 h-3 bg-purple-500 rounded-sm" />
-          <span className="w-3 h-3 bg-violet-400 rounded-sm" />
-          <span className="w-3 h-3 bg-violet-300 rounded-sm shadow-[0_0_6px_rgba(168,85,247,0.9)]" />
+          {[0.2, 0.4, 0.6, 0.8, 1].map((o, i) => (
+            <div
+              key={i}
+              className="w-3 h-3 rounded-sm"
+              style={{ background: `rgba(168,85,247,${o})` }}
+            />
+          ))}
           <span>High</span>
         </div>
       </div>
 
-      {/* ===== TIME CONTROLS ===== */}
-      <div className="flex gap-2 mb-3">
-        {TIMEFRAMES.map((t) => (
+      {/* TIME CONTROLS */}
+      <div className="flex gap-2 mb-4">
+        {timeframes.map((tf) => (
           <button
-            key={t}
-            onClick={() => onTimeChange(t)}
-            className={`px-3 py-1 text-xs rounded-full transition
-              ${t === timeframe
-                ? "bg-violet-600 text-white"
-                : "bg-white/10 text-white/60 hover:bg-white/20"
+            key={tf}
+            onClick={() => changeTimeframe(tf)}
+            className={`px-3 py-1 rounded-full text-xs transition
+              ${
+                timeframe === tf
+                  ? "bg-violet-600 text-white"
+                  : "bg-white/10 hover:bg-white/20"
               }`}
           >
-            {t}
+            {tf}
           </button>
         ))}
       </div>
 
-      {/* ===== HEATMAP GRID ===== */}
-      <div className="grid gap-2 animate-fadeIn">
+      {/* HEATMAP GRID */}
+      <div className="space-y-2">
         {data.map((row, rIdx) => (
           <div key={rIdx} className="flex gap-2">
             {row.map((cell, cIdx) => {
-              const intensity = Math.min(1, cell.liquidity / 2.5);
-              const isWhale = cell.strength === "Whale";
+              const intensity = cell.intensity;
+              const isWhale = intensity > 0.85;
 
               return (
                 <div
@@ -73,7 +84,12 @@ export default function LiquidityHeatmap({ market }) {
                   onMouseEnter={() => setHover(cell)}
                   onMouseLeave={() => setHover(null)}
                   className={`h-5 w-8 rounded-md cursor-pointer transition-all
-                    ${isWhale ? "ring-2 ring-violet-400 shadow-[0_0_10px_rgba(168,85,247,0.8)]" : ""}
+                    ${intensity > 0.7 ? "heatmap-pulse" : ""}
+                    ${
+                      isWhale
+                        ? "ring-2 ring-violet-400 shadow-[0_0_12px_rgba(168,85,247,0.9)]"
+                        : ""
+                    }
                   `}
                   style={{
                     background: `rgba(168,85,247,${0.25 + intensity})`,
@@ -85,18 +101,20 @@ export default function LiquidityHeatmap({ market }) {
         ))}
       </div>
 
-      {/* ===== TOOLTIP ===== */}
+      {/* HOVER TOOLTIP */}
       {hover && (
-        <div className="absolute right-4 bottom-4 bg-black/90 border border-white/10
-                        text-xs rounded-lg p-3 space-y-1">
-          <div>Price: <b>${hover.price}</b></div>
-          <div>Side: <b>{hover.side}</b></div>
-          <div>Liquidity: <b>${hover.liquidity}M</b></div>
+        <div className="absolute top-2 right-2 bg-black/80 backdrop-blur p-3 rounded-lg text-xs shadow-lg space-y-1">
           <div>
-            Strength:{" "}
-            <b className={hover.strength === "Whale" ? "text-violet-400" : ""}>
-              {hover.strength}
-            </b>
+            <strong>Price:</strong> ${hover.price}
+          </div>
+          <div>
+            <strong>Side:</strong> {hover.side}
+          </div>
+          <div>
+            <strong>Liquidity:</strong> {hover.liquidity}
+          </div>
+          <div>
+            <strong>Strength:</strong> {hover.strength}
           </div>
         </div>
       )}
