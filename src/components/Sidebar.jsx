@@ -1,3 +1,5 @@
+import LastWinningBet from "./cards/LastWinningBet";
+import SidebarMarketCards from "./SidebarMarketCards";
 import SidebarMarketCards from "./SidebarMarketCards";
 import LastWinningBet from "./cards/LastWinningBet";
 
@@ -46,3 +48,4 @@ export default function Sidebar() {
     </aside>
   );
 }
+
