@@ -18,7 +18,7 @@ import SpreadScanner from "../components/charts/SpreadScanner";
 /* Orderflow */
 import MarketSelector from "../components/orderflow/MarketSelector";
 
-/* Leaderboard */
+/* Premium */
 import SmartMoneyLeaderboard from "../components/leaderboard/SmartMoneyLeaderboard";
 
 export default function Dashboard() {
@@ -39,8 +39,12 @@ export default function Dashboard() {
           </p>
         </div>
 
-        <div className="flex gap-4">
-          <NeonPriceTicker pair={`${activeMarket}/USDT`} />
+        {/* RIGHT SIDE — COMPACT */}
+        <div className="flex gap-3 items-start">
+          <NeonPriceTicker
+            pair={`${activeMarket}/USDT`}
+            compact
+          />
           <SmartMoneyLeaderboard />
         </div>
       </div>
@@ -67,7 +71,7 @@ export default function Dashboard() {
         </div>
       </section>
 
-      {/* ================= HEATMAP + AI INSIGHT ================= */}
+      {/* ================= HEATMAP + AI ================= */}
       <section className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
         <div className="lg:col-span-2 bg-premiumCard p-4 rounded-lg">
           <LiquidityHeatmap
