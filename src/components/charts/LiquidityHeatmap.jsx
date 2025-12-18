@@ -170,3 +170,32 @@ export default function LiquidityHeatmap() {
     </div>
   );
 }
+export function deriveHeatmapSignal(data) {
+  let yes = 0;
+  let no = 0;
+  let whales = 0;
+
+  data.flat().forEach((c) => {
+    const value = c.intensity;
+    c.side === "YES" ? (yes += value) : (no += value);
+    if (value > 0.85) whales++;
+  });
+
+  const dominance =
+    yes > no ? "YES" : no > yes ? "NO" : "Neutral";
+
+  const confidence = Math.min(
+    96,
+    Math.round(Math.abs(yes - no) * 28 + whales * 3)
+  );
+
+  return {
+    dominance,
+    confidence,
+    whales,
+    yesStrength: yes.toFixed(2),
+    noStrength: no.toFixed(2),
+  };
+}
+
+
