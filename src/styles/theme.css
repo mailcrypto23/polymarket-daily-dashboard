@@ -1,13 +1,11 @@
-/* ===============================
-   Winning Bet – Premium Glow
-================================ */
+/* ===== Winning Card Glow Animation ===== */
 
 @keyframes pulseGlow {
   0% {
     box-shadow: 0 0 0px rgba(16, 185, 129, 0.4);
   }
   50% {
-    box-shadow: 0 0 24px rgba(16, 185, 129, 0.9);
+    box-shadow: 0 0 28px rgba(16, 185, 129, 0.95);
   }
   100% {
     box-shadow: 0 0 0px rgba(16, 185, 129, 0.4);
@@ -17,5 +15,3 @@
 .animate-pulseGlow {
   animation: pulseGlow 2.2s ease-in-out infinite;
 }
-
-
