@@ -18,6 +18,9 @@ import SpreadScanner from "../components/charts/SpreadScanner";
 /* Orderflow */
 import MarketSelector from "../components/orderflow/MarketSelector";
 
+/* Leaderboard */
+import SmartMoneyLeaderboard from "../components/leaderboard/SmartMoneyLeaderboard";
+
 export default function Dashboard() {
   const [activeMarket, setActiveMarket] = useState("ETH");
   const [heatmapSignal, setHeatmapSignal] = useState(null);
@@ -26,7 +29,7 @@ export default function Dashboard() {
     <div className="space-y-8">
 
       {/* ================= HEADER ================= */}
-      <div className="flex justify-between items-center">
+      <div className="flex justify-between items-start gap-6">
         <div>
           <h1 className="text-3xl font-semibold">
             Polymarket — Premium
@@ -36,7 +39,10 @@ export default function Dashboard() {
           </p>
         </div>
 
-        <NeonPriceTicker pair={`${activeMarket}/USDT`} />
+        <div className="flex gap-4">
+          <NeonPriceTicker pair={`${activeMarket}/USDT`} />
+          <SmartMoneyLeaderboard />
+        </div>
       </div>
 
       {/* ================= TOP OPPORTUNITIES ================= */}
@@ -63,7 +69,6 @@ export default function Dashboard() {
 
       {/* ================= HEATMAP + AI INSIGHT ================= */}
       <section className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
-        {/* Heatmap (wide) */}
         <div className="lg:col-span-2 bg-premiumCard p-4 rounded-lg">
           <LiquidityHeatmap
             market={activeMarket}
@@ -71,7 +76,6 @@ export default function Dashboard() {
           />
         </div>
 
-        {/* AI Insight (compact & anchored) */}
         <HeatmapInsight signal={heatmapSignal} />
       </section>
 
