@@ -1,10 +1,7 @@
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 
 /* Layout */
 import Sidebar from "../components/Sidebar";
-
-/* UI */
-import NeonPriceTicker from "../components/NeonPriceTicker";
 
 /* Data widgets */
 import TopOpportunities from "../components/TopOpportunities";
@@ -15,16 +12,12 @@ import MarketDepth from "../components/charts/MarketDepth";
 import LiquidityHeatmap from "../components/charts/LiquidityHeatmap";
 import SpreadScanner from "../components/charts/SpreadScanner";
 
-/* Orderflow */
+/* Controls */
 import MarketSelector from "../components/orderflow/MarketSelector";
 
 export default function Dashboard() {
   /* Active market selector */
   const [activeMarket, setActiveMarket] = useState("ETH");
-
-  useEffect(() => {
-    // reserved for future data hooks
-  }, []);
 
   return (
     <div className="min-h-screen flex bg-premiumDark text-premiumText">
@@ -34,7 +27,8 @@ export default function Dashboard() {
       {/* ===== MAIN CONTENT ===== */}
       <main className="flex-1 p-6 space-y-8">
         {/* ================= HEADER ================= */}
-        <div className="flex justify-between items-center">
+        <div className="flex justify-between items-start">
+          {/* Title */}
           <div>
             <h1 className="text-3xl font-semibold">
               Polymarket — Premium
@@ -44,7 +38,14 @@ export default function Dashboard() {
             </p>
           </div>
 
-          <NeonPriceTicker pair={`${activeMarket}/USDT`} />
+          {/* Portfolio + Wallet */}
+          <div className="text-right bg-premiumCard rounded-xl px-4 py-3">
+            <div className="text-xs opacity-70 mb-1">Portfolio</div>
+            <div className="text-2xl font-bold">$0.00</div>
+            <div className="text-[11px] opacity-60 mt-1">
+              MetaMask · Not connected
+            </div>
+          </div>
         </div>
 
         {/* ================= HIGH-CONFIDENCE OPPORTUNITIES ================= */}
@@ -79,8 +80,9 @@ export default function Dashboard() {
           </div>
         </section>
 
-        {/* ⛔ END DASHBOARD CONTENT */}
+        {/* ⛔ NOTHING AFTER THIS */}
       </main>
     </div>
   );
 }
+
