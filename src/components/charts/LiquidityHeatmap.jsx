@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { deriveHeatmapSignal } from "./LiquidityHeatmap";
+import { deriveHeatmapSignal } from "../../utils/deriveHeatmapSignal";
 
 const timeframes = ["5m", "15m", "1h"];
 
@@ -24,26 +24,25 @@ export default function LiquidityHeatmap({ onSignal }) {
   const [data, setData] = useState(generateHeatmap());
   const [hover, setHover] = useState(null);
 
-  // 🔁 auto-fluctuation
+  // 🔁 AUTO-FLUCTUATION
   useEffect(() => {
-    const i = setInterval(() => {
+    const interval = setInterval(() => {
       setData(generateHeatmap());
     }, 4000);
-    return () => clearInterval(i);
+    return () => clearInterval(interval);
   }, []);
 
-  // 🔗 send AI signal upward
+  // 🔗 SEND AI SIGNAL
   useEffect(() => {
     onSignal?.(deriveHeatmapSignal(data));
   }, [data, onSignal]);
 
   return (
-    <div className="relative">
+    <div className="relative animate-fadeIn">
       {/* HEADER */}
-      <div className="flex justify-between items-center mb-3">
-        <h3 className="font-semibold">Liquidity Heatmap</h3>
+      <div className="flex justify-between items-center mb-2">
+        <h3 className="font-semibold text-sm">Liquidity Heatmap</h3>
 
-        {/* LEGEND */}
         <div className="flex items-center gap-1 text-xs opacity-80">
           <span>Low</span>
           {[0.3, 0.5, 0.7, 0.9, 1].map((o, i) => (
@@ -57,13 +56,13 @@ export default function LiquidityHeatmap({ onSignal }) {
         </div>
       </div>
 
-      {/* TIME CONTROLS */}
-      <div className="flex gap-2 mb-4">
-        {timeframes.map((tf) => (
+      {/* TIMEFRAME */}
+      <div className="flex gap-2 mb-3">
+        {timeframes.map(tf => (
           <button
             key={tf}
             onClick={() => setTimeframe(tf)}
-            className={`px-3 py-1 rounded-full text-xs
+            className={`px-3 py-1 rounded-full text-xs transition
               ${
                 timeframe === tf
                   ? "bg-violet-600 text-white"
@@ -86,7 +85,7 @@ export default function LiquidityHeatmap({ onSignal }) {
                   key={c}
                   onMouseEnter={() => setHover(cell)}
                   onMouseLeave={() => setHover(null)}
-                  className={`h-5 w-8 rounded-md transition-all
+                  className={`h-4 w-7 rounded-md transition-all
                     ${cell.intensity > 0.7 ? "heatmap-pulse" : ""}
                     ${
                       whale
@@ -105,7 +104,7 @@ export default function LiquidityHeatmap({ onSignal }) {
 
       {/* TOOLTIP */}
       {hover && (
-        <div className="absolute top-2 right-2 bg-black/80 p-3 rounded-lg text-xs space-y-1">
+        <div className="absolute top-2 right-2 bg-black/80 backdrop-blur p-3 rounded-lg text-xs space-y-1 shadow-xl">
           <div><b>Price:</b> ${hover.price}</div>
           <div><b>Side:</b> {hover.side}</div>
           <div><b>Liquidity:</b> {hover.liquidity}</div>
