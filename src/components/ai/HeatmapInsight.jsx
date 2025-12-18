@@ -1,58 +1,40 @@
 export default function HeatmapInsight({ signal }) {
   if (!signal) return null;
 
-  const {
-    dominance,
-    confidence,
-    whales,
-    yesStrength,
-    noStrength,
-  } = signal;
+  const { dominance, confidence, whales } = signal;
 
   return (
-    <div className="rounded-2xl p-5
-      bg-gradient-to-br from-indigo-900/70 via-purple-900/60 to-fuchsia-900/40
-      border border-white/10 backdrop-blur text-white">
+    <div className="rounded-xl p-4
+      bg-gradient-to-br from-violet-900/70 to-purple-800/60
+      border border-white/10 text-sm shadow-xl">
 
-      <div className="flex items-center gap-2 mb-3">
-        <span>🧠</span>
-        <h3 className="text-sm font-semibold">AI Market Insight</h3>
-        <span className="ml-auto text-[10px] px-2 py-0.5 rounded-full
-          bg-emerald-500/20 text-emerald-300">
-          Demo
-        </span>
+      <div className="flex justify-between mb-2">
+        <h3 className="font-semibold flex gap-2">🧠 AI Market Insight</h3>
+        <span className="text-xs bg-white/10 px-2 rounded">Live</span>
       </div>
 
-      <div className="text-sm mb-2">
-        Dominant side:{" "}
-        <span className="text-emerald-400 font-semibold">
-          {dominance}
-        </span>
-      </div>
-
-      <ul className="space-y-1 text-xs opacity-80">
-        <li>• YES strength: {yesStrength}</li>
-        <li>• NO strength: {noStrength}</li>
-        <li>• Whale walls detected: {whales}</li>
-        <li>• Orderflow imbalance favors {dominance}</li>
+      <ul className="space-y-1 text-xs opacity-90 mb-3">
+        <li>• {dominance} liquidity dominates orderbook</li>
+        <li>• Whale walls detected: <b>{whales}</b></li>
+        <li>• Orderflow imbalance favors <b>{dominance}</b></li>
       </ul>
 
-      <div className="mt-4">
-        <div className="flex justify-between text-[10px] mb-1">
-          <span>Confidence Score</span>
+      <div>
+        <div className="flex justify-between text-xs mb-1">
+          <span>Confidence</span>
           <span>{confidence}%</span>
         </div>
-        <div className="h-2 rounded-full bg-white/10">
+        <div className="h-2 bg-black/30 rounded">
           <div
-            className="h-full rounded-full bg-gradient-to-r from-emerald-400 to-green-500"
+            className="h-2 rounded bg-emerald-400"
             style={{ width: `${confidence}%` }}
           />
         </div>
       </div>
 
-      <div className="mt-2 text-[10px] opacity-50">
-        Generated from live liquidity + whale signals
-      </div>
+      <p className="text-[10px] opacity-50 mt-2">
+        Derived from live liquidity & whale detection
+      </p>
     </div>
   );
 }
