@@ -5,25 +5,35 @@ const markets = [
 ];
 
 export default function SidebarMarketCards() {
+  const ongoingMarkets = markets.filter(
+    (m) => m.status === "Ongoing"
+  );
+
+  if (!ongoingMarkets.length) return null;
+
   return (
     <div className="mt-6 space-y-3">
       <h4 className="px-3 text-[11px] uppercase tracking-wide text-white/50">
         Ongoing
       </h4>
 
-      {markets.map((m) => (
+      {ongoingMarkets.map((m) => (
         <div
           key={m.title}
           className="relative mx-2 p-3 rounded-xl text-white
                      bg-gradient-to-r from-indigo-600/70 via-purple-600/70 to-violet-600/70"
         >
           {/* Ticket cuts */}
-          <div className="absolute -top-2 left-1/2 -translate-x-1/2 w-4 h-4 rounded-full bg-[#0b1220]" />
-          <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 w-4 h-4 rounded-full bg-[#0b1220]" />
+          <div className="absolute -top-2 left-1/2 -translate-x-1/2
+                          w-4 h-4 rounded-full bg-[#0b1220]" />
+          <div className="absolute -bottom-2 left-1/2 -translate-x-1/2
+                          w-4 h-4 rounded-full bg-[#0b1220]" />
 
           <div className="text-[10px] opacity-80">{m.date}</div>
           <div className="text-sm font-semibold">{m.title}</div>
-          <div className="text-[10px] opacity-70 mb-2">{m.status}</div>
+          <div className="text-[10px] opacity-70 mb-2">
+            {m.status}
+          </div>
 
           <div className="flex gap-2">
             <button
