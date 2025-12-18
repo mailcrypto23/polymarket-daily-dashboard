@@ -4,44 +4,19 @@
 
 @keyframes liquidityPulse {
   0% {
-    opacity: 0.85;
+    transform: scale(1);
+    filter: brightness(0.9);
   }
   50% {
-    opacity: 1;
+    transform: scale(1.08);
+    filter: brightness(1.25);
   }
   100% {
-    opacity: 0.85;
+    transform: scale(1);
+    filter: brightness(0.9);
   }
 }
 
 .heatmap-pulse {
-  animation: liquidityPulse 2.8s ease-in-out infinite;
+  animation: liquidityPulse 2.4s ease-in-out infinite;
 }
-@keyframes pulseGlow {
-  0% {
-    box-shadow: 0 0 0px rgba(16, 185, 129, 0.4);
-  }
-  50% {
-    box-shadow: 0 0 24px rgba(16, 185, 129, 0.9);
-  }
-  100% {
-    box-shadow: 0 0 0px rgba(16, 185, 129, 0.4);
-  }
-}
-
-.animate-pulseGlow {
-  animation: pulseGlow 2.2s ease-in-out infinite;
-}
-@keyframes fadeIn {
-  from { opacity: 0; transform: scale(0.98); }
-  to { opacity: 1; transform: scale(1); }
-}
-
-.animate-fadeIn {
-  animation: fadeIn 0.35s ease-out;
-}
-
-
-
-
-
