@@ -10,55 +10,49 @@ export default function HeatmapInsight({ signal }) {
   } = signal;
 
   return (
-    <div className="bg-gradient-to-br from-violet-900/70 to-purple-800/60
-                    rounded-xl p-4 text-sm text-white shadow-xl">
-      <div className="flex justify-between items-center mb-2">
-        <h3 className="font-semibold flex items-center gap-2">
-          🧠 AI Market Insight
-        </h3>
-        <span className="text-xs bg-white/10 px-2 py-0.5 rounded">
+    <div className="rounded-2xl p-5
+      bg-gradient-to-br from-indigo-900/70 via-purple-900/60 to-fuchsia-900/40
+      border border-white/10 backdrop-blur text-white">
+
+      <div className="flex items-center gap-2 mb-3">
+        <span>🧠</span>
+        <h3 className="text-sm font-semibold">AI Market Insight</h3>
+        <span className="ml-auto text-[10px] px-2 py-0.5 rounded-full
+          bg-emerald-500/20 text-emerald-300">
           Demo
         </span>
       </div>
 
-      <p className="text-xs opacity-70 mb-2">
-        Liquidity-weighted orderflow analysis
-      </p>
-
-      <div className="space-y-1 mb-3">
-        <div>
-          • <strong>{dominance}</strong> liquidity dominates
-          ({dominance === "YES" ? yesStrength : noStrength})
-        </div>
-
-        <div>
-          • Whale walls detected:{" "}
-          <strong>{whales}</strong>
-        </div>
-
-        <div>
-          • Orderflow imbalance favors{" "}
-          <strong>{dominance}</strong>
-        </div>
+      <div className="text-sm mb-2">
+        Dominant side:{" "}
+        <span className="text-emerald-400 font-semibold">
+          {dominance}
+        </span>
       </div>
 
-      {/* CONFIDENCE BAR */}
-      <div className="mt-3">
-        <div className="flex justify-between text-xs mb-1">
+      <ul className="space-y-1 text-xs opacity-80">
+        <li>• YES strength: {yesStrength}</li>
+        <li>• NO strength: {noStrength}</li>
+        <li>• Whale walls detected: {whales}</li>
+        <li>• Orderflow imbalance favors {dominance}</li>
+      </ul>
+
+      <div className="mt-4">
+        <div className="flex justify-between text-[10px] mb-1">
           <span>Confidence Score</span>
           <span>{confidence}%</span>
         </div>
-        <div className="h-2 bg-black/30 rounded">
+        <div className="h-2 rounded-full bg-white/10">
           <div
-            className="h-2 rounded bg-green-400 transition-all"
+            className="h-full rounded-full bg-gradient-to-r from-emerald-400 to-green-500"
             style={{ width: `${confidence}%` }}
           />
         </div>
       </div>
 
-      <p className="text-[10px] opacity-50 mt-2">
-        Generated using liquidity dominance, whale detection & spread signals
-      </p>
+      <div className="mt-2 text-[10px] opacity-50">
+        Generated from live liquidity + whale signals
+      </div>
     </div>
   );
 }
