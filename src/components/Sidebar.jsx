@@ -1,3 +1,4 @@
+import LastWinningBet from "./cards/LastWinningBet";
 import SidebarMarketCards from "./SidebarMarketCards";
 
 const categories = [
@@ -44,3 +45,4 @@ export default function Sidebar() {
     </aside>
   );
 }
+
