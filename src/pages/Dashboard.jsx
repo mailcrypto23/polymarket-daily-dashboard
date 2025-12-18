@@ -25,7 +25,7 @@ export default function Dashboard() {
   return (
     <div className="space-y-8">
 
-      {/* HEADER */}
+      {/* ================= HEADER ================= */}
       <div className="flex justify-between items-center">
         <div>
           <h1 className="text-3xl font-semibold">
@@ -39,16 +39,16 @@ export default function Dashboard() {
         <NeonPriceTicker pair={`${activeMarket}/USDT`} />
       </div>
 
+      {/* ================= TOP OPPORTUNITIES ================= */}
       <TopOpportunities />
 
-      {/* AI PANEL */}
-      <section className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2" />
-        <HeatmapInsight signal={heatmapSignal} />
-      </section>
+      {/* ================= MARKET SELECTOR ================= */}
+      <MarketSelector
+        value={activeMarket}
+        onChange={setActiveMarket}
+      />
 
-      <MarketSelector value={activeMarket} onChange={setActiveMarket} />
-
+      {/* ================= ANALYTICS ================= */}
       <section className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <div className="bg-premiumCard p-4 rounded-lg">
           <h3 className="font-semibold mb-2">Price Movement</h3>
@@ -59,7 +59,10 @@ export default function Dashboard() {
           <h3 className="font-semibold mb-2">Market Depth</h3>
           <MarketDepth market={activeMarket} />
         </div>
+      </section>
 
+      {/* ================= HEATMAP + AI INSIGHT (KEY SECTION) ================= */}
+      <section className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
         <div className="bg-premiumCard p-4 rounded-lg">
           <LiquidityHeatmap
             market={activeMarket}
@@ -67,10 +70,17 @@ export default function Dashboard() {
           />
         </div>
 
+        <HeatmapInsight signal={heatmapSignal} />
+      </section>
+
+      {/* ================= SPREAD SCANNER ================= */}
+      <section className="grid grid-cols-1">
         <div className="bg-premiumCard p-4 rounded-lg">
+          <h3 className="font-semibold mb-2">Spread Scanner</h3>
           <SpreadScanner market={activeMarket} />
         </div>
       </section>
+
     </div>
   );
 }
