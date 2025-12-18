@@ -1,3 +1,22 @@
+/* ===============================
+   Premium Liquidity Heatmap Pulse
+   =============================== */
+
+@keyframes liquidityPulse {
+  0% {
+    opacity: 0.85;
+  }
+  50% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0.85;
+  }
+}
+
+.heatmap-pulse {
+  animation: liquidityPulse 2.8s ease-in-out infinite;
+}
 @keyframes pulseGlow {
   0% {
     box-shadow: 0 0 0px rgba(16, 185, 129, 0.4);
@@ -21,6 +40,7 @@
 .animate-fadeIn {
   animation: fadeIn 0.35s ease-out;
 }
+
 
 
 
