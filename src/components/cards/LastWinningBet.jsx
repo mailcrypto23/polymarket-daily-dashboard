@@ -1,22 +1,20 @@
-import { useEffect, useState } from "react";
+import { useState, useEffect } from "react";
 
 export default function LastWinningBet() {
   const [claimed, setClaimed] = useState(false);
 
-  // Persist claim state
+  // persist claim
   useEffect(() => {
-    const stored = localStorage.getItem("lastWinningBetClaimed");
-    if (stored === "true") {
-      setClaimed(true);
-    }
+    const saved = localStorage.getItem("lastWinningClaimed");
+    if (saved === "true") setClaimed(true);
   }, []);
 
-  const handleClaim = () => {
+  const claim = () => {
     setClaimed(true);
-    localStorage.setItem("lastWinningBetClaimed", "true");
+    localStorage.setItem("lastWinningClaimed", "true");
   };
 
-  if (claimed) return null; // auto-hide after claim
+  if (claimed) return null;
 
   return (
     <div
@@ -26,7 +24,7 @@ export default function LastWinningBet() {
         animate-pulseGlow
       "
     >
-      {/* Ticket cut effect */}
+      {/* ticket cuts */}
       <div className="absolute -top-2 left-1/2 -translate-x-1/2 w-4 h-4 rounded-full bg-[#0b1220]" />
       <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 w-4 h-4 rounded-full bg-[#0b1220]" />
 
@@ -34,24 +32,22 @@ export default function LastWinningBet() {
         Last Winning Bet
       </div>
 
-      <div className="mt-1 font-semibold text-sm">
+      <div className="font-semibold mt-1">
         FOMC Result — Rate Hold
       </div>
 
-      <div className="text-[12px] opacity-90 mb-2">
+      <div className="text-sm opacity-90 mb-2">
         YES · Stake $2,500
       </div>
 
-      <div className="text-2xl font-bold text-white mb-3">
-        +10,000&nbsp;USDC
+      <div className="text-2xl font-bold text-white">
+        +10,000 USDC
       </div>
 
       <button
-        onClick={handleClaim}
-        className="
-          w-full py-2 rounded-full text-sm font-semibold
-          bg-white/20 hover:bg-white/30 transition
-        "
+        onClick={claim}
+        className="mt-3 w-full py-2 rounded-full text-sm font-semibold
+                   bg-black/20 hover:bg-black/30 transition"
       >
         Claim
       </button>
