@@ -1,6 +1,7 @@
-// src/App.jsx
 import React from "react";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
+
+import Layout from "./layouts/Layout";
 
 import Dashboard from "./pages/Dashboard";
 import Market from "./pages/Market";
@@ -12,11 +13,46 @@ export default function App() {
   return (
     <BrowserRouter>
       <Routes>
-        <Route path="/" element={<Dashboard />} />
-        <Route path="/market" element={<Market />} />
-        <Route path="/orderbook" element={<OrderbookPage />} />
-        <Route path="/portfolio" element={<Portfolio />} />
-        <Route path="/settings" element={<Settings />} />
+        <Route
+          path="/"
+          element={
+            <Layout>
+              <Dashboard />
+            </Layout>
+          }
+        />
+        <Route
+          path="/market"
+          element={
+            <Layout>
+              <Market />
+            </Layout>
+          }
+        />
+        <Route
+          path="/orderbook"
+          element={
+            <Layout>
+              <OrderbookPage />
+            </Layout>
+          }
+        />
+        <Route
+          path="/portfolio"
+          element={
+            <Layout>
+              <Portfolio />
+            </Layout>
+          }
+        />
+        <Route
+          path="/settings"
+          element={
+            <Layout>
+              <Settings />
+            </Layout>
+          }
+        />
       </Routes>
     </BrowserRouter>
   );
