@@ -1,7 +1,5 @@
 import LastWinningBet from "./cards/LastWinningBet";
 import SidebarMarketCards from "./SidebarMarketCards";
-import SidebarMarketCards from "./SidebarMarketCards";
-import LastWinningBet from "./cards/LastWinningBet";
 
 const categories = [
   { label: "Top Markets", icon: "🔥", count: 10 },
@@ -16,12 +14,18 @@ const categories = [
 
 export default function Sidebar() {
   return (
-    <aside className="w-64 bg-premiumDark border-r border-white/5 p-4">
-      <div className="text-xl font-semibold mb-6">
+    <aside className="w-64 bg-premiumDark border-r border-white/5 p-4 space-y-4">
+
+      {/* BRAND */}
+      <div className="text-xl font-semibold">
         Polymarket <span className="opacity-60">Premium</span>
       </div>
 
-      <nav className="space-y-1 mb-6">
+      {/* 🔥 WINNING CLAIM — MOVED TO TOP */}
+      <LastWinningBet />
+
+      {/* CATEGORIES */}
+      <nav className="space-y-1">
         {categories.map((c) => (
           <div
             key={c.label}
@@ -40,12 +44,9 @@ export default function Sidebar() {
         ))}
       </nav>
 
-      {/* ONGOING MARKETS */}
+      {/* ONGOING + UPCOMING */}
       <SidebarMarketCards />
 
-      {/* LAST WINNING BET (UNCLAIMED) */}
-      <LastWinningBet />
     </aside>
   );
 }
-
