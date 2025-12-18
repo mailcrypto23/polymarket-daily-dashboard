@@ -6,6 +6,9 @@ import NeonPriceTicker from "../components/NeonPriceTicker";
 /* Data widgets */
 import TopOpportunities from "../components/TopOpportunities";
 
+/* AI */
+import AIExplanationPanel from "../components/ai/AIExplanationPanel";
+
 /* Charts */
 import LinePriceChart from "../components/charts/LinePriceChart";
 import MarketDepth from "../components/charts/MarketDepth";
@@ -20,6 +23,7 @@ export default function Dashboard() {
 
   return (
     <div className="space-y-8">
+
       {/* ================= HEADER ================= */}
       <div className="flex justify-between items-center">
         <div>
@@ -36,6 +40,12 @@ export default function Dashboard() {
 
       {/* ================= HIGH-CONFIDENCE OPPORTUNITIES ================= */}
       <TopOpportunities />
+
+      {/* ================= AI EXPLANATION PANEL ================= */}
+      <section className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="lg:col-span-2" />
+        <AIExplanationPanel />
+      </section>
 
       {/* ================= MARKET SELECTOR ================= */}
       <MarketSelector
