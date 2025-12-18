@@ -9,9 +9,6 @@ import TopOpportunities from "../components/TopOpportunities";
 /* AI */
 import HeatmapInsight from "../components/ai/HeatmapInsight";
 
-/* Leaderboard Preview */
-import SmartMoneyPreview from "../components/leaderboard/SmartMoneyPreview";
-
 /* Charts */
 import LinePriceChart from "../components/charts/LinePriceChart";
 import MarketDepth from "../components/charts/MarketDepth";
@@ -29,7 +26,7 @@ export default function Dashboard() {
     <div className="space-y-8">
 
       {/* ================= HEADER ================= */}
-      <div className="flex justify-between items-start">
+      <div className="flex justify-between items-center">
         <div>
           <h1 className="text-3xl font-semibold">
             Polymarket — Premium
@@ -39,18 +36,11 @@ export default function Dashboard() {
           </p>
         </div>
 
-        {/* 🏆 SMART MONEY PREVIEW (replaces price ticker) */}
-        <SmartMoneyPreview />
+        <NeonPriceTicker pair={`${activeMarket}/USDT`} />
       </div>
 
       {/* ================= TOP OPPORTUNITIES ================= */}
       <TopOpportunities />
-
-      {/* ================= AI INSIGHT (HEATMAP → AI BRIDGE) ================= */}
-      <section className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2" />
-        <HeatmapInsight signal={heatmapSignal} />
-      </section>
 
       {/* ================= MARKET SELECTOR ================= */}
       <MarketSelector
@@ -58,38 +48,41 @@ export default function Dashboard() {
         onChange={setActiveMarket}
       />
 
-      {/* ================= ANALYTICS ================= */}
+      {/* ================= PRICE + DEPTH ================= */}
       <section className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-
-        {/* PRICE */}
         <div className="bg-premiumCard p-4 rounded-lg">
           <h3 className="font-semibold mb-2">Price Movement</h3>
           <LinePriceChart market={activeMarket} />
         </div>
 
-        {/* DEPTH */}
         <div className="bg-premiumCard p-4 rounded-lg">
           <h3 className="font-semibold mb-2">Market Depth</h3>
           <MarketDepth market={activeMarket} />
         </div>
+      </section>
 
-        {/* HEATMAP */}
-        <div className="bg-premiumCard p-4 rounded-lg">
+      {/* ================= HEATMAP + AI INSIGHT ================= */}
+      <section className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
+        {/* Heatmap (wide) */}
+        <div className="lg:col-span-2 bg-premiumCard p-4 rounded-lg">
           <LiquidityHeatmap
             market={activeMarket}
             onSignal={setHeatmapSignal}
           />
         </div>
 
-        {/* SPREAD */}
+        {/* AI Insight (compact & anchored) */}
+        <HeatmapInsight signal={heatmapSignal} />
+      </section>
+
+      {/* ================= SPREAD SCANNER ================= */}
+      <section className="grid grid-cols-1">
         <div className="bg-premiumCard p-4 rounded-lg">
           <h3 className="font-semibold mb-2">Spread Scanner</h3>
           <SpreadScanner market={activeMarket} />
         </div>
-
       </section>
 
-      {/* ⛔ END DASHBOARD */}
     </div>
   );
 }
