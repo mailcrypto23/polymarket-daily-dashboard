@@ -14,7 +14,14 @@ export default function LastWinningBet() {
     localStorage.setItem("lastWinningClaimed", "true");
   };
 
-  if (claimed) return null;
+  if (claimed) {
+  return (
+    <div className="mx-2 mt-4 rounded-xl p-4 bg-emerald-900/40 text-emerald-300">
+      ✅ Last winning bet claimed
+    </div>
+  );
+}
+
 
   return (
     <div
