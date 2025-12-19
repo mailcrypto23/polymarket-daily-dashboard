@@ -1,3 +1,4 @@
+import AIMarketExplanation from "../components/ai/AIMarketExplanation";
 import React, { useState } from "react";
 
 /* UI */
@@ -5,6 +6,8 @@ import NeonPriceTicker from "../components/NeonPriceTicker";
 
 /* Data widgets */
 import TopOpportunities from "../components/TopOpportunities";
+{/* ================= AI MARKET EXPLANATION ================= */}
+<AIMarketExplanation market={activeMarket} />
 
 /* AI */
 import HeatmapInsight from "../components/ai/HeatmapInsight";
@@ -94,3 +97,4 @@ export default function Dashboard() {
     </div>
   );
 }
+
