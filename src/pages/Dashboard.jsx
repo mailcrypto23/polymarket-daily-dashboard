@@ -7,7 +7,7 @@ import NeonPriceTicker from "../components/NeonPriceTicker";
 import TopOpportunities from "../components/TopOpportunities";
 
 /* AI */
-import AIMarketExplanation from "../components/ai/AIMarketExplanation";
+import AISignalStrip from "../components/ai/AISignalStrip";
 import HeatmapInsight from "../components/ai/HeatmapInsight";
 
 /* Charts */
@@ -38,6 +38,9 @@ export default function Dashboard() {
           <p className="text-sm opacity-70">
             High-confidence markets · Live demo
           </p>
+
+          {/* AI SIGNAL STRIP */}
+          <AISignalStrip market={activeMarket} />
         </div>
 
         <div className="flex gap-3 items-start">
@@ -51,9 +54,6 @@ export default function Dashboard() {
 
       {/* ================= TOP OPPORTUNITIES ================= */}
       <TopOpportunities />
-
-      {/* ================= AI MARKET EXPLANATION ================= */}
-      <AIMarketExplanation market={activeMarket} />
 
       {/* ================= MARKET SELECTOR ================= */}
       <MarketSelector
