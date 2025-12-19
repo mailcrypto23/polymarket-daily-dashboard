@@ -1,4 +1,15 @@
 # 📊 Polymarket Premium Dashboard  
+## 🌐 Live Dashboard
+
+- **Primary (Cloudflare Pages)**  
+  👉 https://polymarket-daily-dashboard.pages.dev/
+
+- **Mirror (Vercel)**  
+  👉 https://polymarket-daily-dashboard.vercel.app/
+
+- **Source Code**  
+  👉 https://github.com/mailcrypto23/polymarket-daily-dashboard
+
 **All-in-One Analytics & AI Toolkit for Prediction Markets**
 
 A professional, trader-focused analytics dashboard built specifically for **Polymarket**, combining liquidity visualization, AI-assisted signals, and market discovery into a single premium interface.
@@ -7,7 +18,7 @@ This project is designed to improve decision-making in prediction markets by tur
 
 ---
 
-## 🌐 Live Dashboard
+## 📌 Overview
 
 - **Primary (Cloudflare Pages)**  
   👉 https://polymarket-daily-dashboard.pages.dev
@@ -242,3 +253,4 @@ GitHub: https://github.com/mailcrypto23/polymarket-daily-dashboard
 ---
 
 *This dashboard is designed to enhance transparency, confidence, and decision-making for prediction market participants.*
+
