@@ -1,4 +1,3 @@
-import AIMarketExplanation from "../components/ai/AIMarketExplanation";
 import React, { useState } from "react";
 
 /* UI */
@@ -6,10 +5,9 @@ import NeonPriceTicker from "../components/NeonPriceTicker";
 
 /* Data widgets */
 import TopOpportunities from "../components/TopOpportunities";
-{/* ================= AI MARKET EXPLANATION ================= */}
-<AIMarketExplanation market={activeMarket} />
 
 /* AI */
+import AIMarketExplanation from "../components/ai/AIMarketExplanation";
 import HeatmapInsight from "../components/ai/HeatmapInsight";
 
 /* Charts */
@@ -42,7 +40,6 @@ export default function Dashboard() {
           </p>
         </div>
 
-        {/* RIGHT SIDE — COMPACT */}
         <div className="flex gap-3 items-start">
           <NeonPriceTicker
             pair={`${activeMarket}/USDT`}
@@ -54,6 +51,9 @@ export default function Dashboard() {
 
       {/* ================= TOP OPPORTUNITIES ================= */}
       <TopOpportunities />
+
+      {/* ================= AI MARKET EXPLANATION ================= */}
+      <AIMarketExplanation market={activeMarket} />
 
       {/* ================= MARKET SELECTOR ================= */}
       <MarketSelector
@@ -87,14 +87,11 @@ export default function Dashboard() {
       </section>
 
       {/* ================= SPREAD SCANNER ================= */}
-      <section className="grid grid-cols-1">
-        <div className="bg-premiumCard p-4 rounded-lg">
-          <h3 className="font-semibold mb-2">Spread Scanner</h3>
-          <SpreadScanner market={activeMarket} />
-        </div>
-      </section>
+      <div className="bg-premiumCard p-4 rounded-lg">
+        <h3 className="font-semibold mb-2">Spread Scanner</h3>
+        <SpreadScanner market={activeMarket} />
+      </div>
 
     </div>
   );
 }
-
