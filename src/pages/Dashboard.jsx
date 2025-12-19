@@ -7,8 +7,8 @@ import NeonPriceTicker from "../components/NeonPriceTicker";
 import TopOpportunities from "../components/TopOpportunities";
 
 /* AI */
-import AISignalStrip from "../components/ai/AISignalStrip";
 import HeatmapInsight from "../components/ai/HeatmapInsight";
+import AISignalStrip from "../components/ai/AISignalStrip";
 
 /* Charts */
 import LinePriceChart from "../components/charts/LinePriceChart";
@@ -29,26 +29,29 @@ export default function Dashboard() {
   return (
     <div className="space-y-8">
 
-      {/* ================= HEADER ================= */}
-      <div className="flex justify-between items-start gap-6">
-        <div>
-          <h1 className="text-3xl font-semibold">
-            Polymarket — Premium
-          </h1>
-          <p className="text-sm opacity-70">
-            High-confidence markets · Live demo
-          </p>
+      {/* ================= HEADER (WIDTH CONSTRAINED) ================= */}
+      <div className="max-w-7xl mx-auto">
+        <div className="flex justify-between items-start gap-6">
+          <div>
+            <h1 className="text-3xl font-semibold">
+              Polymarket — Premium
+            </h1>
+            <p className="text-sm opacity-70">
+              High-confidence markets · Live demo
+            </p>
 
-          {/* AI SIGNAL STRIP */}
-          <AISignalStrip market={activeMarket} />
-        </div>
+            {/* AI SIGNAL STRIP */}
+            <AISignalStrip market={activeMarket} />
+          </div>
 
-        <div className="flex gap-3 items-start">
-          <NeonPriceTicker
-            pair={`${activeMarket}/USDT`}
-            compact
-          />
-          <SmartMoneyLeaderboard />
+          {/* RIGHT SIDE — COMPACT */}
+          <div className="flex gap-3 items-start">
+            <NeonPriceTicker
+              pair={`${activeMarket}/USDT`}
+              compact
+            />
+            <SmartMoneyLeaderboard />
+          </div>
         </div>
       </div>
 
