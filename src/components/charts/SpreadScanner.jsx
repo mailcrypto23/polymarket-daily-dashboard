@@ -1,26 +1,79 @@
-const spreads = [
-  { market: "Fed Rate Cut (Jan)", yes: 0.73, no: 0.27 },
-  { market: "Trump VP Pick", yes: 0.61, no: 0.39 },
-  { market: "ETH ETF Approval", yes: 0.58, no: 0.42 },
-  { market: "Ukraine Ceasefire", yes: 0.68, no: 0.32 },
-  { market: "BTC > $100k", yes: 0.41, no: 0.59 },
-  { market: "AI Time POTY", yes: 0.96, no: 0.04 },
-];
+import { useEffect, useState } from "react";
+
+/* Live Gamma API */
+import { fetchLiveMarkets, calculateSpread } from "../../services/gammaApi";
+
+/* Mock fallback */
+import { mockMarkets } from "../../services/mock-api";
 
 export default function SpreadScanner() {
+  const [markets, setMarkets] = useState([]);
+  const [source, setSource] = useState("mock");
+
+  useEffect(() => {
+    let mounted = true;
+
+    async function load() {
+      const live = await fetchLiveMarkets({ limit: 10 });
+
+      if (!mounted) return;
+
+      if (live && live.length > 0) {
+        setMarkets(live);
+        setSource("live");
+      } else {
+        setMarkets(mockMarkets || []);
+        setSource("mock");
+      }
+    }
+
+    load();
+    const id = setInterval(load, 30000); // refresh every 30s
+    return () => {
+      mounted = false;
+      clearInterval(id);
+    };
+  }, []);
+
   return (
-    <div className="space-y-2">
-      {spreads.map((s) => {
-        const spread = Math.abs(s.yes - s.no) * 100;
+    <div className="space-y-2 text-sm">
+      <div className="text-xs opacity-60">
+        Data source: {source === "live" ? "Live Polymarket" : "Mock"}
+      </div>
+
+      {markets.map((m) => {
+        const spread = calculateSpread(m);
+        if (spread == null) return null;
+
         return (
-          <div key={s.market} className="flex justify-between text-sm">
-            <span>{s.market}</span>
-            <span className="text-green-400">
-              {spread.toFixed(0)}%
+          <div
+            key={m.id}
+            className="flex justify-between items-center"
+          >
+            <span className="truncate max-w-[60%]">
+              {m.question}
             </span>
+
+            <div className="flex items-center gap-3">
+              <span className="text-green-400">
+                {(spread * 100).toFixed(2)}%
+              </span>
+
+              {m.slug && (
+                <a
+                  href={`https://polymarket.com/event/${m.slug}`}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="text-xs underline opacity-70 hover:opacity-100"
+                >
+                  Trade →
+                </a>
+              )}
+            </div>
           </div>
         );
       })}
     </div>
   );
 }
+/  `
