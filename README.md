@@ -10,6 +10,27 @@
 - **Source Code**  
   👉 https://github.com/mailcrypto23/polymarket-daily-dashboard
 
+  ## v1.1 — Live Polymarket Public API Integration
+
+This release introduces live, read-only integration with Polymarket’s public Gamma Markets API.
+
+### What’s new
+- Live market data ingestion via public Gamma API (no auth required)
+- Spread Scanner now computes real-time YES/NO spreads when available
+- Automatic fallback to mock data to ensure production stability
+- Clear data source labeling (Live / Mock)
+- Direct routing to Polymarket event pages (“Trade →”)
+
+### Why this matters
+- Demonstrates real ecosystem integration without execution risk
+- Provides actionable analytics for traders (spreads, confidence signals)
+- Designed for future upgrade to CLOB / builder APIs once approved
+
+### Notes
+- This dashboard is analytics-only and does not place or simulate trades
+- All integrations are read-only and compliant with public API access
+
+
 **All-in-One Analytics & AI Toolkit for Prediction Markets**
 
 A professional, trader-focused analytics dashboard built specifically for **Polymarket**, combining liquidity visualization, AI-assisted signals, and market discovery into a single premium interface.
@@ -253,4 +274,5 @@ GitHub: https://github.com/mailcrypto23/polymarket-daily-dashboard
 ---
 
 *This dashboard is designed to enhance transparency, confidence, and decision-making for prediction market participants.*
+
 
