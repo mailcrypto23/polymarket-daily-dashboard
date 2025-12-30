@@ -1,9 +1,9 @@
 import { useEffect, useState } from "react";
 
-/* Live Gamma API */
+/* Live Gamma API (read-only) */
 import { fetchLiveMarkets, calculateSpread } from "../../services/gammaApi";
 
-/* Mock fallback */
+/* Mock fallback (existing service) */
 import { mockMarkets } from "../../services/mock-api";
 
 export default function SpreadScanner() {
@@ -11,27 +11,34 @@ export default function SpreadScanner() {
   const [source, setSource] = useState("mock");
 
   useEffect(() => {
-    let mounted = true;
+    let active = true;
 
-    async function load() {
-      const live = await fetchLiveMarkets({ limit: 10 });
+    async function loadMarkets() {
+      try {
+        const live = await fetchLiveMarkets({ limit: 10 });
 
-      if (!mounted) return;
+        if (!active) return;
 
-      if (live && live.length > 0) {
-        setMarkets(live);
-        setSource("live");
-      } else {
+        if (Array.isArray(live) && live.length > 0) {
+          setMarkets(live);
+          setSource("live");
+        } else {
+          setMarkets(mockMarkets || []);
+          setSource("mock");
+        }
+      } catch (err) {
+        console.error("[SpreadScanner] fallback to mock:", err);
         setMarkets(mockMarkets || []);
         setSource("mock");
       }
     }
 
-    load();
-    const id = setInterval(load, 30000); // refresh every 30s
+    loadMarkets();
+    const interval = setInterval(loadMarkets, 30000); // 30s refresh
+
     return () => {
-      mounted = false;
-      clearInterval(id);
+      active = false;
+      clearInterval(interval);
     };
   }, []);
 
@@ -50,7 +57,7 @@ export default function SpreadScanner() {
             key={m.id}
             className="flex justify-between items-center"
           >
-            <span className="truncate max-w-[60%]">
+            <span className="truncate max-w-[65%]">
               {m.question}
             </span>
 
@@ -76,4 +83,3 @@ export default function SpreadScanner() {
     </div>
   );
 }
-/  `
