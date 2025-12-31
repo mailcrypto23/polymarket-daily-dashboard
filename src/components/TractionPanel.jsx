@@ -13,29 +13,20 @@ function loadSignals() {
 function exportCSV(signals) {
   if (!signals.length) return;
 
-  const headers = [
-    "timestamp",
-    "market",
-    "side",
-    "confidence",
-    "source",
-    "outcome"
-  ];
-
+  const headers = Object.keys(signals[0]).join(",");
   const rows = signals.map(s =>
-    headers.map(h => s[h] ?? "").join(",")
+    Object.values(s)
+      .map(v => `"${String(v).replace(/"/g, '""')}"`)
+      .join(",")
   );
 
-  const csv = [headers.join(","), ...rows].join("\n");
+  const csv = [headers, ...rows].join("\n");
   const blob = new Blob([csv], { type: "text/csv" });
-  const url = URL.createObjectURL(blob);
 
   const a = document.createElement("a");
-  a.href = url;
+  a.href = URL.createObjectURL(blob);
   a.download = "pm_signal_history.csv";
   a.click();
-
-  URL.revokeObjectURL(url);
 }
 
 export default function TractionPanel() {
@@ -46,87 +37,90 @@ export default function TractionPanel() {
   }, []);
 
   const total = signals.length;
-  const resolved = signals.filter(s => s.outcome === "win" || s.outcome === "loss");
-  const wins = resolved.filter(s => s.outcome === "win").length;
-
-  const winRate =
-    resolved.length > 0
-      ? ((wins / resolved.length) * 100).toFixed(1)
-      : "—";
+  const resolved = signals.filter(s => s.result);
+  const wins = resolved.filter(s => s.result === "WIN").length;
+  const winRate = resolved.length
+    ? ((wins / resolved.length) * 100).toFixed(1)
+    : "—";
 
   return (
-    <div className="bg-[#0b1220] rounded-xl p-5 border border-white/10">
-      <h2 className="text-lg font-semibold text-white mb-4">
-        📊 Signal Traction
+    <div className="bg-[#0b1220] rounded-xl p-4 mt-6">
+      <h2 className="text-lg font-semibold mb-3">
+        📊 Traction & Signal Performance
       </h2>
 
       {/* Stats */}
-      <div className="grid grid-cols-3 gap-4 mb-6">
-        <div className="bg-white/5 p-3 rounded-lg">
-          <div className="text-xs text-gray-400">Total Signals</div>
-          <div className="text-xl font-bold text-white">{total}</div>
+      <div className="grid grid-cols-3 gap-4 mb-4 text-sm">
+        <div className="bg-[#111a2e] p-3 rounded">
+          <div className="opacity-60">Total Signals</div>
+          <div className="text-xl font-bold">{total}</div>
         </div>
-
-        <div className="bg-white/5 p-3 rounded-lg">
-          <div className="text-xs text-gray-400">Resolved</div>
-          <div className="text-xl font-bold text-white">{resolved.length}</div>
+        <div className="bg-[#111a2e] p-3 rounded">
+          <div className="opacity-60">Resolved</div>
+          <div className="text-xl font-bold">{resolved.length}</div>
         </div>
-
-        <div className="bg-white/5 p-3 rounded-lg">
-          <div className="text-xs text-gray-400">Win Rate</div>
-          <div className="text-xl font-bold text-green-400">
-            {winRate === "—" ? "Pending" : `${winRate}%`}
-          </div>
+        <div className="bg-[#111a2e] p-3 rounded">
+          <div className="opacity-60">Win Rate</div>
+          <div className="text-xl font-bold">{winRate}%</div>
         </div>
-      </div>
-
-      {/* History Table */}
-      <div className="overflow-x-auto mb-4">
-        <table className="w-full text-sm text-left">
-          <thead className="text-gray-400 border-b border-white/10">
-            <tr>
-              <th className="py-2">Time</th>
-              <th>Market</th>
-              <th>Side</th>
-              <th>Conf.</th>
-              <th>Outcome</th>
-            </tr>
-          </thead>
-          <tbody>
-            {signals.slice().reverse().map((s, i) => (
-              <tr key={i} className="border-b border-white/5 text-white">
-                <td className="py-2 text-xs">
-                  {new Date(s.timestamp).toLocaleTimeString()}
-                </td>
-                <td className="max-w-[240px] truncate">{s.market}</td>
-                <td className={s.side === "YES" ? "text-green-400" : "text-red-400"}>
-                  {s.side}
-                </td>
-                <td>{s.confidence}%</td>
-                <td className="text-gray-400">
-                  {s.outcome ?? "—"}
-                </td>
-              </tr>
-            ))}
-            {!signals.length && (
-              <tr>
-                <td colSpan="5" className="py-6 text-center text-gray-500">
-                  No signals recorded yet
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
       </div>
 
       {/* Actions */}
-      <div className="flex justify-end">
+      <div className="flex justify-between items-center mb-3">
+        <span className="text-xs opacity-60">
+          Source: local signal log (read-only)
+        </span>
         <button
           onClick={() => exportCSV(signals)}
-          className="px-4 py-2 rounded-lg bg-purple-600 hover:bg-purple-700 text-white text-sm"
+          className="text-xs px-3 py-1 rounded bg-purple-600 hover:bg-purple-700"
         >
           Export CSV
         </button>
+      </div>
+
+      {/* History */}
+      <div className="max-h-64 overflow-auto text-xs">
+        <table className="w-full">
+          <thead className="sticky top-0 bg-[#0b1220]">
+            <tr className="opacity-70 text-left">
+              <th>Time</th>
+              <th>Market</th>
+              <th>Side</th>
+              <th>Confidence</th>
+              <th>Result</th>
+            </tr>
+          </thead>
+          <tbody>
+            {signals
+              .slice()
+              .reverse()
+              .map((s, i) => (
+                <tr key={i} className="border-t border-white/5">
+                  <td>{new Date(s.ts).toLocaleTimeString()}</td>
+                  <td>{s.market}</td>
+                  <td
+                    className={
+                      s.side === "YES" ? "text-green-400" : "text-red-400"
+                    }
+                  >
+                    {s.side}
+                  </td>
+                  <td>{s.confidence}%</td>
+                  <td>
+                    {s.result ? (
+                      s.result === "WIN" ? (
+                        <span className="text-green-400">WIN</span>
+                      ) : (
+                        <span className="text-red-400">LOSS</span>
+                      )
+                    ) : (
+                      <span className="opacity-40">Pending</span>
+                    )}
+                  </td>
+                </tr>
+              ))}
+          </tbody>
+        </table>
       </div>
     </div>
   );
