@@ -1,100 +1,54 @@
-import React, { useState } from "react";
+import React, { useEffect } from "react";
 
-/* UI */
-import NeonPriceTicker from "../components/NeonPriceTicker";
+/* Core sections */
+import LiquidityHeatmap from "../components/LiquidityHeatmap";
+import MarketDepth from "../components/MarketDepth";
+import PriceMovement from "../components/PriceMovement";
+import AIMarketInsight from "../components/AIMarketInsight";
+import SpreadScanner from "../components/SpreadScanner";
+import TractionPanel from "../components/TractionPanel";
 
-/* Data widgets */
-import TopOpportunities from "../components/TopOpportunities";
-
-/* AI */
-import HeatmapInsight from "../components/ai/HeatmapInsight";
-import AISignalStrip from "../components/ai/AISignalStrip";
-
-/* Charts */
-import LinePriceChart from "../components/charts/LinePriceChart";
-import MarketDepth from "../components/charts/MarketDepth";
-import LiquidityHeatmap from "../components/charts/LiquidityHeatmap";
-import SpreadScanner from "../components/charts/SpreadScanner";
-
-/* Orderflow */
-import MarketSelector from "../components/orderflow/MarketSelector";
-
-/* Premium */
-import SmartMoneyLeaderboard from "../components/leaderboard/SmartMoneyLeaderboard";
+/* Engines */
+import { runCrypto15mEngine } from "../engine/Crypto15mSignalEngine";
 
 export default function Dashboard() {
-  const [activeMarket, setActiveMarket] = useState("ETH");
-  const [heatmapSignal, setHeatmapSignal] = useState(null);
+  // Run 15m crypto signal engine on load + every minute
+  useEffect(() => {
+    runCrypto15mEngine();
+
+    const interval = setInterval(() => {
+      runCrypto15mEngine();
+    }, 60 * 1000);
+
+    return () => clearInterval(interval);
+  }, []);
 
   return (
     <div className="space-y-8">
-
-      {/* ================= HEADER (WIDTH CONSTRAINED) ================= */}
-      <div className="max-w-7xl mx-auto">
-        <div className="flex justify-between items-start gap-6">
-          <div>
-            <h1 className="text-3xl font-semibold">
-              Polymarket — Premium
-            </h1>
-            <p className="text-sm opacity-70">
-              High-confidence markets · Live demo
-            </p>
-
-            {/* AI SIGNAL STRIP */}
-            <AISignalStrip market={activeMarket} />
-          </div>
-
-          {/* RIGHT SIDE — COMPACT */}
-          <div className="flex gap-3 items-start">
-            <NeonPriceTicker
-              pair={`${activeMarket}/USDT`}
-              compact
-            />
-            <SmartMoneyLeaderboard />
-          </div>
-        </div>
+      {/* ===================== */}
+      {/* PRICE + DEPTH */}
+      {/* ===================== */}
+      <div className="grid grid-cols-2 gap-6">
+        <PriceMovement />
+        <MarketDepth />
       </div>
 
-      {/* ================= TOP OPPORTUNITIES ================= */}
-      <TopOpportunities />
-
-      {/* ================= MARKET SELECTOR ================= */}
-      <MarketSelector
-        value={activeMarket}
-        onChange={setActiveMarket}
-      />
-
-      {/* ================= PRICE + DEPTH ================= */}
-      <section className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className="bg-premiumCard p-4 rounded-lg">
-          <h3 className="font-semibold mb-2">Price Movement</h3>
-          <LinePriceChart market={activeMarket} />
-        </div>
-
-        <div className="bg-premiumCard p-4 rounded-lg">
-          <h3 className="font-semibold mb-2">Market Depth</h3>
-          <MarketDepth market={activeMarket} />
-        </div>
-      </section>
-
-      {/* ================= HEATMAP + AI ================= */}
-      <section className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
-        <div className="lg:col-span-2 bg-premiumCard p-4 rounded-lg">
-          <LiquidityHeatmap
-            market={activeMarket}
-            onSignal={setHeatmapSignal}
-          />
-        </div>
-
-        <HeatmapInsight signal={heatmapSignal} />
-      </section>
-
-      {/* ================= SPREAD SCANNER ================= */}
-      <div className="bg-premiumCard p-4 rounded-lg">
-        <h3 className="font-semibold mb-2">Spread Scanner</h3>
-        <SpreadScanner market={activeMarket} />
+      {/* ===================== */}
+      {/* HEATMAP + TRACTION */}
+      {/* (THIS WAS THE BLANK GAP) */}
+      {/* ===================== */}
+      <div className="grid grid-cols-2 gap-6">
+        <LiquidityHeatmap />
+        <TractionPanel />
       </div>
 
+      {/* ===================== */}
+      {/* AI + SPREAD */}
+      {/* ===================== */}
+      <div className="grid grid-cols-2 gap-6">
+        <AIMarketInsight />
+        <SpreadScanner />
+      </div>
     </div>
   );
 }
