@@ -4,7 +4,7 @@ import Crypto15mSignalsPanel from "../components/Crypto15mSignalsPanel";
 import TractionPanel from "../components/TractionPanel";
 import PriceMovement from "../components/PriceMovement";
 import MarketDepthPanel from "../components/MarketDepthPanel";
-import Heatmap from "../components/Heatmap";
+import LiquidityHeatmap from "../components/charts/LiquidityHeatmap";
 import TopOpportunities from "../components/TopOpportunities";
 
 import { runCrypto15mEngine } from "../engine/Crypto15mSignalEngine";
@@ -27,7 +27,9 @@ export default function Dashboard() {
 
       {/* TRACTION */}
       <section>
-        <h2 className="text-2xl font-bold mb-6">Traction & Signal Performance</h2>
+        <h2 className="text-2xl font-bold mb-6">
+          Traction & Signal Performance
+        </h2>
         <TractionPanel />
       </section>
 
@@ -47,7 +49,7 @@ export default function Dashboard() {
       {/* LIQUIDITY HEATMAP */}
       <section>
         <h3 className="text-xl font-semibold mb-3">Liquidity Heatmap</h3>
-        <Heatmap />
+        <LiquidityHeatmap />
       </section>
 
       {/* HIGH-CONFIDENCE */}
