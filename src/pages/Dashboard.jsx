@@ -17,17 +17,17 @@ export default function Dashboard() {
   }, []);
 
   return (
-    <div className="space-y-12 max-w-7xl mx-auto px-4">
+    <div className="space-y-10 max-w-7xl mx-auto px-4">
 
       {/* CRYPTO SIGNALS */}
       <section>
-        <h2 className="text-2xl font-bold mb-6">Crypto 15-Minute Signals</h2>
+        <h2 className="text-2xl font-bold mb-4">Crypto 15-Minute Signals</h2>
         <Crypto15mSignalsPanel />
       </section>
 
       {/* TRACTION */}
       <section>
-        <h2 className="text-2xl font-bold mb-6">
+        <h2 className="text-2xl font-bold mb-4">
           Traction & Signal Performance
         </h2>
         <TractionPanel />
@@ -36,25 +36,24 @@ export default function Dashboard() {
       {/* MARKET VISUALS */}
       <section className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <div>
-          <h3 className="text-xl font-semibold mb-3">Price Movement</h3>
+          <h3 className="text-xl font-semibold mb-2">Price Movement</h3>
           <PriceMovement />
         </div>
 
         <div>
-          <h3 className="text-xl font-semibold mb-3">Market Depth</h3>
+          <h3 className="text-xl font-semibold mb-2">Market Depth</h3>
           <MarketDepthPanel />
         </div>
       </section>
 
-      {/* LIQUIDITY HEATMAP (ONLY ONCE) */}
+      {/* LIQUIDITY HEATMAP */}
       <section>
-        <h3 className="text-xl font-semibold mb-3">Liquidity Heatmap</h3>
         <LiquidityHeatmap />
       </section>
 
-      {/* HIGH-CONFIDENCE */}
+      {/* HIGH CONFIDENCE */}
       <section>
-        <h2 className="text-2xl font-bold mb-6">
+        <h2 className="text-2xl font-bold mb-4">
           🔥 High-Confidence Opportunities
         </h2>
         <TopOpportunities />
