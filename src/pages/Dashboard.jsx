@@ -21,9 +21,7 @@ export default function Dashboard() {
 
       {/* CRYPTO SIGNALS */}
       <section>
-        <h2 className="text-2xl font-bold mb-6">
-          Crypto 15-Minute Signals
-        </h2>
+        <h2 className="text-2xl font-bold mb-6">Crypto 15-Minute Signals</h2>
         <Crypto15mSignalsPanel />
       </section>
 
@@ -37,31 +35,28 @@ export default function Dashboard() {
 
       {/* MARKET VISUALS */}
       <section className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className="bg-white/5 rounded-xl p-4">
-          <h3 className="text-xl font-semibold mb-3">
-            Price Movement
-          </h3>
+        <div>
+          <h3 className="text-xl font-semibold mb-3">Price Movement</h3>
           <PriceMovement />
         </div>
 
-        <div className="bg-white/5 rounded-xl p-4">
-          <h3 className="text-xl font-semibold mb-3">
-            Market Depth
-          </h3>
+        <div>
+          <h3 className="text-xl font-semibold mb-3">Market Depth</h3>
           <MarketDepthPanel />
         </div>
       </section>
 
-      {/* LIQUIDITY HEATMAP (FIXED BOXED LAYOUT) */}
-      <section className="bg-white/5 rounded-xl p-6">
-        <h3 className="text-xl font-semibold mb-4">
-          Liquidity Heatmap
-        </h3>
+      {/* LIQUIDITY HEATMAP (ONLY ONCE) */}
+      <section>
+        <h3 className="text-xl font-semibold mb-3">Liquidity Heatmap</h3>
         <LiquidityHeatmap />
       </section>
 
-      {/* HIGH-CONFIDENCE — ONLY ONCE */}
+      {/* HIGH-CONFIDENCE */}
       <section>
+        <h2 className="text-2xl font-bold mb-6">
+          🔥 High-Confidence Opportunities
+        </h2>
         <TopOpportunities />
       </section>
 
