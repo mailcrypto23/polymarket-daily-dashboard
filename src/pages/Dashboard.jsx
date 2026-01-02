@@ -1,22 +1,12 @@
-{/* REMOVE this line */}
-{/* <h2 className="section-title">🔥 High-Confidence Opportunities</h2> */}
-
-<TopOpportunities />
 import { useEffect } from "react";
 
-/* ===== CORE SIGNALS ===== */
 import Crypto15mSignalsPanel from "../components/Crypto15mSignalsPanel";
 import TractionPanel from "../components/TractionPanel";
-
-/* ===== MARKET VISUALS (SAFE WRAPPERS ONLY) ===== */
 import PriceMovement from "../components/PriceMovement";
-import Heatmap from "../components/Heatmap";
 import MarketDepthPanel from "../components/MarketDepthPanel";
-
-/* ===== OPPORTUNITIES ===== */
+import Heatmap from "../components/Heatmap";
 import TopOpportunities from "../components/TopOpportunities";
 
-/* ===== ENGINE ===== */
 import { runCrypto15mEngine } from "../engine/Crypto15mSignalEngine";
 
 export default function Dashboard() {
@@ -27,42 +17,42 @@ export default function Dashboard() {
   }, []);
 
   return (
-    <div className="space-y-12 max-w-7xl mx-auto px-4 pb-16">
+    <div className="space-y-12 max-w-7xl mx-auto px-4">
 
-      {/* 1️⃣ CRYPTO 15-MIN SIGNALS */}
+      {/* CRYPTO SIGNALS */}
       <section>
         <h2 className="text-2xl font-bold mb-6">Crypto 15-Minute Signals</h2>
         <Crypto15mSignalsPanel />
       </section>
 
-      {/* 2️⃣ TRACTION & PERFORMANCE */}
+      {/* TRACTION */}
       <section>
         <h2 className="text-2xl font-bold mb-6">Traction & Signal Performance</h2>
         <TractionPanel />
       </section>
 
-      {/* 3️⃣ PRICE + DEPTH */}
-      <section className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+      {/* MARKET VISUALS */}
+      <section className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <div>
-          <h3 className="text-xl font-semibold mb-4">Price Movement</h3>
+          <h3 className="text-xl font-semibold mb-3">Price Movement</h3>
           <PriceMovement />
         </div>
 
         <div>
-          <h3 className="text-xl font-semibold mb-4">Market Depth</h3>
+          <h3 className="text-xl font-semibold mb-3">Market Depth</h3>
           <MarketDepthPanel />
         </div>
       </section>
 
-      {/* 4️⃣ LIQUIDITY HEATMAP */}
+      {/* LIQUIDITY HEATMAP */}
       <section>
-        <h2 className="text-xl font-semibold mb-4">Liquidity Heatmap</h2>
+        <h3 className="text-xl font-semibold mb-3">Liquidity Heatmap</h3>
         <Heatmap />
       </section>
 
-      {/* 5️⃣ HIGH-CONFIDENCE OPPORTUNITIES */}
+      {/* HIGH-CONFIDENCE */}
       <section>
-        <h2 className="text-xl font-semibold mb-4">
+        <h2 className="text-2xl font-bold mb-6">
           🔥 High-Confidence Opportunities
         </h2>
         <TopOpportunities />
@@ -71,4 +61,3 @@ export default function Dashboard() {
     </div>
   );
 }
-
