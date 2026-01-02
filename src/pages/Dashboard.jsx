@@ -1,7 +1,8 @@
 import React, { useEffect } from "react";
 
 /* Core sections */
-import LiquidityHeatmap from "../components/LiquidityHeatmap";
+// if file is liquidityHeatmap.jsx
+import LiquidityHeatmap from "../components/liquidityHeatmap";
 import MarketDepth from "../components/MarketDepth";
 import PriceMovement from "../components/PriceMovement";
 import AIMarketInsight from "../components/AIMarketInsight";
@@ -52,3 +53,4 @@ export default function Dashboard() {
     </div>
   );
 }
+
