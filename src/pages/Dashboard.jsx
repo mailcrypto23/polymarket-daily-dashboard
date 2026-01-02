@@ -1,9 +1,9 @@
 import React, { useEffect } from "react";
 
-/* Core sections */
+/* Existing components (REAL FILES) */
+import CandlesChart from "../components/CandlesChart";
+import Orderbook from "../components/Orderbook";
 import Heatmap from "../components/Heatmap";
-import MarketDepth from "../components/MarketDepth";
-import PriceMovement from "../components/PriceMovement";
 import AIMarketInsight from "../components/AIMarketInsight";
 import SpreadScanner from "../components/SpreadScanner";
 import TractionPanel from "../components/TractionPanel";
@@ -15,19 +15,17 @@ export default function Dashboard() {
   useEffect(() => {
     runCrypto15mEngine();
 
-    const interval = setInterval(() => {
-      runCrypto15mEngine();
-    }, 60 * 1000);
-
+    const interval = setInterval(runCrypto15mEngine, 60 * 1000);
     return () => clearInterval(interval);
   }, []);
 
   return (
     <div className="space-y-8">
+
       {/* PRICE + DEPTH */}
       <div className="grid grid-cols-2 gap-6">
-        <PriceMovement />
-        <MarketDepth />
+        <CandlesChart />
+        <Orderbook />
       </div>
 
       {/* HEATMAP + TRACTION */}
@@ -41,6 +39,7 @@ export default function Dashboard() {
         <AIMarketInsight />
         <SpreadScanner />
       </div>
+
     </div>
   );
 }
