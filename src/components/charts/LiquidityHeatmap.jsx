@@ -24,7 +24,7 @@ export default function LiquidityHeatmap({ onSignal }) {
   const [data, setData] = useState(generateHeatmap());
   const [hover, setHover] = useState(null);
 
-  // 🔁 AUTO-FLUCTUATION
+  // 🔁 Auto refresh (visual simulation)
   useEffect(() => {
     const interval = setInterval(() => {
       setData(generateHeatmap());
@@ -32,17 +32,21 @@ export default function LiquidityHeatmap({ onSignal }) {
     return () => clearInterval(interval);
   }, []);
 
-  // 🔗 SEND AI SIGNAL
+  // 🔗 Emit AI signal safely
   useEffect(() => {
-    onSignal?.(deriveHeatmapSignal(data));
+    if (onSignal) {
+      onSignal(deriveHeatmapSignal(data));
+    }
   }, [data, onSignal]);
 
   return (
-    <div className="relative animate-fadeIn">
+    <div className="relative max-w-3xl rounded-xl bg-white/5 p-4 backdrop-blur animate-fadeIn">
+      
       {/* HEADER */}
-      <div className="flex justify-between items-center mb-2">
-        <h3 className="font-semibold text-sm">Liquidity Heatmap</h3>
+      <div className="flex justify-between items-center mb-3">
+        <h3 className="text-sm font-semibold">Liquidity Heatmap</h3>
 
+        {/* LEGEND — FIXED INSIDE CARD */}
         <div className="flex items-center gap-1 text-xs opacity-80">
           <span>Low</span>
           {[0.3, 0.5, 0.7, 0.9, 1].map((o, i) => (
@@ -56,25 +60,24 @@ export default function LiquidityHeatmap({ onSignal }) {
         </div>
       </div>
 
-      {/* TIMEFRAME */}
-      <div className="flex gap-2 mb-3">
+      {/* TIMEFRAME SWITCH */}
+      <div className="flex gap-2 mb-4">
         {timeframes.map(tf => (
           <button
             key={tf}
             onClick={() => setTimeframe(tf)}
-            className={`px-3 py-1 rounded-full text-xs transition
-              ${
-                timeframe === tf
-                  ? "bg-violet-600 text-white"
-                  : "bg-white/10 hover:bg-white/20"
-              }`}
+            className={`px-3 py-1 rounded-full text-xs transition ${
+              timeframe === tf
+                ? "bg-violet-600 text-white"
+                : "bg-white/10 hover:bg-white/20"
+            }`}
           >
             {tf}
           </button>
         ))}
       </div>
 
-      {/* GRID */}
+      {/* HEATMAP GRID */}
       <div className="space-y-2">
         {data.map((row, r) => (
           <div key={r} className="flex gap-2">
@@ -89,7 +92,7 @@ export default function LiquidityHeatmap({ onSignal }) {
                     ${cell.intensity > 0.7 ? "heatmap-pulse" : ""}
                     ${
                       whale
-                        ? "ring-2 ring-violet-400 shadow-[0_0_12px_rgba(168,85,247,0.9)]"
+                        ? "ring-2 ring-violet-400 shadow-[0_0_10px_rgba(168,85,247,0.8)]"
                         : ""
                     }`}
                   style={{
@@ -104,7 +107,7 @@ export default function LiquidityHeatmap({ onSignal }) {
 
       {/* TOOLTIP */}
       {hover && (
-        <div className="absolute top-2 right-2 bg-black/80 backdrop-blur p-3 rounded-lg text-xs space-y-1 shadow-xl">
+        <div className="absolute top-3 right-3 z-10 bg-black/80 backdrop-blur p-3 rounded-lg text-xs space-y-1 shadow-xl">
           <div><b>Price:</b> ${hover.price}</div>
           <div><b>Side:</b> {hover.side}</div>
           <div><b>Liquidity:</b> {hover.liquidity}</div>
