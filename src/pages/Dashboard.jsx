@@ -1,12 +1,14 @@
 import React, { useEffect } from "react";
 
-/* ✅ VERIFIED existing components */
+/* ✅ Exact real paths */
 import CandlesChart from "../components/CandlesChart";
 import Orderbook from "../components/Orderbook";
 import Heatmap from "../components/Heatmap";
-import SpreadScanner from "../components/SpreadScanner";
 import TractionPanel from "../components/TractionPanel";
 import Crypto15mSignalsPanel from "../components/Crypto15mSignalsPanel";
+
+/* ⬇️ NOTE: SpreadScanner is inside /charts */
+import SpreadScanner from "../components/charts/SpreadScanner";
 
 /* Engine */
 import { runCrypto15mEngine } from "../engine/Crypto15mSignalEngine";
@@ -21,22 +23,16 @@ export default function Dashboard() {
   return (
     <div className="space-y-8">
 
-      {/* Price */}
       <CandlesChart />
 
-      {/* Orderbook */}
       <Orderbook />
 
-      {/* Liquidity */}
       <Heatmap />
 
-      {/* 15m Crypto Signals */}
       <Crypto15mSignalsPanel />
 
-      {/* Spread Scanner */}
       <SpreadScanner />
 
-      {/* Traction / Win Rate */}
       <TractionPanel />
 
     </div>
