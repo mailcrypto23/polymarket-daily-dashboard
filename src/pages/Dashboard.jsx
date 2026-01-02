@@ -1,3 +1,7 @@
+{/* REMOVE this line */}
+{/* <h2 className="section-title">🔥 High-Confidence Opportunities</h2> */}
+
+<TopOpportunities />
 import { useEffect } from "react";
 
 /* ===== CORE SIGNALS ===== */
@@ -67,3 +71,4 @@ export default function Dashboard() {
     </div>
   );
 }
+
