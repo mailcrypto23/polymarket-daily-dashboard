@@ -2,7 +2,8 @@
 
 import { logSignal, resolveSignal } from "./signalLogger";
 
-const STORAGE_KEY = "pm_signal_history"; // 🔒 SINGLE SOURCE OF TRUTH
+const STORAGE_KEY = "pm_signal_history"; // 🔒 single source of truth
+const ENGINE_META_KEY = "pm_engine_meta"; // engine state
 
 // Fixed crypto markets
 const MARKETS = [
@@ -23,12 +24,25 @@ function current15mBucket() {
   return Math.floor(Date.now() / (15 * 60 * 1000));
 }
 
+// ===== STORAGE =====
 function loadSignals() {
   try {
     return JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
   } catch {
     return [];
   }
+}
+
+function loadMeta() {
+  try {
+    return JSON.parse(localStorage.getItem(ENGINE_META_KEY)) || {};
+  } catch {
+    return {};
+  }
+}
+
+function saveMeta(meta) {
+  localStorage.setItem(ENGINE_META_KEY, JSON.stringify(meta));
 }
 
 // ===== SIGNAL GENERATION =====
@@ -53,14 +67,16 @@ function generateSignal(market) {
 }
 
 // ===== ENGINE =====
-export function runCrypto15mEngine() {
+export function runCrypto15mEngine({ force = false } = {}) {
   const bucket = current15mBucket();
   const signals = loadSignals();
+  const meta = loadMeta();
 
   // 1️⃣ Resolve expired signals
   signals.forEach(s => {
     if (
       s.outcome === "pending" &&
+      typeof s.resolveAt === "number" &&
       Date.now() >= s.resolveAt
     ) {
       const finalPrice = mockPrice(s.entryPrice);
@@ -68,12 +84,12 @@ export function runCrypto15mEngine() {
     }
   });
 
-  // 2️⃣ Prevent duplicates in same window
-  const alreadyGenerated = signals.some(
-    s =>
-      s.timeframe === "15m" &&
-      s.bucket === bucket
-  );
+  // Reload after resolution
+  const updatedSignals = loadSignals();
+
+  // 2️⃣ Prevent duplicate generation per bucket
+  const alreadyGenerated =
+    meta.lastBucket === bucket && !force;
 
   if (alreadyGenerated) return;
 
@@ -91,9 +107,7 @@ export function runCrypto15mEngine() {
       bucket
     });
   });
-}
 
-// ===== OPTIONAL RESET (DEV ONLY) =====
-export function resetCryptoSignals() {
-  localStorage.removeItem(STORAGE_KEY);
+  // 4️⃣ Persist engine state
+  saveMeta({ lastBucket: bucket });
 }
