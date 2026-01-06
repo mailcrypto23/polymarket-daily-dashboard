@@ -1,103 +1,57 @@
-import { logSignal, resolveSignal } from "./signalLogger";
+import { useEffect, useState } from "react";
 
-const STORAGE_KEY = "pm_signal_history"; // 🔒 single source of truth
+const STORAGE_KEY = "pm_signal_history";
 
-// Fixed crypto markets
-const MARKETS = [
-  { symbol: "BTC", name: "BTC Up or Down – 15 minute" },
-  { symbol: "ETH", name: "ETH Up or Down – 15 minute" },
-  { symbol: "SOL", name: "SOL Up or Down – 15 minute" },
-  { symbol: "XRP", name: "XRP Up or Down – 15 minute" }
-];
+export default function Crypto15mSignalsPanel() {
+  const [signals, setSignals] = useState([]);
 
-// ===== MOCK PRICE (SAFE) =====
-function mockPrice(base) {
-  const drift = (Math.random() - 0.5) * 0.6; // ±0.3%
-  return +(base * (1 + drift / 100)).toFixed(2);
-}
+  useEffect(() => {
+    const load = () => {
+      try {
+        const data =
+          JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
+        setSignals(data);
+      } catch {
+        setSignals([]);
+      }
+    };
 
-// ===== TIME WINDOW =====
-function current15mBucket() {
-  return Math.floor(Date.now() / (15 * 60 * 1000));
-}
+    // 🔹 Load immediately
+    load();
 
-// ===== STORAGE =====
-function loadSignals() {
-  try {
-    return JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
-  } catch {
-    return [];
-  }
-}
+    // 🔹 Poll every second (safe + lightweight)
+    const interval = setInterval(load, 1000);
 
-// ===== SIGNAL GENERATION =====
-function generateSignal(market) {
-  const base = 100 + Math.random() * 50;
-  const entry = mockPrice(base);
-  const next = mockPrice(entry);
+    return () => clearInterval(interval);
+  }, []);
 
-  const momentum = next - entry;
-  const confidence = Math.min(
-    85,
-    Math.max(55, Math.abs(momentum) * 120)
-  );
-
-  return {
-    market: market.name,
-    symbol: market.symbol,
-    side: momentum >= 0 ? "YES" : "NO",
-    confidence: Number(confidence.toFixed(1)),
-    price: entry
-  };
-}
-
-// ===== ENGINE =====
-export function runCrypto15mEngine({ force = false } = {}) {
-  const bucket = current15mBucket();
-  const signals = loadSignals();
-
-  // 1️⃣ Resolve expired signals (self-healing)
-  signals.forEach(s => {
-    if (
-      s.outcome === "pending" &&
-      typeof s.resolveAt === "number" &&
-      Date.now() >= s.resolveAt
-    ) {
-      const finalPrice = mockPrice(s.entryPrice);
-      resolveSignal(s.id, finalPrice);
-    }
-  });
-
-  // Reload signals after resolution
-  const updatedSignals = loadSignals();
-
-  // 2️⃣ Generate per-market per-bucket (NO GLOBAL BLOCK)
-  MARKETS.forEach(market => {
-    const exists = updatedSignals.some(
-      s =>
-        s.timeframe === "15m" &&
-        s.bucket === bucket &&
-        s.symbol === market.symbol
+  if (!signals.length) {
+    return (
+      <div className="rounded-xl p-6 border border-white/10 text-center text-white/50">
+        Waiting for next 15-minute window…
+      </div>
     );
+  }
 
-    if (exists && !force) return;
+  return (
+    <div className="space-y-3">
+      {signals.map(s => (
+        <div
+          key={s.id}
+          className="flex justify-between rounded-lg bg-white/5 p-3"
+        >
+          <div>
+            <div className="font-medium">{s.market}</div>
+            <div className="text-sm text-white/60">
+              {s.side} · {s.confidence}%
+            </div>
+          </div>
 
-    const data = generateSignal(market);
-
-    logSignal({
-      market: data.market,
-      symbol: data.symbol,
-      side: data.side,
-      confidence: data.confidence,
-      price: data.price,
-      source: "crypto-15m-momentum-v1",
-      timeframe: "15m",
-      bucket
-    });
-  });
-}
-
-// ===== DEV RESET (OPTIONAL) =====
-export function resetCryptoSignals() {
-  localStorage.removeItem(STORAGE_KEY);
+          <div className="text-sm">
+            {s.outcome === "pending" ? "⏳ Pending" : s.outcome}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
 }
