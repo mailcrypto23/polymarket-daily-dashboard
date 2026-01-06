@@ -11,10 +11,10 @@ import { runCrypto15mEngine } from "../engine/Crypto15mSignalEngine";
 
 export default function Dashboard() {
   useEffect(() => {
-    // 🔹 Force first run so signals appear immediately
+    // 🔹 Force initial engine run so signals appear immediately
     runCrypto15mEngine({ force: true });
 
-    // 🔹 Normal engine tick (safe)
+    // 🔹 Safe periodic engine tick (no duplicates, offline only)
     const interval = setInterval(() => {
       runCrypto15mEngine();
     }, 60_000);
@@ -27,7 +27,9 @@ export default function Dashboard() {
 
       {/* CRYPTO SIGNALS */}
       <section>
-        <h2 className="text-2xl font-bold mb-4">Crypto 15-Minute Signals</h2>
+        <h2 className="text-2xl font-bold mb-4">
+          Crypto 15-Minute Signals
+        </h2>
         <Crypto15mSignalsPanel />
       </section>
 
@@ -42,12 +44,16 @@ export default function Dashboard() {
       {/* MARKET VISUALS */}
       <section className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <div>
-          <h3 className="text-xl font-semibold mb-2">Price Movement</h3>
+          <h3 className="text-xl font-semibold mb-2">
+            Price Movement
+          </h3>
           <PriceMovement />
         </div>
 
         <div>
-          <h3 className="text-xl font-semibold mb-2">Market Depth</h3>
+          <h3 className="text-xl font-semibold mb-2">
+            Market Depth
+          </h3>
           <MarketDepthPanel />
         </div>
       </section>
