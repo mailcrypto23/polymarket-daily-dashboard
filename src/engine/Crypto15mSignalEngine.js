@@ -3,6 +3,10 @@
 
 import { logSignal, resolveSignal } from "./signalLogger";
 
+// =======================================================
+// CONFIG
+// =======================================================
+
 // 4 fixed crypto markets (15m)
 const MARKETS = [
   { symbol: "BTC", name: "BTC Up or Down – 15 minute" },
@@ -11,57 +15,68 @@ const MARKETS = [
   { symbol: "XRP", name: "XRP Up or Down – 15 minute" }
 ];
 
-// ====== DATA MODE ======
+// SAFE default (no real prices yet)
 const DATA_MODE = "mock"; // "mock" | "real"
 
-// ====== MOCK PRICE (SAFE) ======
+// =======================================================
+// MOCK PRICE ENGINE (SAFE)
+// =======================================================
 function mockPrice(base) {
   const drift = (Math.random() - 0.5) * 0.6; // ±0.3%
   return +(base * (1 + drift / 100)).toFixed(2);
 }
 
-// ====== SIGNAL LOGIC ======
+// =======================================================
+// SIGNAL GENERATION (WITH CONFIDENCE TIERS)
+// =======================================================
 function generateSignal(market) {
   const basePrice = 100 + Math.random() * 50;
-  const prevPrice = mockPrice(basePrice);
-  const currentPrice = mockPrice(prevPrice);
+  const entryPrice = mockPrice(basePrice);
+  const currentPrice = mockPrice(entryPrice);
 
-  const momentum = currentPrice - prevPrice;
+  const momentum = currentPrice - entryPrice;
+  const absMove = Math.abs(momentum);
 
-  const confidence = Math.min(
-    85,
-    Math.max(55, Math.abs(momentum) * 120)
-  );
+  // ---- Confidence tiers (55 → 75) ----
+  let confidence;
+  if (absMove < 0.15) confidence = 55 + absMove * 10;        // weak
+  else if (absMove < 0.30) confidence = 60 + absMove * 12;  // moderate
+  else if (absMove < 0.45) confidence = 65 + absMove * 15;  // strong
+  else confidence = 70 + absMove * 18;                      // very strong
+
+  confidence = Math.min(75, Math.round(confidence));
 
   return {
     market: market.name,
     symbol: market.symbol,
     side: momentum >= 0 ? "YES" : "NO",
-    confidence: Number(confidence.toFixed(1)),
-    price: prevPrice
+    confidence,
+    entryPrice
   };
 }
 
-// ====== ENGINE TICK ======
+// =======================================================
+// ENGINE TICK (CALLED EVERY 15 MINUTES BY DASHBOARD)
+// =======================================================
 export function runCrypto15mEngine() {
   MARKETS.forEach(market => {
     const signalData = generateSignal(market);
 
-    // 1️⃣ LOG SIGNAL (pending)
+    // 1️⃣ Log signal as PENDING
     const signal = logSignal({
       market: signalData.market,
       side: signalData.side,
       confidence: signalData.confidence,
-      price: signalData.price,
+      price: signalData.entryPrice,
       source: "crypto-15m-momentum-v1"
     });
 
-    // 2️⃣ RESOLVE AFTER 15 MINUTES
+    // 2️⃣ Resolve after 15 minutes
     setTimeout(() => {
       const resolvePrice =
         DATA_MODE === "mock"
-          ? mockPrice(signalData.price)
-          : signalData.price; // real mode placeholder
+          ? mockPrice(signalData.entryPrice)
+          : signalData.entryPrice; // real mode placeholder
 
       resolveSignal(signal.id, resolvePrice);
     }, 15 * 60 * 1000);
