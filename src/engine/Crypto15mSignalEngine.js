@@ -1,9 +1,6 @@
-// SAFE v1 – analytics only (no execution, no APIs)
-
 import { logSignal, resolveSignal } from "./signalLogger";
 
 const STORAGE_KEY = "pm_signal_history"; // 🔒 single source of truth
-const ENGINE_META_KEY = "pm_engine_meta"; // engine state
 
 // Fixed crypto markets
 const MARKETS = [
@@ -13,13 +10,13 @@ const MARKETS = [
   { symbol: "XRP", name: "XRP Up or Down – 15 minute" }
 ];
 
-// ===== MOCK PRICE =====
+// ===== MOCK PRICE (SAFE) =====
 function mockPrice(base) {
   const drift = (Math.random() - 0.5) * 0.6; // ±0.3%
   return +(base * (1 + drift / 100)).toFixed(2);
 }
 
-// ===== WINDOW UTILS =====
+// ===== TIME WINDOW =====
 function current15mBucket() {
   return Math.floor(Date.now() / (15 * 60 * 1000));
 }
@@ -31,18 +28,6 @@ function loadSignals() {
   } catch {
     return [];
   }
-}
-
-function loadMeta() {
-  try {
-    return JSON.parse(localStorage.getItem(ENGINE_META_KEY)) || {};
-  } catch {
-    return {};
-  }
-}
-
-function saveMeta(meta) {
-  localStorage.setItem(ENGINE_META_KEY, JSON.stringify(meta));
 }
 
 // ===== SIGNAL GENERATION =====
@@ -70,9 +55,8 @@ function generateSignal(market) {
 export function runCrypto15mEngine({ force = false } = {}) {
   const bucket = current15mBucket();
   const signals = loadSignals();
-  const meta = loadMeta();
 
-  // 1️⃣ Resolve expired signals
+  // 1️⃣ Resolve expired signals (self-healing)
   signals.forEach(s => {
     if (
       s.outcome === "pending" &&
@@ -84,21 +68,25 @@ export function runCrypto15mEngine({ force = false } = {}) {
     }
   });
 
-  // Reload after resolution
+  // Reload signals after resolution
   const updatedSignals = loadSignals();
 
-  // 2️⃣ Prevent duplicate generation per bucket
-  const alreadyGenerated =
-    meta.lastBucket === bucket && !force;
-
-  if (alreadyGenerated) return;
-
-  // 3️⃣ Generate fresh signals
+  // 2️⃣ Generate per-market per-bucket (NO GLOBAL BLOCK)
   MARKETS.forEach(market => {
+    const exists = updatedSignals.some(
+      s =>
+        s.timeframe === "15m" &&
+        s.bucket === bucket &&
+        s.symbol === market.symbol
+    );
+
+    if (exists && !force) return;
+
     const data = generateSignal(market);
 
     logSignal({
       market: data.market,
+      symbol: data.symbol,
       side: data.side,
       confidence: data.confidence,
       price: data.price,
@@ -107,7 +95,9 @@ export function runCrypto15mEngine({ force = false } = {}) {
       bucket
     });
   });
+}
 
-  // 4️⃣ Persist engine state
-  saveMeta({ lastBucket: bucket });
+// ===== DEV RESET (OPTIONAL) =====
+export function resetCryptoSignals() {
+  localStorage.removeItem(STORAGE_KEY);
 }
