@@ -11,9 +11,8 @@ import { runCrypto15mEngine } from "../engine/Crypto15mSignalEngine";
 
 export default function Dashboard() {
   useEffect(() => {
+    // Run engine ONCE on dashboard load
     runCrypto15mEngine();
-    const interval = setInterval(runCrypto15mEngine, 60_000);
-    return () => clearInterval(interval);
   }, []);
 
   return (
@@ -25,7 +24,7 @@ export default function Dashboard() {
         <Crypto15mSignalsPanel />
       </section>
 
-      {/* TRACTION */}
+      {/* TRACTION + EXPORT */}
       <section>
         <h2 className="text-2xl font-bold mb-4">
           Traction & Signal Performance
@@ -51,11 +50,8 @@ export default function Dashboard() {
         <LiquidityHeatmap />
       </section>
 
-      {/* HIGH CONFIDENCE */}
+      {/* HIGH CONFIDENCE (component owns its title) */}
       <section>
-        <h2 className="text-2xl font-bold mb-4">
-          🔥 High-Confidence Opportunities
-        </h2>
         <TopOpportunities />
       </section>
 
