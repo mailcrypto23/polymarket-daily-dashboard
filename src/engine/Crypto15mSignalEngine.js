@@ -1,6 +1,7 @@
 // SAFE v2 – analytics + resolver (NO JSX, NO REACT)
+// Purpose: generate + auto-resolve 15m crypto signals for MANUAL trading
 
-import { logSignal, updateSignal } from "./signalLogger";
+import { logSignal } from "./signalLogger";
 
 const STORAGE_KEY = "pm_signal_history";
 const META_KEY = "pm_engine_meta";
@@ -12,10 +13,13 @@ const MARKETS = [
   { symbol: "XRP", name: "XRP Up or Down – 15 minute" }
 ];
 
-const TF = 15 * 60 * 1000;
+const TF = 15 * 60 * 1000; // 15 minutes in ms
+const ENGINE_VERSION = "crypto-15m-v2";
 
-function bucket15m() {
-  return Math.floor(Date.now() / TF);
+// ---------------- utils ----------------
+
+function bucket15m(ts) {
+  return Math.floor(ts / TF);
 }
 
 function load(key, fallback) {
@@ -31,60 +35,89 @@ function save(key, val) {
 }
 
 function mockPrice(base) {
-  return +(base * (1 + (Math.random() - 0.5) * 0.006)).toFixed(2);
+  // realistic micro-move, avoids wild jumps
+  return +(base * (1 + (Math.random() - 0.5) * 0.004)).toFixed(2);
 }
 
-function generateSignal(market) {
+// ---------------- signal logic ----------------
+
+function generateSignal(market, now) {
   const base = 100 + Math.random() * 50;
   const entry = mockPrice(base);
   const next = mockPrice(entry);
 
+  const rawMove = Math.abs(next - entry) * 120;
+
   return {
+    engine: ENGINE_VERSION,
     market: market.name,
     symbol: market.symbol,
+
     side: next >= entry ? "YES" : "NO",
-    confidence: Math.min(75, Math.max(55, Math.abs(next - entry) * 120)),
+
+    // confidence deliberately conservative
+    confidence: Math.round(
+      Math.min(72, Math.max(55, rawMove))
+    ),
+
     entryPrice: entry,
     timeframe: "15m",
-    createdAt: Date.now(),
-    resolveAt: Date.now() + TF,
+
+    createdAt: now,
+    resolveAt: now + TF,
+    bucket: bucket15m(now),
+
     outcome: "pending"
   };
 }
 
-function resolveSignals() {
+function resolveSignals(now) {
   const all = load(STORAGE_KEY, []);
   let changed = false;
 
-  all.forEach(s => {
-    if (s.outcome !== "pending") return;
-    if (Date.now() < s.resolveAt) return;
+  for (const s of all) {
+    if (s.outcome !== "pending") continue;
+    if (!s.resolveAt || now < s.resolveAt) continue;
 
     const exit = mockPrice(s.entryPrice);
+
     const won =
       (s.side === "YES" && exit >= s.entryPrice) ||
       (s.side === "NO" && exit < s.entryPrice);
 
     s.exitPrice = exit;
     s.outcome = won ? "win" : "loss";
-    s.resolvedAt = Date.now();
+    s.resolvedAt = now;
+
     changed = true;
-  });
+  }
 
   if (changed) save(STORAGE_KEY, all);
 }
 
+// ---------------- engine runner ----------------
+
 export function runCrypto15mEngine({ force = false } = {}) {
-  resolveSignals();
+  const now = Date.now();
+
+  // 1️⃣ Always resolve first
+  resolveSignals(now);
 
   const meta = load(META_KEY, {});
-  const bucket = bucket15m();
+  const bucket = bucket15m(now);
 
+  // 2️⃣ Prevent duplicate signals per 15m window
   if (meta.lastBucket === bucket && !force) return;
 
-  MARKETS.forEach(market => {
-    logSignal(generateSignal(market));
-  });
+  // 3️⃣ Generate one signal per market
+  for (const market of MARKETS) {
+    logSignal(generateSignal(market, now));
+  }
 
-  save(META_KEY, { lastBucket: bucket });
+  // 4️⃣ Save meta
+  save(META_KEY, {
+    lastBucket: bucket,
+    lastRunAt: now,
+    engine: ENGINE_VERSION
+  });
 }
