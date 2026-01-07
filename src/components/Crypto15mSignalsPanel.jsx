@@ -4,58 +4,44 @@ const STORAGE_KEY = "pm_signal_history";
 
 export default function Crypto15mSignalsPanel() {
   const [signals, setSignals] = useState([]);
+  const [, forceRender] = useState(0); // countdown tick
 
   useEffect(() => {
     const poll = () => {
       try {
-        const raw = JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
-
-        // ✅ sanitize
-        const clean = raw.filter(
-          s =>
-            s &&
-            typeof s.createdAt === "number" &&
-            s.market &&
-            s.side &&
-            typeof s.confidence === "number"
-        );
-
-        setSignals(clean);
+        const data = JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
+        setSignals(data);
       } catch {
         setSignals([]);
       }
     };
 
     poll();
-    const interval = setInterval(poll, 1000);
-    return () => clearInterval(interval);
+    const poller = setInterval(poll, 1000);
+    const ticker = setInterval(() => forceRender(t => t + 1), 1000);
+
+    return () => {
+      clearInterval(poller);
+      clearInterval(ticker);
+    };
   }, []);
 
-  // 🔹 newest first
-  const sorted = [...signals].sort((a, b) => b.createdAt - a.createdAt);
+  // newest first
+  const sorted = [...signals].sort(
+    (a, b) => (b.createdAt || 0) - (a.createdAt || 0)
+  );
 
   const topFive = sorted.slice(0, 5);
-  const rest = sorted.slice(5);
 
-  const renderRow = (s, dim = false) => (
-    <tr
-      key={s.createdAt + s.market}
-      className={`border-t border-white/10 ${
-        dim ? "text-white/60" : ""
-      }`}
-    >
-      <td className="p-3">
-        {new Date(s.createdAt).toLocaleString()}
-      </td>
-      <td className="p-3">{s.market}</td>
-      <td className="p-3">{s.side}</td>
-      <td className="p-3">{s.confidence}%</td>
-    </tr>
-  );
+  const formatCountdown = ms => {
+    if (ms <= 0) return "00:00";
+    const m = Math.floor(ms / 60000);
+    const s = Math.floor((ms % 60000) / 1000);
+    return `${m}:${s.toString().padStart(2, "0")}`;
+  };
 
   return (
     <div className="rounded-xl border border-white/10 overflow-hidden">
-      {/* TOP 5 */}
       <table className="w-full text-sm">
         <thead className="bg-white/5 text-white/70">
           <tr>
@@ -63,23 +49,54 @@ export default function Crypto15mSignalsPanel() {
             <th className="p-3 text-left">Market</th>
             <th className="p-3 text-left">Side</th>
             <th className="p-3 text-left">Confidence</th>
+            <th className="p-3 text-left">Countdown</th>
+            <th className="p-3 text-left">Result</th>
           </tr>
         </thead>
+
         <tbody>
-          {topFive.map(s => renderRow(s))}
+          {topFive.length === 0 ? (
+            <tr>
+              <td colSpan={6} className="p-4 text-center text-white/50">
+                Waiting for next signal…
+              </td>
+            </tr>
+          ) : (
+            topFive.map((s, i) => {
+              const remaining = s.resolveAt
+                ? s.resolveAt - Date.now()
+                : 0;
+
+              const color =
+                s.outcome === "win"
+                  ? "text-green-400"
+                  : s.outcome === "loss"
+                  ? "text-red-400"
+                  : "text-white/70";
+
+              return (
+                <tr
+                  key={i}
+                  className={`border-t border-white/10 ${color}`}
+                >
+                  <td className="p-3">
+                    {new Date(s.createdAt).toLocaleString()}
+                  </td>
+                  <td className="p-3">{s.market}</td>
+                  <td className="p-3 font-semibold">{s.side}</td>
+                  <td className="p-3">{Math.round(s.confidence)}%</td>
+                  <td className="p-3 font-mono">
+                    {s.outcome === "pending"
+                      ? formatCountdown(remaining)
+                      : "—"}
+                  </td>
+                  <td className="p-3 uppercase">{s.outcome}</td>
+                </tr>
+              );
+            })
+          )}
         </tbody>
       </table>
-
-      {/* HISTORY */}
-      {rest.length > 0 && (
-        <div className="max-h-64 overflow-y-auto border-t border-white/10">
-          <table className="w-full text-sm">
-            <tbody>
-              {rest.map(s => renderRow(s, true))}
-            </tbody>
-          </table>
-        </div>
-      )}
     </div>
   );
 }
