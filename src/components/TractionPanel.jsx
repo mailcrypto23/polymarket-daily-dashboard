@@ -6,22 +6,27 @@ export default function TractionPanel() {
   const [signals, setSignals] = useState([]);
 
   useEffect(() => {
-    const poll = () => {
+    const pollSignals = () => {
       try {
-        const data = JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
+        const data = JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]");
         setSignals(data);
       } catch {
         setSignals([]);
       }
     };
 
-    poll();
-    const interval = setInterval(poll, 1000);
+    // initial read
+    pollSignals();
+
+    // keep UI reactive
+    const interval = setInterval(pollSignals, 1000);
     return () => clearInterval(interval);
   }, []);
 
   const total = signals.length;
-  const resolved = signals.filter(s => s.outcome && s.outcome !== "pending");
+  const resolved = signals.filter(
+    s => s.outcome && s.outcome !== "pending"
+  );
   const wins = resolved.filter(s => s.outcome === "win");
 
   const winRate =
@@ -30,6 +35,8 @@ export default function TractionPanel() {
       : null;
 
   const exportCSV = () => {
+    if (!signals.length) return;
+
     const header = ["Time", "Market", "Side", "Confidence", "Outcome"];
     const rows = signals.map(s => [
       new Date(s.createdAt).toISOString(),
@@ -39,9 +46,7 @@ export default function TractionPanel() {
       s.outcome ?? "pending"
     ]);
 
-    const csv =
-      [header, ...rows].map(r => r.join(",")).join("\n");
-
+    const csv = [header, ...rows].map(r => r.join(",")).join("\n");
     const blob = new Blob([csv], { type: "text/csv" });
     const url = URL.createObjectURL(blob);
 
@@ -57,17 +62,17 @@ export default function TractionPanel() {
     <>
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
         <div className="p-4 rounded-lg bg-white/5">
-          Total Signals
+          <div className="text-sm text-white/60">Total Signals</div>
           <div className="text-xl font-bold">{total}</div>
         </div>
 
         <div className="p-4 rounded-lg bg-white/5">
-          Resolved
+          <div className="text-sm text-white/60">Resolved</div>
           <div className="text-xl font-bold">{resolved.length}</div>
         </div>
 
         <div className="p-4 rounded-lg bg-white/5">
-          Win Rate
+          <div className="text-sm text-white/60">Win Rate</div>
           <div className="text-xl font-bold">
             {winRate ? `${winRate}%` : "—"}
           </div>
@@ -76,7 +81,7 @@ export default function TractionPanel() {
 
       <button
         onClick={exportCSV}
-        className="px-4 py-2 rounded bg-purple-600 text-white text-sm"
+        className="px-4 py-2 rounded bg-purple-600 hover:bg-purple-700 text-white text-sm"
       >
         Export CSV
       </button>
