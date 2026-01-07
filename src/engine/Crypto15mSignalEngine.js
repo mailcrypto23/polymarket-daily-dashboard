@@ -1,89 +1,72 @@
-// SAFE v1 – analytics only (no execution, no APIs)
-
-import { logSignal, resolveSignal } from "./signalLogger";
+import { useEffect, useState } from "react";
 
 const STORAGE_KEY = "pm_signal_history";
-const ENGINE_META_KEY = "pm_engine_meta";
 
-const MARKETS = [
-  { symbol: "BTC", name: "BTC Up or Down – 15 minute" },
-  { symbol: "ETH", name: "ETH Up or Down – 15 minute" },
-  { symbol: "SOL", name: "SOL Up or Down – 15 minute" },
-  { symbol: "XRP", name: "XRP Up or Down – 15 minute" }
-];
+export default function Crypto15mSignalsPanel() {
+  const [signals, setSignals] = useState([]);
 
-function mockPrice(base) {
-  const drift = (Math.random() - 0.5) * 0.6;
-  return +(base * (1 + drift / 100)).toFixed(2);
-}
+  useEffect(() => {
+    const syncSignals = () => {
+      try {
+        const data =
+          JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
+        setSignals(data);
+      } catch {
+        setSignals([]);
+      }
+    };
 
-function current15mBucket() {
-  return Math.floor(Date.now() / (15 * 60 * 1000));
-}
+    // 🔹 Load immediately
+    syncSignals();
 
-function loadSignals() {
-  try {
-    return JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
-  } catch {
-    return [];
+    // 🔹 Poll localStorage every second
+    const interval = setInterval(syncSignals, 1000);
+
+    return () => clearInterval(interval);
+  }, []);
+
+  if (signals.length === 0) {
+    return (
+      <div className="rounded-xl p-6 border border-white/10 text-center text-white/50">
+        Waiting for next 15-minute window…
+      </div>
+    );
   }
-}
 
-function loadMeta() {
-  try {
-    return JSON.parse(localStorage.getItem(ENGINE_META_KEY)) || {};
-  } catch {
-    return {};
-  }
-}
+  return (
+    <div className="space-y-3">
+      {[...signals].reverse().map(signal => (
+        <div
+          key={signal.id}
+          className="flex justify-between items-center p-3 rounded-lg border border-white/10 bg-white/5"
+        >
+          <div>
+            <div className="font-semibold">{signal.market}</div>
+            <div className="text-xs text-white/60">
+              {new Date(signal.timestamp).toLocaleTimeString()}
+            </div>
+          </div>
 
-function saveMeta(meta) {
-  localStorage.setItem(ENGINE_META_KEY, JSON.stringify(meta));
-}
+          <div className="text-center">
+            <div
+              className={`font-bold ${
+                signal.side === "YES"
+                  ? "text-green-400"
+                  : "text-red-400"
+              }`}
+            >
+              {signal.side}
+            </div>
+            <div className="text-xs text-white/60">
+              {signal.confidence}% confidence
+            </div>
+          </div>
 
-function generateSignal(market) {
-  const base = 100 + Math.random() * 50;
-  const entry = mockPrice(base);
-  const next = mockPrice(entry);
-
-  const momentum = next - entry;
-  const confidence = Math.min(85, Math.max(55, Math.abs(momentum) * 120));
-
-  return {
-    market: market.name,
-    symbol: market.symbol,
-    side: momentum >= 0 ? "YES" : "NO",
-    confidence: Number(confidence.toFixed(1)),
-    price: entry
-  };
-}
-
-export function runCrypto15mEngine({ force = false } = {}) {
-  const bucket = current15mBucket();
-  const signals = loadSignals();
-  const meta = loadMeta();
-
-  // Resolve expired
-  signals.forEach(s => {
-    if (s.outcome === "pending" && Date.now() >= s.resolveAt) {
-      resolveSignal(s.id, mockPrice(s.entryPrice));
-    }
-  });
-
-  if (meta.lastBucket === bucket && !force) return;
-
-  MARKETS.forEach(market => {
-    const data = generateSignal(market);
-    logSignal({
-      market: data.market,
-      side: data.side,
-      confidence: data.confidence,
-      price: data.price,
-      source: "crypto-15m-momentum-v1",
-      timeframe: "15m",
-      bucket
-    });
-  });
-
-  saveMeta({ lastBucket: bucket });
+          <div className="text-sm text-white/70">
+            {signal.outcome || "pending"}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
 }
