@@ -5,55 +5,59 @@ const STORAGE_KEY = "pm_signal_history";
 export default function TractionPanel() {
   const [signals, setSignals] = useState([]);
 
+  // 🔁 Poll localStorage so UI is reactive
   useEffect(() => {
-    const pollSignals = () => {
+    const poll = () => {
       try {
-        const data = JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]");
+        const data = JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
         setSignals(data);
       } catch {
         setSignals([]);
       }
     };
 
-    // initial read
-    pollSignals();
-
-    // keep UI reactive
-    const interval = setInterval(pollSignals, 1000);
+    poll();
+    const interval = setInterval(poll, 1000);
     return () => clearInterval(interval);
   }, []);
 
   const total = signals.length;
-  const resolved = signals.filter(
-    s => s.outcome && s.outcome !== "pending"
-  );
+  const resolved = signals.filter(s => s.outcome && s.outcome !== "pending");
   const wins = resolved.filter(s => s.outcome === "win");
 
   const winRate =
     resolved.length > 0
       ? ((wins.length / resolved.length) * 100).toFixed(1)
-      : null;
+      : "—";
 
+  // ✅ FIXED CSV EXPORT
   const exportCSV = () => {
     if (!signals.length) return;
 
     const header = ["Time", "Market", "Side", "Confidence", "Outcome"];
+
     const rows = signals.map(s => [
-      new Date(s.createdAt).toISOString(),
+      // ✅ Safe timestamp fallback
+      new Date(s.createdAt || s.timestamp || Date.now()).toISOString(),
       s.market,
       s.side,
       s.confidence,
       s.outcome ?? "pending"
     ]);
 
-    const csv = [header, ...rows].map(r => r.join(",")).join("\n");
-    const blob = new Blob([csv], { type: "text/csv" });
+    const csv = [header, ...rows]
+      .map(row => row.map(v => `"${v}"`).join(","))
+      .join("\n");
+
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
 
     const a = document.createElement("a");
     a.href = url;
     a.download = "crypto-15m-signals.csv";
+    document.body.appendChild(a); // ✅ REQUIRED
     a.click();
+    document.body.removeChild(a);
 
     URL.revokeObjectURL(url);
   };
@@ -62,20 +66,18 @@ export default function TractionPanel() {
     <>
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
         <div className="p-4 rounded-lg bg-white/5">
-          <div className="text-sm text-white/60">Total Signals</div>
+          Total Signals
           <div className="text-xl font-bold">{total}</div>
         </div>
 
         <div className="p-4 rounded-lg bg-white/5">
-          <div className="text-sm text-white/60">Resolved</div>
+          Resolved
           <div className="text-xl font-bold">{resolved.length}</div>
         </div>
 
         <div className="p-4 rounded-lg bg-white/5">
-          <div className="text-sm text-white/60">Win Rate</div>
-          <div className="text-xl font-bold">
-            {winRate ? `${winRate}%` : "—"}
-          </div>
+          Win Rate
+          <div className="text-xl font-bold">{winRate}</div>
         </div>
       </div>
 
