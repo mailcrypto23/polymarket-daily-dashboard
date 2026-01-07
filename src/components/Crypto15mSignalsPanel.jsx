@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 
 const STORAGE_KEY = "pm_signal_history";
+const RESOLVE_MS = 15 * 60 * 1000;
 
 function formatTime(ts) {
   if (!ts) return "—";
@@ -14,6 +15,42 @@ function formatCountdown(ms) {
   return `${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
 }
 
+/**
+ * Manual trade decision layer
+ * (human-readable, no auto execution)
+ */
+function evaluateDecision(signal) {
+  let score = 0;
+  const reasons = [];
+
+  // Confidence
+  if (signal.confidence >= 65) score += 20;
+  else reasons.push("Low confidence");
+
+  // Trend alignment (based on provided history: strong downtrend)
+  if (signal.side === "NO") score += 20;
+  else reasons.push("Against trend");
+
+  // Volatility (XRP higher, others low)
+  if (signal.symbol === "XRP") {
+    score += 10;
+  } else {
+    score += 15;
+  }
+
+  // Liquidity proxy (Polymarket maker rebates → acceptable)
+  score += 15;
+
+  // Timing
+  const remaining = (signal.resolveAt || 0) - Date.now();
+  if (remaining > 5 * 60 * 1000) score += 15;
+  else reasons.push("Late entry");
+
+  const verdict = score >= 70 ? "TRADE" : "SKIP";
+
+  return { score, verdict, reasons };
+}
+
 export default function Crypto15mSignalsPanel() {
   const [signals, setSignals] = useState([]);
 
@@ -22,7 +59,6 @@ export default function Crypto15mSignalsPanel() {
       const data = JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]");
       setSignals(data);
     };
-
     poll();
     const i = setInterval(poll, 1000);
     return () => clearInterval(i);
@@ -41,15 +77,17 @@ export default function Crypto15mSignalsPanel() {
           <tr>
             <th className="p-3 text-left">Time</th>
             <th className="p-3 text-left">Market</th>
-            <th className="p-3">Side</th>
-            <th className="p-3">Confidence</th>
-            <th className="p-3">Countdown</th>
-            <th className="p-3">Result</th>
+            <th className="p-3 text-center">Side</th>
+            <th className="p-3 text-center">Conf</th>
+            <th className="p-3 text-center">Countdown</th>
+            <th className="p-3 text-center">Decision</th>
           </tr>
         </thead>
+
         <tbody>
           {topFive.map((s, i) => {
-            const remaining = (s.resolveAt || 0) - Date.now();
+            const remaining = (s.resolveAt || s.createdAt + RESOLVE_MS) - Date.now();
+            const decision = evaluateDecision(s);
 
             return (
               <tr key={i} className="border-t border-white/10">
@@ -60,8 +98,14 @@ export default function Crypto15mSignalsPanel() {
                 <td className="p-3 text-center">
                   {formatCountdown(remaining)}
                 </td>
-                <td className="p-3 text-center uppercase text-white/70">
-                  {s.outcome}
+                <td
+                  className={`p-3 text-center font-semibold ${
+                    decision.verdict === "TRADE"
+                      ? "text-green-400"
+                      : "text-red-400"
+                  }`}
+                >
+                  {decision.verdict}
                 </td>
               </tr>
             );
