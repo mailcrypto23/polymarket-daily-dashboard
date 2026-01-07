@@ -1,72 +1,76 @@
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 
-const STORAGE_KEY = "pm_signal_history";
+import Crypto15mSignalsPanel from "../components/Crypto15mSignalsPanel";
+import TractionPanel from "../components/TractionPanel";
+import PriceMovement from "../components/PriceMovement";
+import MarketDepthPanel from "../components/MarketDepthPanel";
+import LiquidityHeatmap from "../components/charts/LiquidityHeatmap";
+import TopOpportunities from "../components/TopOpportunities";
 
-export default function Crypto15mSignalsPanel() {
-  const [signals, setSignals] = useState([]);
+import { runCrypto15mEngine } from "../engine/Crypto15mSignalEngine";
 
+export default function Dashboard() {
   useEffect(() => {
-    const syncSignals = () => {
-      try {
-        const data =
-          JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
-        setSignals(data);
-      } catch {
-        setSignals([]);
-      }
-    };
+    // 🔹 Force initial engine run so signals appear immediately
+    runCrypto15mEngine({ force: true });
 
-    // 🔹 Load immediately
-    syncSignals();
-
-    // 🔹 Poll localStorage every second
-    const interval = setInterval(syncSignals, 1000);
+    // 🔹 Safe periodic engine tick (no duplicates, offline only)
+    const interval = setInterval(() => {
+      runCrypto15mEngine();
+    }, 60_000);
 
     return () => clearInterval(interval);
   }, []);
 
-  if (signals.length === 0) {
-    return (
-      <div className="rounded-xl p-6 border border-white/10 text-center text-white/50">
-        Waiting for next 15-minute window…
-      </div>
-    );
-  }
-
   return (
-    <div className="space-y-3">
-      {[...signals].reverse().map(signal => (
-        <div
-          key={signal.id}
-          className="flex justify-between items-center p-3 rounded-lg border border-white/10 bg-white/5"
-        >
-          <div>
-            <div className="font-semibold">{signal.market}</div>
-            <div className="text-xs text-white/60">
-              {new Date(signal.timestamp).toLocaleTimeString()}
-            </div>
-          </div>
+    <div className="space-y-10 max-w-7xl mx-auto px-4">
 
-          <div className="text-center">
-            <div
-              className={`font-bold ${
-                signal.side === "YES"
-                  ? "text-green-400"
-                  : "text-red-400"
-              }`}
-            >
-              {signal.side}
-            </div>
-            <div className="text-xs text-white/60">
-              {signal.confidence}% confidence
-            </div>
-          </div>
+      {/* CRYPTO SIGNALS */}
+      <section>
+        <h2 className="text-2xl font-bold mb-4">
+          Crypto 15-Minute Signals
+        </h2>
+        <Crypto15mSignalsPanel />
+      </section>
 
-          <div className="text-sm text-white/70">
-            {signal.outcome || "pending"}
-          </div>
+      {/* TRACTION */}
+      <section>
+        <h2 className="text-2xl font-bold mb-4">
+          Traction & Signal Performance
+        </h2>
+        <TractionPanel />
+      </section>
+
+      {/* MARKET VISUALS */}
+      <section className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div>
+          <h3 className="text-xl font-semibold mb-2">
+            Price Movement
+          </h3>
+          <PriceMovement />
         </div>
-      ))}
+
+        <div>
+          <h3 className="text-xl font-semibold mb-2">
+            Market Depth
+          </h3>
+          <MarketDepthPanel />
+        </div>
+      </section>
+
+      {/* LIQUIDITY HEATMAP */}
+      <section>
+        <LiquidityHeatmap />
+      </section>
+
+      {/* HIGH CONFIDENCE */}
+      <section>
+        <h2 className="text-2xl font-bold mb-4">
+          🔥 High-Confidence Opportunities
+        </h2>
+        <TopOpportunities />
+      </section>
+
     </div>
   );
 }
