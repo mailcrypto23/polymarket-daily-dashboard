@@ -1,11 +1,9 @@
-// SAFE v3 – analytics-grade manual trading engine
-// NO JSX, NO REACT, NO AUTO-TRADING
+// SAFE v3 – analytics + deterministic resolver (NO JSX, NO REACT)
 
 import { logSignal } from "./signalLogger";
 
 const STORAGE_KEY = "pm_signal_history";
 const META_KEY = "pm_engine_meta";
-const TF = 15 * 60 * 1000;
 
 const MARKETS = [
   { symbol: "BTC", name: "BTC Up or Down – 15 minute" },
@@ -13,6 +11,12 @@ const MARKETS = [
   { symbol: "SOL", name: "SOL Up or Down – 15 minute" },
   { symbol: "XRP", name: "XRP Up or Down – 15 minute" }
 ];
+
+const TF = 15 * 60 * 1000;
+
+function bucket15m() {
+  return Math.floor(Date.now() / TF);
+}
 
 function load(key, fallback) {
   try {
@@ -26,52 +30,55 @@ function save(key, val) {
   localStorage.setItem(key, JSON.stringify(val));
 }
 
-function bucket15m() {
-  return Math.floor(Date.now() / TF);
-}
-
-/**
- * Simulated trend score
- * -1.0 = strong downtrend
- * +1.0 = strong uptrend
- * Replace later with real price feed
- */
-function trendScore() {
-  return +(Math.random() * 2 - 1).toFixed(2);
+// deterministic pseudo-trend (NOT random every tick)
+function pseudoTrend(symbol, bucket) {
+  const seed =
+    symbol.charCodeAt(0) * 31 +
+    symbol.charCodeAt(1) * 17 +
+    bucket;
+  return seed % 2 === 0 ? "DOWN" : "UP";
 }
 
 function generateSignal(market) {
-  const trend = trendScore();
-
-  let side = "NO";
-  let confidence = 55;
-  let decision = "SKIP";
-
-  if (trend >= 0.45) {
-    side = "YES";
-    confidence = 68;
-    decision = "CONSIDER";
-  } else if (trend <= -0.45) {
-    side = "NO";
-    confidence = 68;
-    decision = "CONSIDER";
-  }
+  const createdAt = Date.now();
+  const resolveAt = createdAt + TF;
+  const bucket = bucket15m();
+  const trend = pseudoTrend(market.symbol, bucket);
 
   return {
     market: market.name,
     symbol: market.symbol,
-    side,
-    confidence,
-    trend,
-    decision,
+    side: trend === "UP" ? "YES" : "NO",
+    confidence: trend === "UP" ? 62 : 58,
     timeframe: "15m",
-    createdAt: Date.now(),
-    resolveAt: Date.now() + TF,
-    outcome: "pending"
+    createdAt,
+    resolveAt,
+    bias: trend,
+    outcome: "pending",
+    simulated: true
   };
 }
 
+function resolveSignals() {
+  const all = load(STORAGE_KEY, []);
+  let changed = false;
+
+  all.forEach(s => {
+    if (s.outcome !== "pending") return;
+    if (Date.now() < s.resolveAt) return;
+
+    // deterministic resolve aligned with bias
+    s.outcome = s.bias === "UP" ? "win" : "loss";
+    s.resolvedAt = Date.now();
+    changed = true;
+  });
+
+  if (changed) save(STORAGE_KEY, all);
+}
+
 export function runCrypto15mEngine({ force = false } = {}) {
+  resolveSignals();
+
   const meta = load(META_KEY, {});
   const bucket = bucket15m();
 
