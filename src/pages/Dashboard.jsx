@@ -11,10 +11,9 @@ import { runCrypto15mEngine } from "../engine/Crypto15mSignalEngine";
 
 export default function Dashboard() {
   useEffect(() => {
-    // 🔹 Force initial engine run so signals appear immediately
-    runCrypto15mEngine({ force: true });
+    // ❌ DO NOT FORCE ON EVERY REFRESH
+    runCrypto15mEngine();
 
-    // 🔹 Safe periodic engine tick (no duplicates, offline only)
     const interval = setInterval(() => {
       runCrypto15mEngine();
     }, 60_000);
@@ -24,8 +23,6 @@ export default function Dashboard() {
 
   return (
     <div className="space-y-10 max-w-7xl mx-auto px-4">
-
-      {/* CRYPTO SIGNALS */}
       <section>
         <h2 className="text-2xl font-bold mb-4">
           Crypto 15-Minute Signals
@@ -33,7 +30,6 @@ export default function Dashboard() {
         <Crypto15mSignalsPanel />
       </section>
 
-      {/* TRACTION */}
       <section>
         <h2 className="text-2xl font-bold mb-4">
           Traction & Signal Performance
@@ -41,7 +37,6 @@ export default function Dashboard() {
         <TractionPanel />
       </section>
 
-      {/* MARKET VISUALS */}
       <section className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <div>
           <h3 className="text-xl font-semibold mb-2">
@@ -49,7 +44,6 @@ export default function Dashboard() {
           </h3>
           <PriceMovement />
         </div>
-
         <div>
           <h3 className="text-xl font-semibold mb-2">
             Market Depth
@@ -58,19 +52,16 @@ export default function Dashboard() {
         </div>
       </section>
 
-      {/* LIQUIDITY HEATMAP */}
       <section>
         <LiquidityHeatmap />
       </section>
 
-      {/* HIGH CONFIDENCE */}
       <section>
         <h2 className="text-2xl font-bold mb-4">
           🔥 High-Confidence Opportunities
         </h2>
         <TopOpportunities />
       </section>
-
     </div>
   );
 }
