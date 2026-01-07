@@ -1,6 +1,6 @@
 // SAFE v1 – analytics only (NO JSX, NO REACT)
 
-import { logSignal, resolveSignal } from "./signalLogger";
+import { logSignal } from "./signalLogger";
 
 const STORAGE_KEY = "pm_signal_history";
 const META_KEY = "pm_engine_meta";
@@ -37,8 +37,10 @@ function generateSignal(market) {
     market: market.name,
     symbol: market.symbol,
     side: next >= entry ? "YES" : "NO",
-    confidence: Math.min(90, Math.max(55, Math.abs(next - entry) * 120)),
-    entryPrice: entry,
+    confidence: Math.min(
+      90,
+      Math.max(55, Math.round(Math.abs(next - entry) * 120))
+    ),
     timeframe: "15m",
     source: "crypto-15m-engine"
   };
@@ -48,6 +50,7 @@ export function runCrypto15mEngine({ force = false } = {}) {
   const bucket = bucket15m();
   const meta = loadMeta();
 
+  // ✅ strict dedupe
   if (meta.lastBucket === bucket && !force) return;
 
   MARKETS.forEach(market => {
