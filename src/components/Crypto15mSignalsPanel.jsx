@@ -1,79 +1,51 @@
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 
-const STORAGE_KEY = "pm_signal_log";
-
-function loadSignals() {
-  try {
-    return JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
-  } catch {
-    return [];
-  }
-}
+const STORAGE_KEY = "pm_signal_history";
 
 export default function Crypto15mSignalsPanel() {
   const [signals, setSignals] = useState([]);
 
   useEffect(() => {
-    const update = () => setSignals(loadSignals());
-    update();
+    const readSignals = () => {
+      const data = JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]");
+      setSignals(data.slice().reverse());
+    };
 
-    const i = setInterval(update, 5000); // refresh every 5s
-    return () => clearInterval(i);
+    readSignals();
+    const interval = setInterval(readSignals, 1000);
+    return () => clearInterval(interval);
   }, []);
 
-  const active = signals.filter(
-    s => !s.outcome && Date.now() < s.resolveAt
-  );
+  if (!signals.length) {
+    return (
+      <div className="rounded-xl p-6 border border-white/10 text-center text-white/50">
+        Waiting for signals…
+      </div>
+    );
+  }
 
   return (
-    <div className="bg-[#0b1220] rounded-xl p-5 border border-white/10">
-      <h2 className="text-lg font-semibold text-white mb-4">
-        ⏱️ Crypto 15-Minute Signals
-      </h2>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
-        {active.map((s, i) => {
-          const remaining = Math.max(
-            0,
-            Math.floor((s.resolveAt - Date.now()) / 60000)
-          );
-
-          return (
-            <div
-              key={i}
-              className="bg-white/5 rounded-lg p-4 border border-white/10"
-            >
-              <div className="text-sm text-gray-400 mb-1">
-                {s.market}
-              </div>
-
-              <div
-                className={`text-2xl font-bold ${
-                  s.side === "YES"
-                    ? "text-green-400"
-                    : "text-red-400"
-                }`}
-              >
-                {s.side}
-              </div>
-
-              <div className="text-sm text-gray-300 mt-1">
-                Confidence: {s.confidence}%
-              </div>
-
-              <div className="text-xs text-gray-500 mt-2">
-                Resolves in ~{remaining} min
-              </div>
-            </div>
-          );
-        })}
-
-        {!active.length && (
-          <div className="col-span-full text-center text-gray-500 py-6">
-            Waiting for next 15-minute window…
-          </div>
-        )}
-      </div>
+    <div className="rounded-xl border border-white/10 overflow-hidden">
+      <table className="w-full text-sm">
+        <thead className="bg-white/5">
+          <tr>
+            <th className="p-3 text-left">Time</th>
+            <th className="p-3 text-left">Market</th>
+            <th className="p-3">Side</th>
+            <th className="p-3">Confidence</th>
+          </tr>
+        </thead>
+        <tbody>
+          {signals.map(s => (
+            <tr key={s.id} className="border-t border-white/5">
+              <td className="p-3">{new Date(s.createdAt).toLocaleTimeString()}</td>
+              <td className="p-3">{s.market}</td>
+              <td className="p-3">{s.side}</td>
+              <td className="p-3">{s.confidence}%</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
     </div>
   );
 }
