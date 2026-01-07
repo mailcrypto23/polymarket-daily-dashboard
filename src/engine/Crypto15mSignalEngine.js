@@ -21,14 +21,6 @@ function current15mBucket() {
   return Math.floor(Date.now() / (15 * 60 * 1000));
 }
 
-function loadSignals() {
-  try {
-    return JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
-  } catch {
-    return [];
-  }
-}
-
 function loadMeta() {
   try {
     return JSON.parse(localStorage.getItem(ENGINE_META_KEY)) || {};
@@ -61,19 +53,12 @@ function generateSignal(market) {
 export function runCrypto15mEngine({ force = false } = {}) {
   const bucket = current15mBucket();
   const meta = loadMeta();
-  const signals = loadSignals();
-
-  // Resolve expired
-  signals.forEach(s => {
-    if (s.outcome === "pending" && Date.now() >= s.resolveAt) {
-      resolveSignal(s.id, mockPrice(s.entryPrice));
-    }
-  });
 
   if (!force && meta.lastBucket === bucket) return;
 
   MARKETS.forEach(market => {
     const data = generateSignal(market);
+
     logSignal({
       market: data.market,
       side: data.side,
