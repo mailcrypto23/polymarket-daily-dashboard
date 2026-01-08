@@ -1,7 +1,8 @@
-// SAFE v5 – deterministic engine (no duplicate alerts)
+// SAFE v5 – deterministic 15m signal engine (NO invalid timestamps)
 
 import { logSignal } from "./signalLogger";
 
+const STORAGE_KEY = "pm_signal_history";
 const META_KEY = "pm_engine_meta";
 const TF = 15 * 60 * 1000;
 
@@ -28,30 +29,23 @@ function save(key, val) {
   localStorage.setItem(key, JSON.stringify(val));
 }
 
-function mockPrice(base) {
-  return +(base * (1 + (Math.random() - 0.5) * 0.006)).toFixed(2);
-}
-
 function generateSignal(market) {
-  const base = 100 + Math.random() * 50;
-  const entry = mockPrice(base);
-  const next = mockPrice(entry);
+  const now = Date.now();
 
-  const bias = next >= entry ? "YES" : "NO";
+  const bias = Math.random() > 0.5 ? "YES" : "NO";
+  const confidence = 55 + Math.floor(Math.random() * 10);
 
   return {
     id: crypto.randomUUID(),
     market: market.name,
     symbol: market.symbol,
     bias,
-    confidence: Math.min(65, Math.max(55, Math.abs(next - entry) * 120)),
-    createdAt: Date.now(),
-    resolveAt: Date.now() + TF,
+    confidence,
+    createdAt: now,
+    resolveAt: now + TF,       // 🔑 ALWAYS VALID
     timeframe: "15m",
     outcome: "pending",
-
-    // 🔔 notification control
-    notified: false
+    notified: false            // 🔑 persistent toast control
   };
 }
 
@@ -61,7 +55,9 @@ export function runCrypto15mEngine({ force = false } = {}) {
 
   if (meta.lastBucket === bucket && !force) return;
 
-  MARKETS.forEach(m => logSignal(generateSignal(m)));
+  MARKETS.forEach(market => {
+    logSignal(generateSignal(market));
+  });
 
   save(META_KEY, { lastBucket: bucket });
 }
