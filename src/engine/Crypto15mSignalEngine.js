@@ -1,10 +1,9 @@
-// SAFE v4 – stable signal generator with deterministic notification
+// SAFE v5 – signal generator + resolver (authoritative)
 
 import { logSignal } from "./signalLogger";
 
 const STORAGE_KEY = "pm_signal_history";
 const META_KEY = "pm_engine_meta";
-
 const TF = 15 * 60 * 1000;
 
 const MARKETS = [
@@ -39,24 +38,41 @@ function generateSignal(market) {
   const entry = mockPrice(base);
   const next = mockPrice(entry);
 
-  const bias = next >= entry ? "YES" : "NO";
-
   return {
     id: crypto.randomUUID(),
     market: market.name,
     symbol: market.symbol,
-    bias,
+    bias: next >= entry ? "YES" : "NO",
     confidence: Math.min(65, Math.max(55, Math.abs(next - entry) * 120)),
     createdAt: Date.now(),
     resolveAt: Date.now() + TF,
-    notifyAt: Date.now(),        // 🔔 fire immediately
-    isNew: true,                 // 🔑 popup control
+    notifyAt: Date.now(),
+    isNew: true,
     timeframe: "15m",
     outcome: "pending"
   };
 }
 
+// 🔁 resolver runs every engine tick
+function resolveExpiredSignals() {
+  const all = load(STORAGE_KEY, []);
+  let changed = false;
+
+  all.forEach(s => {
+    if (s.outcome !== "pending") return;
+    if (Date.now() < s.resolveAt) return;
+
+    s.outcome = "resolved";
+    s.resolvedAt = Date.now();
+    changed = true;
+  });
+
+  if (changed) save(STORAGE_KEY, all);
+}
+
 export function runCrypto15mEngine({ force = false } = {}) {
+  resolveExpiredSignals();
+
   const meta = load(META_KEY, {});
   const bucket = bucket15m();
 
