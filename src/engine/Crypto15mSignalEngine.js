@@ -1,4 +1,4 @@
-// SAFE v5 – analytics + notifier + resolver (NO JSX, NO REACT)
+// SAFE v6 – aligned 15m lifecycle (NO JSX, NO REACT)
 
 import { logSignal } from "./signalLogger";
 
@@ -14,8 +14,12 @@ const MARKETS = [
   { symbol: "XRP", name: "XRP Up or Down – 15 minute" }
 ];
 
-function bucket15m() {
-  return Math.floor(Date.now() / TF);
+function bucketStart(ts = Date.now()) {
+  return Math.floor(ts / TF) * TF;
+}
+
+function bucketEnd(ts = Date.now()) {
+  return bucketStart(ts) + TF;
 }
 
 function load(key, fallback) {
@@ -34,7 +38,6 @@ function mockPrice(base) {
   return +(base * (1 + (Math.random() - 0.5) * 0.006)).toFixed(2);
 }
 
-// 🔁 RESOLVE EXPIRED SIGNALS
 function resolveSignals() {
   const all = load(STORAGE_KEY, []);
   let changed = false;
@@ -65,31 +68,33 @@ function generateSignal(market) {
   const bias = next >= entry ? "YES" : "NO";
   const confidence = Math.min(65, Math.max(55, Math.abs(next - entry) * 120));
 
+  const now = Date.now();
+
   return {
     market: market.name,
     symbol: market.symbol,
     bias,
     confidence,
     entryPrice: entry,
-    createdAt: Date.now(),
-    resolveAt: Date.now() + TF,
-    notifyAt: Date.now(), // 🔔 immediate popup
+    createdAt: now,
+    notifyAt: now,                 // 🔔 instant toast
+    resolveAt: bucketEnd(now),     // ✅ FIX
     timeframe: "15m",
     outcome: "pending"
   };
 }
 
 export function runCrypto15mEngine({ force = false } = {}) {
-  resolveSignals(); // ✅ CRITICAL
+  resolveSignals();
 
   const meta = load(META_KEY, {});
-  const bucket = bucket15m();
+  const currentBucket = bucketStart();
 
-  if (meta.lastBucket === bucket && !force) return;
+  if (meta.lastBucket === currentBucket && !force) return;
 
   MARKETS.forEach(market => {
     logSignal(generateSignal(market));
   });
 
-  save(META_KEY, { lastBucket: bucket });
+  save(META_KEY, { lastBucket: currentBucket });
 }
