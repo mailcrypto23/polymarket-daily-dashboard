@@ -1,8 +1,7 @@
-// SAFE v5 – deterministic engine with lifecycle + resolver
+// SAFE v5 – deterministic engine (no duplicate alerts)
 
 import { logSignal } from "./signalLogger";
 
-const STORAGE_KEY = "pm_signal_history";
 const META_KEY = "pm_engine_meta";
 const TF = 15 * 60 * 1000;
 
@@ -38,43 +37,31 @@ function generateSignal(market) {
   const entry = mockPrice(base);
   const next = mockPrice(entry);
 
+  const bias = next >= entry ? "YES" : "NO";
+
   return {
     id: crypto.randomUUID(),
     market: market.name,
     symbol: market.symbol,
-    bias: next >= entry ? "YES" : "NO",
+    bias,
     confidence: Math.min(65, Math.max(55, Math.abs(next - entry) * 120)),
     createdAt: Date.now(),
     resolveAt: Date.now() + TF,
-    outcome: "pending"
+    timeframe: "15m",
+    outcome: "pending",
+
+    // 🔔 notification control
+    notified: false
   };
 }
 
-// 🔁 Resolve expired signals
-function resolveSignals() {
-  const all = load(STORAGE_KEY, []);
-  let changed = false;
-
-  all.forEach(s => {
-    if (s.outcome !== "pending") return;
-    if (Date.now() < s.resolveAt) return;
-
-    s.outcome = "resolved";
-    s.resolvedAt = Date.now();
-    changed = true;
-  });
-
-  if (changed) save(STORAGE_KEY, all);
-}
-
 export function runCrypto15mEngine({ force = false } = {}) {
-  resolveSignals();
-
   const meta = load(META_KEY, {});
   const bucket = bucket15m();
 
   if (meta.lastBucket === bucket && !force) return;
 
   MARKETS.forEach(m => logSignal(generateSignal(m)));
+
   save(META_KEY, { lastBucket: bucket });
 }
