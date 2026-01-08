@@ -5,28 +5,16 @@ const TF = 15 * 60 * 1000;
 const alertSound =
   "https://actions.google.com/sounds/v1/alarms/beep_short.ogg";
 
-function normalizeSignal(s) {
-  const now = Date.now();
-
-  return {
-    id: s.id ?? crypto.randomUUID(),
-    market: s.market ?? "Unknown Market",
-    bias: s.bias ?? s.side ?? "NO",
-    confidence: Number(s.confidence ?? 55),
-    createdAt: typeof s.createdAt === "number" ? s.createdAt : now,
-    resolveAt:
-      typeof s.resolveAt === "number" ? s.resolveAt : now + TF,
-    notifyAt: typeof s.notifyAt === "number" ? s.notifyAt : s.createdAt ?? now,
-    outcome: s.outcome ?? "pending"
-  };
+function formatTime(ts) {
+  return new Date(ts).toLocaleTimeString();
 }
 
 function entryWindow(ms) {
   if (ms <= 0) return { label: "CLOSED", color: "text-red-400" };
   if (ms > TF * 0.6)
-    return { label: `SAFE (${Math.floor(ms / 60000)}m)`, color: "text-green-400" };
+    return { label: `SAFE (${Math.floor(ms / 60000)}m left)`, color: "text-green-400" };
   if (ms > TF * 0.25)
-    return { label: "RISKY", color: "text-yellow-400" };
+    return { label: `RISKY (${Math.floor(ms / 60000)}m left)`, color: "text-yellow-400" };
   return { label: "LATE", color: "text-red-400" };
 }
 
@@ -35,26 +23,41 @@ export default function Crypto15mSignalsPanel() {
   const notified = useRef(new Set());
   const audioUnlocked = useRef(false);
 
-  const unlockSound = () => {
+  /* 🔊 Unlock audio once */
+  function unlockSound() {
     new Audio(alertSound).play().catch(() => {});
     audioUnlocked.current = true;
-  };
+  }
 
   useEffect(() => {
     const poll = () => {
       const raw = JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]");
-      const normalized = raw.map(normalizeSignal);
 
-      normalized.forEach(s => {
+      // 🧹 FIX NaN — sanitize old data
+      const clean = raw.filter(
+        s =>
+          typeof s.createdAt === "number" &&
+          typeof s.resolveAt === "number"
+      );
+
+      clean.forEach(s => {
         if (!notified.current.has(s.id) && Date.now() >= s.notifyAt) {
           notified.current.add(s.id);
+
           if (audioUnlocked.current) {
             new Audio(alertSound).play().catch(() => {});
           }
+
+          // 🍞 TOAST
+          window.dispatchEvent(
+            new CustomEvent("toast", {
+              detail: `🔔 New 15m Signal: ${s.market} (${s.bias})`
+            })
+          );
         }
       });
 
-      setSignals(normalized);
+      setSignals(clean);
     };
 
     poll();
@@ -86,7 +89,6 @@ export default function Crypto15mSignalsPanel() {
             <th className="p-3">Action</th>
           </tr>
         </thead>
-
         <tbody>
           {top.map(s => {
             const remaining = s.resolveAt - Date.now();
@@ -94,9 +96,7 @@ export default function Crypto15mSignalsPanel() {
 
             return (
               <tr key={s.id} className="border-t border-white/10">
-                <td className="p-3">
-                  {new Date(s.createdAt).toLocaleTimeString()}
-                </td>
+                <td className="p-3">{formatTime(s.createdAt)}</td>
                 <td className="p-3">{s.market}</td>
                 <td className="p-3 text-center">{s.bias}</td>
                 <td className="p-3 text-center">{s.confidence}%</td>
