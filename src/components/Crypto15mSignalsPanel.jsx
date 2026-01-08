@@ -1,53 +1,77 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 const STORAGE_KEY = "pm_signal_history";
 const TF = 15 * 60 * 1000;
 
-/* ---------------- utils ---------------- */
+const alertSound =
+  "https://actions.google.com/sounds/v1/alarms/beep_short.ogg";
 
 function formatTime(ts) {
   return ts ? new Date(ts).toLocaleTimeString() : "—";
 }
 
 function formatCountdown(ms) {
-  if (!ms || ms <= 0) return "LOCKED";
+  if (ms <= 0) return "LOCKED";
   const m = Math.floor(ms / 60000);
   const s = Math.floor((ms % 60000) / 1000);
-  return `${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
+  return `${m}:${String(s).padStart(2, "0")}`;
 }
 
 function entryState(ms) {
-  if (!ms || ms <= 0) return "LOCKED";
+  if (ms <= 0) return "LOCKED";
   if (ms > TF * 0.6) return "SAFE";
   if (ms > TF * 0.25) return "RISKY";
   return "LATE";
 }
 
 function decisionLabel(signal, state) {
-  if (signal.outcome && signal.outcome !== "pending") return "DONE";
   if (state !== "SAFE") return "SKIP";
   if (signal.confidence >= 60) return "TRADE";
   return "SKIP";
 }
 
-/* ---------------- component ---------------- */
-
 export default function Crypto15mSignalsPanel() {
   const [signals, setSignals] = useState([]);
+  const notified = useRef(new Set());
 
   useEffect(() => {
     const poll = () => {
-      try {
-        const data = JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]");
-        setSignals(data);
-      } catch {
-        setSignals([]);
-      }
+      const data = JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]");
+
+      data.forEach(s => {
+        if (!notified.current.has(s.createdAt) && Date.now() >= s.notifyAt) {
+          notified.current.add(s.createdAt);
+
+          // 🔔 SOUND
+          new Audio(alertSound).play().catch(() => {});
+
+          // 📣 POPUP
+          window.dispatchEvent(
+            new CustomEvent("signal-popup", {
+              detail: s
+            })
+          );
+        }
+      });
+
+      setSignals(data);
     };
 
     poll();
     const i = setInterval(poll, 1000);
     return () => clearInterval(i);
+  }, []);
+
+  // POPUP LISTENER
+  useEffect(() => {
+    const handler = e => {
+      const s = e.detail;
+      alert(
+        `NEW 15m SIGNAL\n\n${s.market}\nBias: ${s.bias}\nConfidence: ${s.confidence}%\n\nYou have ~9 minutes to enter`
+      );
+    };
+    window.addEventListener("signal-popup", handler);
+    return () => window.removeEventListener("signal-popup", handler);
   }, []);
 
   const sorted = [...signals].sort(
@@ -61,23 +85,19 @@ export default function Crypto15mSignalsPanel() {
       <table className="w-full text-sm">
         <thead className="bg-white/5 text-white/70">
           <tr>
-            <th className="p-3 text-left">Time</th>
+            <th className="p-3">Time</th>
             <th className="p-3 text-left">Market</th>
-            <th className="p-3 text-center">Bias</th>
-            <th className="p-3 text-center">Conf</th>
-            <th className="p-3 text-center">Countdown</th>
-            <th className="p-3 text-center">Entry</th>
-            <th className="p-3 text-center">Decision</th>
+            <th className="p-3">Bias</th>
+            <th className="p-3">Conf</th>
+            <th className="p-3">Countdown</th>
+            <th className="p-3">Entry</th>
+            <th className="p-3">Decision</th>
           </tr>
         </thead>
 
         <tbody>
           {topFive.map((s, i) => {
-            const remaining =
-              s.resolveAt && s.outcome === "pending"
-                ? s.resolveAt - Date.now()
-                : 0;
-
+            const remaining = s.resolveAt - Date.now();
             const state = entryState(remaining);
             const decision = decisionLabel(s, state);
 
@@ -85,40 +105,16 @@ export default function Crypto15mSignalsPanel() {
               <tr key={i} className="border-t border-white/10">
                 <td className="p-3">{formatTime(s.createdAt)}</td>
                 <td className="p-3">{s.market}</td>
-
-                {/* Bias */}
-                <td className="p-3 text-center font-semibold">
-                  {s.side || "—"}
-                </td>
-
-                {/* Confidence */}
+                <td className="p-3 text-center">{s.bias}</td>
                 <td className="p-3 text-center">{s.confidence}%</td>
-
-                {/* Countdown */}
                 <td className="p-3 text-center">
                   {formatCountdown(remaining)}
                 </td>
-
-                {/* Entry window */}
+                <td className="p-3 text-center">{state}</td>
                 <td
-                  className={`p-3 text-center font-medium ${
-                    state === "SAFE"
-                      ? "text-green-400"
-                      : state === "RISKY"
-                      ? "text-yellow-400"
-                      : "text-red-400"
-                  }`}
-                >
-                  {state}
-                </td>
-
-                {/* Decision */}
-                <td
-                  className={`p-3 text-center font-semibold ${
+                  className={`p-3 text-center font-bold ${
                     decision === "TRADE"
                       ? "text-green-400"
-                      : decision === "DONE"
-                      ? "text-white/50"
                       : "text-red-400"
                   }`}
                 >
@@ -131,7 +127,7 @@ export default function Crypto15mSignalsPanel() {
       </table>
 
       <div className="text-xs text-white/40 p-3 border-t border-white/10">
-        ⚠ Signals are simulated analytics. Use bias + timing for manual trades only.
+        🔔 Popup + sound on new signal · ⏳ Trade only in SAFE window
       </div>
     </div>
   );
