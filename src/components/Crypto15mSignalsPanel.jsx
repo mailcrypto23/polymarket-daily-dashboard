@@ -2,26 +2,35 @@ import { useEffect, useRef, useState } from "react";
 
 const STORAGE_KEY = "pm_signal_history";
 const TF = 15 * 60 * 1000;
-
 const alertSound =
   "https://actions.google.com/sounds/v1/alarms/beep_short.ogg";
 
 function formatTime(ts) {
+  if (!Number.isFinite(ts)) return "—";
   return new Date(ts).toLocaleTimeString();
 }
 
+function safeRemaining(resolveAt) {
+  if (!Number.isFinite(resolveAt)) return 0;
+  return Math.max(0, resolveAt - Date.now());
+}
+
 function formatCountdown(ms) {
-  if (ms <= 0) return "00:00";
+  if (ms <= 0) return "LOCKED";
   const m = Math.floor(ms / 60000);
   const s = Math.floor((ms % 60000) / 1000);
   return `${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
 }
 
-function entryWindow(ms) {
+function entryState(ms) {
   if (ms <= 0) return "LOCKED";
   if (ms > TF * 0.6) return "SAFE";
   if (ms > TF * 0.25) return "RISKY";
   return "LATE";
+}
+
+function decisionLabel(conf, state) {
+  return state === "SAFE" && conf >= 60 ? "TRADE" : "SKIP";
 }
 
 export default function Crypto15mSignalsPanel() {
@@ -36,9 +45,15 @@ export default function Crypto15mSignalsPanel() {
   useEffect(() => {
     const poll = () => {
       const raw = JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]");
-      const now = Date.now();
 
-      raw.forEach(s => {
+      const cleaned = raw.filter(
+        s =>
+          Number.isFinite(s.createdAt) &&
+          Number.isFinite(s.resolveAt) &&
+          s.outcome === "pending"
+      );
+
+      cleaned.forEach(s => {
         if (!s.notified) {
           s.notified = true;
 
@@ -46,21 +61,24 @@ export default function Crypto15mSignalsPanel() {
             new Audio(alertSound).play().catch(() => {});
           }
 
-          // 🔔 in-app toast only
           alert(
-            `🔔 New 15m Signal\n\n${s.market}\nBias: ${s.bias}\nConfidence: ${s.confidence}%`
+            `🔔 New 15m Signal\n\n${s.market}\nBias: ${s.bias}\nConfidence: ${s.confidence}%\n\nEnter during SAFE window`
           );
         }
       });
 
       localStorage.setItem(STORAGE_KEY, JSON.stringify(raw));
-      setSignals(raw.slice(-5).reverse());
+      setSignals(cleaned);
     };
 
     poll();
     const i = setInterval(poll, 1000);
     return () => clearInterval(i);
   }, []);
+
+  const topFive = [...signals]
+    .sort((a, b) => b.createdAt - a.createdAt)
+    .slice(0, 5);
 
   return (
     <div className="rounded-xl border border-white/10 overflow-hidden">
@@ -85,11 +103,11 @@ export default function Crypto15mSignalsPanel() {
             <th className="p-3">Action</th>
           </tr>
         </thead>
-
         <tbody>
-          {signals.map(s => {
-            const remaining = Math.max(0, s.resolveAt - Date.now());
-            const window = entryWindow(remaining);
+          {topFive.map(s => {
+            const remaining = safeRemaining(s.resolveAt);
+            const state = entryState(remaining);
+            const action = decisionLabel(s.confidence, state);
 
             return (
               <tr key={s.id} className="border-t border-white/10">
@@ -100,15 +118,15 @@ export default function Crypto15mSignalsPanel() {
                 <td className="p-3 text-center">
                   {formatCountdown(remaining)}
                 </td>
-                <td className="p-3 text-center">{window}</td>
+                <td className="p-3 text-center">{state}</td>
                 <td
                   className={`p-3 text-center font-bold ${
-                    window === "SAFE"
+                    action === "TRADE"
                       ? "text-green-400"
                       : "text-red-400"
                   }`}
                 >
-                  {window === "SAFE" ? "TRADE" : "SKIP"}
+                  {action}
                 </td>
               </tr>
             );
