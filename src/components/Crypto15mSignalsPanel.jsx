@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 
 const STORAGE_KEY = "pm_signal_history";
 const TF = 15 * 60 * 1000;
+
 const alertSound =
   "https://actions.google.com/sounds/v1/alarms/beep_short.ogg";
 
@@ -16,7 +17,7 @@ function formatCountdown(ms) {
   return `${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
 }
 
-function entryState(ms) {
+function entryWindow(ms) {
   if (ms <= 0) return "LOCKED";
   if (ms > TF * 0.6) return "SAFE";
   if (ms > TF * 0.25) return "RISKY";
@@ -25,7 +26,6 @@ function entryState(ms) {
 
 export default function Crypto15mSignalsPanel() {
   const [signals, setSignals] = useState([]);
-  const notified = useRef(new Set());
   const soundEnabled = useRef(false);
 
   const enableSound = () => {
@@ -35,29 +35,26 @@ export default function Crypto15mSignalsPanel() {
 
   useEffect(() => {
     const poll = () => {
-      const all = JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]");
+      const raw = JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]");
+      const now = Date.now();
 
-      // 🔔 Notify ONCE per signal
-      all.forEach(s => {
-        if (!notified.current.has(s.id)) {
-          notified.current.add(s.id);
+      raw.forEach(s => {
+        if (!s.notified) {
+          s.notified = true;
 
           if (soundEnabled.current) {
             new Audio(alertSound).play().catch(() => {});
           }
 
+          // 🔔 in-app toast only
           alert(
             `🔔 New 15m Signal\n\n${s.market}\nBias: ${s.bias}\nConfidence: ${s.confidence}%`
           );
         }
       });
 
-      // ✅ show ONLY active signals
-      const active = all.filter(
-        s => s.outcome === "pending" && Date.now() < s.resolveAt
-      );
-
-      setSignals(active);
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(raw));
+      setSignals(raw.slice(-5).reverse());
     };
 
     poll();
@@ -85,12 +82,14 @@ export default function Crypto15mSignalsPanel() {
             <th className="p-3">Conf</th>
             <th className="p-3">Countdown</th>
             <th className="p-3">Entry</th>
+            <th className="p-3">Action</th>
           </tr>
         </thead>
+
         <tbody>
           {signals.map(s => {
-            const remaining = s.resolveAt - Date.now();
-            const state = entryState(remaining);
+            const remaining = Math.max(0, s.resolveAt - Date.now());
+            const window = entryWindow(remaining);
 
             return (
               <tr key={s.id} className="border-t border-white/10">
@@ -101,7 +100,16 @@ export default function Crypto15mSignalsPanel() {
                 <td className="p-3 text-center">
                   {formatCountdown(remaining)}
                 </td>
-                <td className="p-3 text-center">{state}</td>
+                <td className="p-3 text-center">{window}</td>
+                <td
+                  className={`p-3 text-center font-bold ${
+                    window === "SAFE"
+                      ? "text-green-400"
+                      : "text-red-400"
+                  }`}
+                >
+                  {window === "SAFE" ? "TRADE" : "SKIP"}
+                </td>
               </tr>
             );
           })}
@@ -109,7 +117,7 @@ export default function Crypto15mSignalsPanel() {
       </table>
 
       <div className="text-xs text-white/40 p-3 border-t border-white/10">
-        🔔 Popup + sound on new signal · ⏳ Trade ONLY during SAFE window
+        🔔 Toast once per signal · ⏳ Trade ONLY during SAFE window
       </div>
     </div>
   );
