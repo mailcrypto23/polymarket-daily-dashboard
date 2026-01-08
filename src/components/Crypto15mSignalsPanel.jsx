@@ -2,16 +2,15 @@ import { useEffect, useRef, useState } from "react";
 
 const STORAGE_KEY = "pm_signal_history";
 const TF = 15 * 60 * 1000;
-
 const alertSound =
   "https://actions.google.com/sounds/v1/alarms/beep_short.ogg";
 
 function formatTime(ts) {
-  return ts ? new Date(ts).toLocaleTimeString() : "—";
+  return new Date(ts).toLocaleTimeString();
 }
 
 function formatCountdown(ms) {
-  if (ms <= 0) return "LOCKED";
+  if (ms <= 0) return "00:00";
   const m = Math.floor(ms / 60000);
   const s = Math.floor((ms % 60000) / 1000);
   return `${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
@@ -22,11 +21,6 @@ function entryState(ms) {
   if (ms > TF * 0.6) return "SAFE";
   if (ms > TF * 0.25) return "RISKY";
   return "LATE";
-}
-
-function decisionLabel(signal, state) {
-  if (state !== "SAFE") return "SKIP";
-  return signal.confidence >= 60 ? "TRADE" : "SKIP";
 }
 
 export default function Crypto15mSignalsPanel() {
@@ -41,31 +35,28 @@ export default function Crypto15mSignalsPanel() {
 
   useEffect(() => {
     const poll = () => {
-      const raw = JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]");
+      const all = JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]");
 
-      // ✅ show signals until resolveAt passes
-      const active = raw.filter(
-        s =>
-          typeof s.resolveAt === "number" &&
-          Date.now() < s.resolveAt
-      );
-
-      active.forEach(s => {
-        if (s.isNew && !notified.current.has(s.id)) {
+      // 🔔 Notify ONCE per signal
+      all.forEach(s => {
+        if (!notified.current.has(s.id)) {
           notified.current.add(s.id);
-          s.isNew = false;
 
           if (soundEnabled.current) {
             new Audio(alertSound).play().catch(() => {});
           }
 
-          window.dispatchEvent(
-            new CustomEvent("signal-toast", { detail: s })
+          alert(
+            `🔔 New 15m Signal\n\n${s.market}\nBias: ${s.bias}\nConfidence: ${s.confidence}%`
           );
         }
       });
 
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(raw));
+      // ✅ show ONLY active signals
+      const active = all.filter(
+        s => s.outcome === "pending" && Date.now() < s.resolveAt
+      );
+
       setSignals(active);
     };
 
@@ -73,21 +64,6 @@ export default function Crypto15mSignalsPanel() {
     const i = setInterval(poll, 1000);
     return () => clearInterval(i);
   }, []);
-
-  useEffect(() => {
-    const handler = e => {
-      const s = e.detail;
-      alert(
-        `🔔 New 15m Signal\n\n${s.market}\nBias: ${s.bias}\nConfidence: ${s.confidence}%\n\nEnter during SAFE window`
-      );
-    };
-    window.addEventListener("signal-toast", handler);
-    return () => window.removeEventListener("signal-toast", handler);
-  }, []);
-
-  const topFive = [...signals]
-    .sort((a, b) => b.createdAt - a.createdAt)
-    .slice(0, 5);
 
   return (
     <div className="rounded-xl border border-white/10 overflow-hidden">
@@ -109,14 +85,12 @@ export default function Crypto15mSignalsPanel() {
             <th className="p-3">Conf</th>
             <th className="p-3">Countdown</th>
             <th className="p-3">Entry</th>
-            <th className="p-3">Action</th>
           </tr>
         </thead>
         <tbody>
-          {topFive.map(s => {
+          {signals.map(s => {
             const remaining = s.resolveAt - Date.now();
             const state = entryState(remaining);
-            const action = decisionLabel(s, state);
 
             return (
               <tr key={s.id} className="border-t border-white/10">
@@ -128,15 +102,6 @@ export default function Crypto15mSignalsPanel() {
                   {formatCountdown(remaining)}
                 </td>
                 <td className="p-3 text-center">{state}</td>
-                <td
-                  className={`p-3 text-center font-bold ${
-                    action === "TRADE"
-                      ? "text-green-400"
-                      : "text-red-400"
-                  }`}
-                >
-                  {action}
-                </td>
               </tr>
             );
           })}
@@ -144,7 +109,7 @@ export default function Crypto15mSignalsPanel() {
       </table>
 
       <div className="text-xs text-white/40 p-3 border-t border-white/10">
-        🔔 Toast + sound on new signal · ⏳ Trade ONLY during SAFE window
+        🔔 Popup + sound on new signal · ⏳ Trade ONLY during SAFE window
       </div>
     </div>
   );
