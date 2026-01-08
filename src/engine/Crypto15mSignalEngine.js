@@ -1,4 +1,4 @@
-// SAFE v5 – signal generator + resolver (authoritative)
+// SAFE v5 – deterministic engine with lifecycle + resolver
 
 import { logSignal } from "./signalLogger";
 
@@ -46,15 +46,12 @@ function generateSignal(market) {
     confidence: Math.min(65, Math.max(55, Math.abs(next - entry) * 120)),
     createdAt: Date.now(),
     resolveAt: Date.now() + TF,
-    notifyAt: Date.now(),
-    isNew: true,
-    timeframe: "15m",
     outcome: "pending"
   };
 }
 
-// 🔁 resolver runs every engine tick
-function resolveExpiredSignals() {
+// 🔁 Resolve expired signals
+function resolveSignals() {
   const all = load(STORAGE_KEY, []);
   let changed = false;
 
@@ -71,16 +68,13 @@ function resolveExpiredSignals() {
 }
 
 export function runCrypto15mEngine({ force = false } = {}) {
-  resolveExpiredSignals();
+  resolveSignals();
 
   const meta = load(META_KEY, {});
   const bucket = bucket15m();
 
   if (meta.lastBucket === bucket && !force) return;
 
-  MARKETS.forEach(market => {
-    logSignal(generateSignal(market));
-  });
-
+  MARKETS.forEach(m => logSignal(generateSignal(m)));
   save(META_KEY, { lastBucket: bucket });
 }
