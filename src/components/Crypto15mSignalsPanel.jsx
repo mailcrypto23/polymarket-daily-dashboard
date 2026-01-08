@@ -62,7 +62,7 @@ export default function Crypto15mSignalsPanel() {
         </thead>
         <tbody>
           {topFive.map((s, i) => {
-            const remaining = s.resolveAt - Date.now();
+            const remaining = s.resolveAt ? s.resolveAt - Date.now() : 0;
             const state = entryState(remaining);
             const decision = decisionLabel(s, state);
 
