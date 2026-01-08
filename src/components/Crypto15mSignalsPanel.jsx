@@ -11,27 +11,26 @@ function formatTime(ts) {
 }
 
 function formatCountdown(ms) {
-  if (ms <= 0) return "LOCKED";
+  if (!Number.isFinite(ms) || ms <= 0) return "LOCKED";
   const m = Math.floor(ms / 60000);
   const s = Math.floor((ms % 60000) / 1000);
   return `${m}:${String(s).padStart(2, "0")}`;
 }
 
 function entryState(ms) {
-  if (ms <= 0) return "LOCKED";
+  if (!Number.isFinite(ms) || ms <= 0) return "LOCKED";
   if (ms > TF * 0.6) return "SAFE";
   if (ms > TF * 0.25) return "RISKY";
   return "LATE";
 }
 
 function decisionLabel(signal, state) {
-  if (state !== "SAFE") return "SKIP";
-  if (signal.confidence >= 60) return "TRADE";
-  return "SKIP";
+  return state === "SAFE" && signal.confidence >= 60 ? "TRADE" : "SKIP";
 }
 
 export default function Crypto15mSignalsPanel() {
   const [signals, setSignals] = useState([]);
+  const [toasts, setToasts] = useState([]);
   const notified = useRef(new Set());
 
   useEffect(() => {
@@ -39,18 +38,31 @@ export default function Crypto15mSignalsPanel() {
       const data = JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]");
 
       data.forEach(s => {
-        if (!notified.current.has(s.createdAt) && Date.now() >= s.notifyAt) {
+        // 🔥 BACKFILL OLD SIGNALS
+        if (!s.notifyAt) s.notifyAt = s.createdAt;
+
+        if (!notified.current.has(s.createdAt)) {
           notified.current.add(s.createdAt);
 
-          // 🔔 SOUND
-          new Audio(alertSound).play().catch(() => {});
+          // 🔔 sound (after first click browser allows it)
+          try {
+            new Audio(alertSound).play();
+          } catch {}
 
-          // 📣 POPUP
-          window.dispatchEvent(
-            new CustomEvent("signal-popup", {
-              detail: s
-            })
-          );
+          // 🍞 toast
+          setToasts(prev => [
+            {
+              id: s.createdAt,
+              market: s.market,
+              bias: s.bias,
+              confidence: s.confidence
+            },
+            ...prev
+          ]);
+
+          setTimeout(() => {
+            setToasts(prev => prev.filter(t => t.id !== s.createdAt));
+          }, 6000);
         }
       });
 
@@ -62,26 +74,36 @@ export default function Crypto15mSignalsPanel() {
     return () => clearInterval(i);
   }, []);
 
-  // POPUP LISTENER
-  useEffect(() => {
-    const handler = e => {
-      const s = e.detail;
-      alert(
-        `NEW 15m SIGNAL\n\n${s.market}\nBias: ${s.bias}\nConfidence: ${s.confidence}%\n\nYou have ~9 minutes to enter`
-      );
-    };
-    window.addEventListener("signal-popup", handler);
-    return () => window.removeEventListener("signal-popup", handler);
-  }, []);
-
-  const sorted = [...signals].sort(
-    (a, b) => (b.createdAt || 0) - (a.createdAt || 0)
-  );
-
-  const topFive = sorted.slice(0, 5);
+  const topFive = [...signals]
+    .sort((a, b) => b.createdAt - a.createdAt)
+    .slice(0, 5);
 
   return (
-    <div className="rounded-xl border border-white/10 overflow-hidden">
+    <div className="relative rounded-xl border border-white/10 overflow-hidden">
+
+      {/* 🔔 TOASTS */}
+      <div className="fixed top-4 right-4 z-50 space-y-3">
+        {toasts.map(t => (
+          <div
+            key={t.id}
+            className="bg-black/90 border border-white/20 rounded-lg p-4 w-72 shadow-xl"
+          >
+            <div className="font-semibold text-white">🔔 New 15m Signal</div>
+            <div className="text-xs text-white/70">{t.market}</div>
+            <div className="mt-2 text-xs">
+              Bias: <b className="text-blue-400">{t.bias}</b>
+            </div>
+            <div className="text-xs">
+              Confidence: <b>{t.confidence}%</b>
+            </div>
+            <div className="text-[11px] text-yellow-400 mt-2">
+              Enter during SAFE window
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* TABLE */}
       <table className="w-full text-sm">
         <thead className="bg-white/5 text-white/70">
           <tr>
@@ -107,17 +129,11 @@ export default function Crypto15mSignalsPanel() {
                 <td className="p-3">{s.market}</td>
                 <td className="p-3 text-center">{s.bias}</td>
                 <td className="p-3 text-center">{s.confidence}%</td>
-                <td className="p-3 text-center">
-                  {formatCountdown(remaining)}
-                </td>
+                <td className="p-3 text-center">{formatCountdown(remaining)}</td>
                 <td className="p-3 text-center">{state}</td>
-                <td
-                  className={`p-3 text-center font-bold ${
-                    decision === "TRADE"
-                      ? "text-green-400"
-                      : "text-red-400"
-                  }`}
-                >
+                <td className={`p-3 text-center font-bold ${
+                  decision === "TRADE" ? "text-green-400" : "text-red-400"
+                }`}>
                   {decision}
                 </td>
               </tr>
@@ -127,7 +143,7 @@ export default function Crypto15mSignalsPanel() {
       </table>
 
       <div className="text-xs text-white/40 p-3 border-t border-white/10">
-        🔔 Popup + sound on new signal · ⏳ Trade only in SAFE window
+        🔔 Toast + sound on each new signal · ⏳ Trade only in SAFE window
       </div>
     </div>
   );
