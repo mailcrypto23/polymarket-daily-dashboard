@@ -2,62 +2,74 @@ import { useEffect, useRef, useState } from "react";
 
 const STORAGE_KEY = "pm_signal_history";
 const TF = 15 * 60 * 1000;
+
 const alertSound =
   "https://actions.google.com/sounds/v1/alarms/beep_short.ogg";
 
 function formatTime(ts) {
-  return new Date(ts).toLocaleTimeString();
+  return ts ? new Date(ts).toLocaleTimeString() : "—";
 }
 
-function entryWindow(ms) {
-  if (ms <= 0) return { label: "CLOSED", color: "text-red-400" };
-  if (ms > TF * 0.6)
-    return { label: `SAFE (${Math.floor(ms / 60000)}m left)`, color: "text-green-400" };
-  if (ms > TF * 0.25)
-    return { label: `RISKY (${Math.floor(ms / 60000)}m left)`, color: "text-yellow-400" };
-  return { label: "LATE", color: "text-red-400" };
+function formatCountdown(ms) {
+  if (ms <= 0) return "LOCKED";
+  const m = Math.floor(ms / 60000);
+  const s = Math.floor((ms % 60000) / 1000);
+  return `${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
+}
+
+function entryState(ms) {
+  if (ms <= 0) return "LOCKED";
+  if (ms > TF * 0.6) return "SAFE";
+  if (ms > TF * 0.25) return "RISKY";
+  return "LATE";
+}
+
+function decisionLabel(signal, state) {
+  if (state !== "SAFE") return "SKIP";
+  if (signal.confidence >= 60) return "TRADE";
+  return "SKIP";
 }
 
 export default function Crypto15mSignalsPanel() {
   const [signals, setSignals] = useState([]);
   const notified = useRef(new Set());
-  const audioUnlocked = useRef(false);
+  const soundEnabled = useRef(false);
 
-  /* 🔊 Unlock audio once */
-  function unlockSound() {
+  // 🔊 user must click once to enable sound
+  const enableSound = () => {
+    soundEnabled.current = true;
     new Audio(alertSound).play().catch(() => {});
-    audioUnlocked.current = true;
-  }
+  };
 
   useEffect(() => {
     const poll = () => {
       const raw = JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]");
 
-      // 🧹 FIX NaN — sanitize old data
-      const clean = raw.filter(
+      // 🔑 only ACTIVE signals
+      const active = raw.filter(
         s =>
           typeof s.createdAt === "number" &&
-          typeof s.resolveAt === "number"
+          typeof s.resolveAt === "number" &&
+          s.outcome === "pending"
       );
 
-      clean.forEach(s => {
-        if (!notified.current.has(s.id) && Date.now() >= s.notifyAt) {
+      active.forEach(s => {
+        if (s.isNew && !notified.current.has(s.id)) {
           notified.current.add(s.id);
+          s.isNew = false;
 
-          if (audioUnlocked.current) {
+          if (soundEnabled.current) {
             new Audio(alertSound).play().catch(() => {});
           }
 
-          // 🍞 TOAST
           window.dispatchEvent(
-            new CustomEvent("toast", {
-              detail: `🔔 New 15m Signal: ${s.market} (${s.bias})`
-            })
+            new CustomEvent("signal-toast", { detail: s })
           );
         }
       });
 
-      setSignals(clean);
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(raw));
+      setSignals(active);
     };
 
     poll();
@@ -65,18 +77,32 @@ export default function Crypto15mSignalsPanel() {
     return () => clearInterval(i);
   }, []);
 
-  const top = [...signals]
+  // 🔔 Toast popup
+  useEffect(() => {
+    const handler = e => {
+      const s = e.detail;
+      alert(
+        `🔔 New 15m Signal\n\n${s.market}\nBias: ${s.bias}\nConfidence: ${s.confidence}%\n\nEnter during SAFE window`
+      );
+    };
+    window.addEventListener("signal-toast", handler);
+    return () => window.removeEventListener("signal-toast", handler);
+  }, []);
+
+  const topFive = [...signals]
     .sort((a, b) => b.createdAt - a.createdAt)
     .slice(0, 5);
 
   return (
     <div className="rounded-xl border border-white/10 overflow-hidden">
-      <button
-        onClick={unlockSound}
-        className="m-3 px-3 py-1 text-xs bg-white/10 rounded"
-      >
-        🔊 Enable Alert Sound
-      </button>
+      <div className="p-3 border-b border-white/10">
+        <button
+          onClick={enableSound}
+          className="px-3 py-1 rounded bg-purple-600 text-white text-xs"
+        >
+          🔊 Enable Alert Sound
+        </button>
+      </div>
 
       <table className="w-full text-sm">
         <thead className="bg-white/5 text-white/70">
@@ -85,14 +111,16 @@ export default function Crypto15mSignalsPanel() {
             <th className="p-3 text-left">Market</th>
             <th className="p-3">Bias</th>
             <th className="p-3">Conf</th>
-            <th className="p-3">Entry Window</th>
+            <th className="p-3">Countdown</th>
+            <th className="p-3">Entry</th>
             <th className="p-3">Action</th>
           </tr>
         </thead>
         <tbody>
-          {top.map(s => {
+          {topFive.map(s => {
             const remaining = s.resolveAt - Date.now();
-            const win = entryWindow(remaining);
+            const state = entryState(remaining);
+            const action = decisionLabel(s, state);
 
             return (
               <tr key={s.id} className="border-t border-white/10">
@@ -100,13 +128,18 @@ export default function Crypto15mSignalsPanel() {
                 <td className="p-3">{s.market}</td>
                 <td className="p-3 text-center">{s.bias}</td>
                 <td className="p-3 text-center">{s.confidence}%</td>
-                <td className={`p-3 text-center ${win.color}`}>
-                  {win.label}
+                <td className="p-3 text-center">
+                  {formatCountdown(remaining)}
                 </td>
-                <td className="p-3 text-center font-bold">
-                  {win.label.startsWith("SAFE") && s.confidence >= 60
-                    ? "TRADE"
-                    : "SKIP"}
+                <td className="p-3 text-center">{state}</td>
+                <td
+                  className={`p-3 text-center font-bold ${
+                    action === "TRADE"
+                      ? "text-green-400"
+                      : "text-red-400"
+                  }`}
+                >
+                  {action}
                 </td>
               </tr>
             );
