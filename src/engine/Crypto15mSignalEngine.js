@@ -1,10 +1,9 @@
-// SAFE v4 — signal engine + resolver (NO JSX)
+// SAFE v5 — hardened engine + resolver
 
-import { logSignal, updateSignal } from "./signalLogger";
+import { logSignal } from "./signalLogger";
 
 const STORAGE_KEY = "pm_signal_history";
 const META_KEY = "pm_engine_meta";
-
 const TF = 15 * 60 * 1000;
 
 const MARKETS = [
@@ -39,49 +38,22 @@ function generateSignal(market) {
   const entry = mockPrice(base);
   const next = mockPrice(entry);
 
-  const bias = next >= entry ? "YES" : "NO";
-
   return {
     id: crypto.randomUUID(),
     market: market.name,
     symbol: market.symbol,
-    bias,
+    bias: next >= entry ? "YES" : "NO",
     confidence: Math.min(65, Math.max(55, Math.abs(next - entry) * 120)),
     entryPrice: entry,
     createdAt: Date.now(),
     resolveAt: Date.now() + TF,
-    notifyAt: Date.now(), // 🔔 immediate popup
+    notifyAt: Date.now(), // immediate toast
     outcome: "pending",
     timeframe: "15m"
   };
 }
 
-/* 🔁 REAL RESOLVER */
-function resolveSignals() {
-  const all = load(STORAGE_KEY, []);
-  let changed = false;
-
-  all.forEach(s => {
-    if (s.outcome !== "pending") return;
-    if (Date.now() < s.resolveAt) return;
-
-    const exit = mockPrice(s.entryPrice);
-    const win =
-      (s.bias === "YES" && exit >= s.entryPrice) ||
-      (s.bias === "NO" && exit < s.entryPrice);
-
-    s.exitPrice = exit;
-    s.outcome = win ? "win" : "loss";
-    s.resolvedAt = Date.now();
-    changed = true;
-  });
-
-  if (changed) save(STORAGE_KEY, all);
-}
-
 export function runCrypto15mEngine({ force = false } = {}) {
-  resolveSignals();
-
   const meta = load(META_KEY, {});
   const bucket = bucket15m();
 
