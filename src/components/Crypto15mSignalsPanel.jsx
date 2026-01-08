@@ -26,8 +26,7 @@ function entryState(ms) {
 
 function decisionLabel(signal, state) {
   if (state !== "SAFE") return "SKIP";
-  if (signal.confidence >= 60) return "TRADE";
-  return "SKIP";
+  return signal.confidence >= 60 ? "TRADE" : "SKIP";
 }
 
 export default function Crypto15mSignalsPanel() {
@@ -35,7 +34,6 @@ export default function Crypto15mSignalsPanel() {
   const notified = useRef(new Set());
   const soundEnabled = useRef(false);
 
-  // 🔊 user must click once to enable sound
   const enableSound = () => {
     soundEnabled.current = true;
     new Audio(alertSound).play().catch(() => {});
@@ -45,12 +43,11 @@ export default function Crypto15mSignalsPanel() {
     const poll = () => {
       const raw = JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]");
 
-      // 🔑 only ACTIVE signals
+      // ✅ show signals until resolveAt passes
       const active = raw.filter(
         s =>
-          typeof s.createdAt === "number" &&
           typeof s.resolveAt === "number" &&
-          s.outcome === "pending"
+          Date.now() < s.resolveAt
       );
 
       active.forEach(s => {
@@ -77,7 +74,6 @@ export default function Crypto15mSignalsPanel() {
     return () => clearInterval(i);
   }, []);
 
-  // 🔔 Toast popup
   useEffect(() => {
     const handler = e => {
       const s = e.detail;
