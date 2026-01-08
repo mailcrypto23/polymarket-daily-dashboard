@@ -1,6 +1,6 @@
-// SAFE v4 – analytics + notifier + entry hints (NO JSX)
+// SAFE v4 — signal engine + resolver (NO JSX)
 
-import { logSignal } from "./signalLogger";
+import { logSignal, updateSignal } from "./signalLogger";
 
 const STORAGE_KEY = "pm_signal_history";
 const META_KEY = "pm_engine_meta";
@@ -14,10 +14,6 @@ const MARKETS = [
   { symbol: "XRP", name: "XRP Up or Down – 15 minute" }
 ];
 
-function bucket15m() {
-  return Math.floor(Date.now() / TF);
-}
-
 function load(key, fallback) {
   try {
     return JSON.parse(localStorage.getItem(key)) ?? fallback;
@@ -30,6 +26,10 @@ function save(key, val) {
   localStorage.setItem(key, JSON.stringify(val));
 }
 
+function bucket15m() {
+  return Math.floor(Date.now() / TF);
+}
+
 function mockPrice(base) {
   return +(base * (1 + (Math.random() - 0.5) * 0.006)).toFixed(2);
 }
@@ -40,35 +40,53 @@ function generateSignal(market) {
   const next = mockPrice(entry);
 
   const bias = next >= entry ? "YES" : "NO";
-  const confidence = Math.min(65, Math.max(55, Math.abs(next - entry) * 120));
 
   return {
+    id: crypto.randomUUID(),
     market: market.name,
     symbol: market.symbol,
     bias,
-    confidence,
+    confidence: Math.min(65, Math.max(55, Math.abs(next - entry) * 120)),
+    entryPrice: entry,
     createdAt: Date.now(),
     resolveAt: Date.now() + TF,
-    notifyAt: Date.now(), // 🔔 immediate
-    timeframe: "15m",
-    entryHint:
-      bias === "YES"
-        ? `Buy YES ≤ ${(0.55).toFixed(2)}`
-        : `Buy NO ≥ ${(0.45).toFixed(2)}`,
-    acknowledged: false,
-    outcome: "pending"
+    notifyAt: Date.now(), // 🔔 immediate popup
+    outcome: "pending",
+    timeframe: "15m"
   };
 }
 
+/* 🔁 REAL RESOLVER */
+function resolveSignals() {
+  const all = load(STORAGE_KEY, []);
+  let changed = false;
+
+  all.forEach(s => {
+    if (s.outcome !== "pending") return;
+    if (Date.now() < s.resolveAt) return;
+
+    const exit = mockPrice(s.entryPrice);
+    const win =
+      (s.bias === "YES" && exit >= s.entryPrice) ||
+      (s.bias === "NO" && exit < s.entryPrice);
+
+    s.exitPrice = exit;
+    s.outcome = win ? "win" : "loss";
+    s.resolvedAt = Date.now();
+    changed = true;
+  });
+
+  if (changed) save(STORAGE_KEY, all);
+}
+
 export function runCrypto15mEngine({ force = false } = {}) {
+  resolveSignals();
+
   const meta = load(META_KEY, {});
   const bucket = bucket15m();
 
   if (meta.lastBucket === bucket && !force) return;
 
-  MARKETS.forEach(market => {
-    logSignal(generateSignal(market));
-  });
-
+  MARKETS.forEach(m => logSignal(generateSignal(m)));
   save(META_KEY, { lastBucket: bucket });
 }
