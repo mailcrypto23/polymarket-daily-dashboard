@@ -1,6 +1,6 @@
-// SAFE v4 — signal engine + resolver (NO JSX)
+// SAFE v4 – stable signal generator with deterministic notification
 
-import { logSignal, updateSignal } from "./signalLogger";
+import { logSignal } from "./signalLogger";
 
 const STORAGE_KEY = "pm_signal_history";
 const META_KEY = "pm_engine_meta";
@@ -14,6 +14,10 @@ const MARKETS = [
   { symbol: "XRP", name: "XRP Up or Down – 15 minute" }
 ];
 
+function bucket15m() {
+  return Math.floor(Date.now() / TF);
+}
+
 function load(key, fallback) {
   try {
     return JSON.parse(localStorage.getItem(key)) ?? fallback;
@@ -24,10 +28,6 @@ function load(key, fallback) {
 
 function save(key, val) {
   localStorage.setItem(key, JSON.stringify(val));
-}
-
-function bucket15m() {
-  return Math.floor(Date.now() / TF);
 }
 
 function mockPrice(base) {
@@ -47,46 +47,24 @@ function generateSignal(market) {
     symbol: market.symbol,
     bias,
     confidence: Math.min(65, Math.max(55, Math.abs(next - entry) * 120)),
-    entryPrice: entry,
     createdAt: Date.now(),
     resolveAt: Date.now() + TF,
-    notifyAt: Date.now(), // 🔔 immediate popup
-    outcome: "pending",
-    timeframe: "15m"
+    notifyAt: Date.now(),        // 🔔 fire immediately
+    isNew: true,                 // 🔑 popup control
+    timeframe: "15m",
+    outcome: "pending"
   };
 }
 
-/* 🔁 REAL RESOLVER */
-function resolveSignals() {
-  const all = load(STORAGE_KEY, []);
-  let changed = false;
-
-  all.forEach(s => {
-    if (s.outcome !== "pending") return;
-    if (Date.now() < s.resolveAt) return;
-
-    const exit = mockPrice(s.entryPrice);
-    const win =
-      (s.bias === "YES" && exit >= s.entryPrice) ||
-      (s.bias === "NO" && exit < s.entryPrice);
-
-    s.exitPrice = exit;
-    s.outcome = win ? "win" : "loss";
-    s.resolvedAt = Date.now();
-    changed = true;
-  });
-
-  if (changed) save(STORAGE_KEY, all);
-}
-
 export function runCrypto15mEngine({ force = false } = {}) {
-  resolveSignals();
-
   const meta = load(META_KEY, {});
   const bucket = bucket15m();
 
   if (meta.lastBucket === bucket && !force) return;
 
-  MARKETS.forEach(m => logSignal(generateSignal(m)));
+  MARKETS.forEach(market => {
+    logSignal(generateSignal(market));
+  });
+
   save(META_KEY, { lastBucket: bucket });
 }
