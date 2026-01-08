@@ -1,4 +1,4 @@
-// SAFE v3 – analytics + notifier (NO JSX, NO REACT)
+// SAFE v4 – analytics + notifier engine (NO JSX, NO REACT)
 
 import { logSignal } from "./signalLogger";
 
@@ -14,6 +14,9 @@ const MARKETS = [
   { symbol: "XRP", name: "XRP Up or Down – 15 minute" }
 ];
 
+// ──────────────────────────────
+// helpers
+// ──────────────────────────────
 function bucket15m() {
   return Math.floor(Date.now() / TF);
 }
@@ -34,30 +37,49 @@ function mockPrice(base) {
   return +(base * (1 + (Math.random() - 0.5) * 0.006)).toFixed(2);
 }
 
+// ──────────────────────────────
+// signal generator
+// ──────────────────────────────
 function generateSignal(market) {
   const base = 100 + Math.random() * 50;
   const entry = mockPrice(base);
   const next = mockPrice(entry);
 
   const bias = next >= entry ? "YES" : "NO";
+  const confidence = Math.min(
+    65,
+    Math.max(55, Math.abs(next - entry) * 120)
+  );
+
+  const now = Date.now();
 
   return {
     market: market.name,
     symbol: market.symbol,
     bias,
-    confidence: Math.min(65, Math.max(55, Math.abs(next - entry) * 120)),
-    createdAt: Date.now(),
-    resolveAt: Date.now() + TF,
-    notifyAt: Date.now() + 5_000, // popup after 5s
+    confidence,
+
     timeframe: "15m",
+
+    createdAt: now,
+    resolveAt: now + TF,
+
+    // ✅ CRITICAL FIX:
+    // Fire popup + toast immediately when signal is generated
+    notifyAt: now,
+
     outcome: "pending"
   };
 }
 
+// ──────────────────────────────
+// engine runner
+// ──────────────────────────────
 export function runCrypto15mEngine({ force = false } = {}) {
   const meta = load(META_KEY, {});
   const bucket = bucket15m();
 
+  // prevent duplicate signals in same 15m candle
   if (meta.lastBucket === bucket && !force) return;
 
   MARKETS.forEach(market => {
