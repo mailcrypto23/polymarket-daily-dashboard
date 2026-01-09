@@ -1,94 +1,93 @@
-import { explainConfidence } from "./SignalConfidence";
+import { useEffect, useRef, useState } from "react";
+import SignalCard from "./SignalCard";
 
-const TF = 15 * 60 * 1000;
+const STORAGE_KEY = "pm_signal_history";
 
-export default function SignalCard({ signal, onDecision }) {
-  // 🛡️ HARD GUARDS — prevent runtime crash
-  if (
-    !signal ||
-    typeof signal.resolveAt !== "number" ||
-    typeof signal.confidence !== "number" ||
-    !signal.id
-  ) {
-    return null;
-  }
+export default function Crypto15mSignalsPanel() {
+  const [signals, setSignals] = useState([]);
+  const decided = useRef(new Set());
 
-  const now = Date.now();
-  const remaining = Math.max(0, signal.resolveAt - now);
+  useEffect(() => {
+    if (typeof window === "undefined") return;
 
-  const conf = explainConfidence({
-    confidence: signal.confidence,
-    remainingMs: remaining,
-    tfMs: TF
-  });
+    const poll = () => {
+      let raw = [];
 
-  const entryState =
-    remaining <= 0
-      ? "LOCKED"
-      : remaining > TF * 0.6
-      ? "SAFE"
-      : remaining > TF * 0.25
-      ? "RISKY"
-      : "LATE";
+      try {
+        raw = JSON.parse(
+          window.localStorage.getItem(STORAGE_KEY) || "[]"
+        );
+      } catch {
+        raw = [];
+      }
+
+      if (!Array.isArray(raw)) raw = [];
+
+      const active = raw.filter(
+        s =>
+          s &&
+          typeof s === "object" &&
+          typeof s.createdAt === "number" &&
+          typeof s.resolveAt === "number" &&
+          s.outcome === "pending"
+      );
+
+      setSignals(
+        active
+          .sort((a, b) => b.createdAt - a.createdAt)
+          .slice(0, 4)
+      );
+    };
+
+    poll();
+    const i = setInterval(poll, 1000);
+    return () => clearInterval(i);
+  }, []);
+
+  const handleDecision = (id, decision) => {
+    if (typeof window === "undefined") return;
+
+    decided.current.add(id);
+
+    let raw = [];
+    try {
+      raw = JSON.parse(
+        window.localStorage.getItem(STORAGE_KEY) || "[]"
+      );
+    } catch {
+      raw = [];
+    }
+
+    const idx = raw.findIndex(s => s.id === id);
+    if (idx !== -1) raw[idx].userDecision = decision;
+
+    window.localStorage.setItem(
+      STORAGE_KEY,
+      JSON.stringify(raw)
+    );
+
+    setSignals(s => s.filter(sig => sig.id !== id));
+  };
 
   return (
-    <div className="rounded-xl border border-white/10 bg-white/5 p-4 space-y-3">
-      <div className="flex justify-between items-center">
-        <div>
-          <div className="text-white font-semibold">
-            {signal.market || "Unknown Market"}
-          </div>
-          <div className="text-xs text-white/50">
-            Bias:{" "}
-            <span className="font-bold">
-              {signal.bias || "—"}
-            </span>
-          </div>
-        </div>
-
-        <div className="text-right">
-          <div className="text-sm font-bold">
-            {signal.confidence}%
-          </div>
-          <div className={`text-xs ${conf.color}`}>
-            {conf.label}
-          </div>
-        </div>
+    <div className="space-y-4">
+      <div className="text-sm text-white/60">
+        Trade signals individually · Enter only during SAFE window
       </div>
 
-      <div className="text-xs text-white/50">
-        {conf.reason}
-      </div>
-
-      <div className="flex justify-between items-center pt-2 border-t border-white/10">
-        <div className="text-xs">
-          Entry Window:{" "}
-          <span className="font-bold text-white">
-            {entryState}
-          </span>
+      {signals.length === 0 && (
+        <div className="text-white/40 text-sm">
+          Waiting for next 15m signal…
         </div>
+      )}
 
-        <div className="space-x-2">
-          <button
-            disabled={entryState !== "SAFE"}
-            onClick={() => onDecision(signal.id, "ENTER")}
-            className={`px-3 py-1 text-xs rounded ${
-              entryState === "SAFE"
-                ? "bg-green-600"
-                : "bg-white/10 text-white/30 cursor-not-allowed"
-            }`}
-          >
-            ENTER
-          </button>
-
-          <button
-            onClick={() => onDecision(signal.id, "SKIP")}
-            className="px-3 py-1 text-xs rounded bg-red-600"
-          >
-            SKIP
-          </button>
-        </div>
-      </div>
+      {signals.map(signal => (
+        <SignalCard
+          key={signal.id}
+          signal={signal}
+          onDecision={handleDecision}
+        />
+      ))}
     </div>
   );
 }
