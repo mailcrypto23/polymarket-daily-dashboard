@@ -1,6 +1,12 @@
-// Polymarket-style confidence explanation logic
-
 export function explainConfidence({ confidence, remainingMs, tfMs }) {
+  if (typeof confidence !== "number") {
+    return {
+      label: "Unknown",
+      reason: "Insufficient data",
+      color: "text-white/40"
+    };
+  }
+
   const pct = remainingMs / tfMs;
 
   if (confidence >= 70 && pct > 0.6)
