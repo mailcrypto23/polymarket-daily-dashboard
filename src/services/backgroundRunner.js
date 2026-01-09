@@ -1,6 +1,8 @@
-import { autoEnterSignals } from "../engine/tradeDecisionEngine.js";
-import { resolveSignals } from "../engine/signalAutoResolver.js";
-import { getLivePrice } from "../engine/priceFeed.js";
+// src/services/backgroundRunner.js
+
+import { runCrypto15mSignalEngine } from "../engine/Crypto15mSignalEngine";
+import { resolveSignals } from "../engine/signalAutoResolver";
+import { getLivePrice } from "../engine/priceFeed";
 
 let started = false;
 
@@ -8,19 +10,8 @@ export function startBackgroundRunner() {
   if (started) return;
   started = true;
 
-  try {
-    autoEnterSignals();
-    resolveSignals(getLivePrice);
-  } catch (e) {
-    console.error("Background runner init error", e);
-  }
-
   setInterval(() => {
-    try {
-      autoEnterSignals();
-      resolveSignals(getLivePrice);
-    } catch (e) {
-      console.error("Background runner tick error", e);
-    }
-  }, 15_000);
+    runCrypto15mSignalEngine();
+    resolveSignals(getLivePrice);
+  }, 1000);
 }
