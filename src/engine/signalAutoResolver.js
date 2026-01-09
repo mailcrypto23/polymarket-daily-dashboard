@@ -1,35 +1,52 @@
-const STORAGE_KEY = "pm_signals";
+// src/engine/signalResolver.js
 
-export function resolveSignals(getPrice) {
+const STORAGE_KEY = "pm_signal_history";
+
+export function resolveSignals(getLivePrice) {
+  if (typeof window === "undefined") return;
+  if (typeof getLivePrice !== "function") return;
+
+  let signals = [];
+  try {
+    signals = JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]");
+  } catch {
+    return;
+  }
+
   const now = Date.now();
-  const signals = JSON.parse(
-    localStorage.getItem(STORAGE_KEY) || "[]"
-  );
-
   let changed = false;
 
-  for (const s of signals) {
+  signals.forEach(signal => {
     if (
-      s.outcome === "pending" &&
-      s.userDecision === "ENTER" &&
-      now >= s.resolveAt
+      signal &&
+      signal.outcome === "pending" &&
+      signal.userDecision === "ENTER" &&
+      typeof signal.resolveAt === "number" &&
+      now >= signal.resolveAt
     ) {
-      const exitPrice = getPrice(s.asset);
-      s.exitPrice = exitPrice;
+      const exitPrice = getLivePrice(signal.symbol);
 
-      s.outcome =
-        s.bias === "UP"
-          ? exitPrice > s.entryPrice
-            ? "WIN"
-            : "LOSS"
-          : exitPrice < s.entryPrice
-          ? "WIN"
-          : "LOSS";
+      if (typeof exitPrice !== "number") return;
 
-      s.resolvedAt = now;
+      signal.exitPrice = exitPrice;
+      signal.resolvedAt = now;
+
+      // 🔥 RESOLUTION LOGIC
+      if (signal.bias === "UP") {
+        signal.outcome =
+          exitPrice > signal.entryPrice ? "WIN" : "LOSS";
+      } else {
+        signal.outcome =
+          exitPrice < signal.entryPrice ? "WIN" : "LOSS";
+      }
+
+      console.log(
+        `[resolver] ${signal.id} → ${signal.outcome} (${signal.entryPrice} → ${exitPrice})`
+      );
+
       changed = true;
     }
-  }
+  });
 
   if (changed) {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(signals));
