@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect } from "react";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 
 import Layout from "./layouts/Layout";
@@ -9,7 +9,15 @@ import OrderbookPage from "./pages/OrderbookPage";
 import Portfolio from "./pages/Portfolio";
 import Settings from "./pages/Settings";
 
+// 🔴 THIS WAS MISSING
+import { startBackgroundRunner } from "./services/backgroundRunner";
+
 export default function App() {
+  // ✅ START ENGINE LOOP ONCE FOR ENTIRE APP
+  useEffect(() => {
+    startBackgroundRunner();
+  }, []);
+
   return (
     <BrowserRouter>
       <Routes>
