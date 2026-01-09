@@ -1,58 +1,37 @@
-import { getLivePrice } from "./priceFeed";
-import { simulatePnL } from "./pnlSimulator";
-import { logSignalOutcome } from "./signalLogger";
+const STORAGE_KEY = "pm_signals";
 
-const STORAGE_KEY = "pm_signal_history";
-
-export function runSignalAutoResolver() {
-  if (typeof window === "undefined") return;
-
-  let signals = [];
-  try {
-    signals = JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]");
-  } catch {
-    return;
-  }
-
+export function resolveSignals(getPrice) {
   const now = Date.now();
+  const signals = JSON.parse(
+    localStorage.getItem(STORAGE_KEY) || "[]"
+  );
+
   let changed = false;
 
-  const next = signals.map(s => {
+  for (const s of signals) {
     if (
-      s.outcome !== "pending" ||
-      s.userDecision !== "ENTER" ||
-      s.confidence < 70
+      s.outcome === "pending" &&
+      s.userDecision === "ENTER" &&
+      now >= s.resolveAt
     ) {
-      return s;
-    }
+      const exitPrice = getPrice(s.asset);
+      s.exitPrice = exitPrice;
 
-    const price = getLivePrice(s.asset);
-    if (!price) return s;
+      s.outcome =
+        s.bias === "UP"
+          ? exitPrice > s.entryPrice
+            ? "WIN"
+            : "LOSS"
+          : exitPrice < s.entryPrice
+          ? "WIN"
+          : "LOSS";
 
-    const pnl = simulatePnL(s, price);
-
-    if (pnl >= s.takeProfit) {
+      s.resolvedAt = now;
       changed = true;
-      logSignalOutcome(s, "WIN", pnl);
-      return { ...s, outcome: "win", pnl, exitPrice: price };
     }
-
-    if (pnl <= -s.stopLoss) {
-      changed = true;
-      logSignalOutcome(s, "LOSS", pnl);
-      return { ...s, outcome: "loss", pnl, exitPrice: price };
-    }
-
-    if (now >= s.resolveAt) {
-      changed = true;
-      logSignalOutcome(s, "TIMEOUT", pnl);
-      return { ...s, outcome: "timeout", pnl, exitPrice: price };
-    }
-
-    return s;
-  });
+  }
 
   if (changed) {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(signals));
   }
 }
