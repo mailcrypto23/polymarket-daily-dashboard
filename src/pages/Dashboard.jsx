@@ -1,5 +1,3 @@
-import { useEffect } from "react";
-
 import Crypto15mSignalsPanel from "../components/Crypto15mSignalsPanel";
 import TractionPanel from "../components/TractionPanel";
 import PriceMovement from "../components/PriceMovement";
@@ -7,21 +5,7 @@ import MarketDepthPanel from "../components/MarketDepthPanel";
 import LiquidityHeatmap from "../components/charts/LiquidityHeatmap";
 import TopOpportunities from "../components/TopOpportunities";
 
-import { runCrypto15mEngine } from "../engine/Crypto15mSignalEngine";
-
 export default function Dashboard() {
-  useEffect(() => {
-    // ✅ Run once on mount to ensure signals exist
-    runCrypto15mEngine();
-
-    // ✅ Controlled cadence (15m engine, not UI-driven)
-    const interval = setInterval(() => {
-      runCrypto15mEngine();
-    }, 60_000); // safe heartbeat, engine handles its own timing
-
-    return () => clearInterval(interval);
-  }, []);
-
   return (
     <div className="space-y-10 max-w-7xl mx-auto px-4">
       <section>
