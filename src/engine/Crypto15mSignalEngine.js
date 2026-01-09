@@ -1,23 +1,16 @@
 // src/engine/Crypto15mSignalEngine.js
-// FINAL – Polymarket-style 15m signal engine
-// Guarantees exactly ONE visible pending signal with SAFE window
 
 const STORAGE_KEY = "pm_signal_history";
-const FIFTEEN_MIN = 15 * 60 * 1000;
 
-// % of window considered SAFE (first 40%)
+// 15 minutes
+const SIGNAL_DURATION_MS = 15 * 60 * 1000;
+
+// SAFE window = first 40% of the signal
 const SAFE_WINDOW_RATIO = 0.4;
-
-// simple deterministic markets rotation
-const MARKETS = [
-  { symbol: "BTC", name: "Bitcoin", bias: "UP" },
-  { symbol: "ETH", name: "Ethereum", bias: "UP" },
-  { symbol: "SOL", name: "Solana", bias: "DOWN" },
-];
 
 function loadSignals() {
   try {
-    return JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
+    return JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]");
   } catch {
     return [];
   }
@@ -27,70 +20,70 @@ function saveSignals(signals) {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(signals));
 }
 
-function now() {
-  return Date.now();
-}
-
-function hasActivePending(signals) {
+function hasActivePendingSignal(signals, now) {
   return signals.some(
     s =>
       s.outcome === "pending" &&
       typeof s.resolveAt === "number" &&
-      s.resolveAt > now()
+      now < s.resolveAt
   );
 }
 
-function createSignal(index) {
-  const market = MARKETS[index % MARKETS.length];
-  const createdAt = now();
-  const resolveAt = createdAt + FIFTEEN_MIN;
-  const safeUntil = createdAt + FIFTEEN_MIN * SAFE_WINDOW_RATIO;
+function generateSignal(now) {
+  const resolveAt = now + SIGNAL_DURATION_MS;
+  const safeUntil = now + SIGNAL_DURATION_MS * SAFE_WINDOW_RATIO;
+
+  const bias = Math.random() > 0.5 ? "UP" : "DOWN";
+  const confidence = Math.floor(55 + Math.random() * 30); // 55–85%
 
   return {
-    id: `sig_${createdAt}`,
-    symbol: market.symbol,
-    market: `${market.name} Up or Down – 15m`,
-    bias: market.bias,
-    confidence: 55 + (index % 20), // deterministic but realistic
-    createdAt,
+    id: `sig_${now}`,
+    symbol: "BTC",
+    timeframe: "15m",
+
+    bias,
+    confidence,
+
+    createdAt: now,
     resolveAt,
     safeUntil,
 
-    // trade lifecycle
     entryPrice: null,
     exitPrice: null,
-    userDecision: null, // ENTER / SKIP
-    outcome: "pending", // pending → WIN / LOSS
 
-    proof: null,
+    userDecision: null, // ENTER | SKIP
+    outcome: "pending", // pending | WIN | LOSS | SKIPPED
+
+    proof: null
   };
 }
 
 /**
- * MAIN ENGINE ENTRY
- * This must be SAFE to call repeatedly
+ * ✅ FINAL ENGINE ENTRYPOINT
+ * MUST match backgroundRunner import
  */
-export function runCrypto15mEngine() {
+export function runCrypto15mSignalEngine() {
   if (typeof window === "undefined") return;
 
+  const now = Date.now();
   const signals = loadSignals();
 
-  // 1️⃣ If a valid pending signal exists → do NOTHING
-  if (hasActivePending(signals)) {
+  // Remove fully resolved & expired signals (keep history clean)
+  const cleaned = signals.filter(
+    s =>
+      s.outcome === "pending" ||
+      (s.outcome !== "pending" && now - s.resolveAt < 60 * 60 * 1000)
+  );
+
+  // If a pending signal already exists, do NOTHING
+  if (hasActivePendingSignal(cleaned, now)) {
+    saveSignals(cleaned);
     return;
   }
 
-  // 2️⃣ Otherwise, create EXACTLY ONE new signal
-  const newSignal = createSignal(signals.length);
+  // Otherwise, create exactly ONE new signal
+  const newSignal = generateSignal(now);
+  cleaned.push(newSignal);
 
-  signals.push(newSignal);
-  saveSignals(signals);
-
-  // helpful debug (safe in prod)
-  console.info(
-    "[15m-engine] New signal created:",
-    newSignal.symbol,
-    "resolves at",
-    new Date(newSignal.resolveAt).toLocaleTimeString()
-  );
+  saveSignals(cleaned);
 }
