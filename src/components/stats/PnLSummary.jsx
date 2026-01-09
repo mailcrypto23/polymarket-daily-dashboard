@@ -1,15 +1,43 @@
 import { useEffect, useState } from "react";
 import { getPnLSummary } from "../../engine/pnlSummary";
 
+const EMPTY_SUMMARY = {
+  total: 0,
+  wins: 0,
+  losses: 0,
+  winRate: 0
+};
+
 export default function PnLSummary({ minConfidence }) {
-  const [summary, setSummary] = useState(getPnLSummary(minConfidence));
+  const [summary, setSummary] = useState(EMPTY_SUMMARY);
 
   useEffect(() => {
-    const interval = setInterval(() => {
-      setSummary(getPnLSummary(minConfidence));
-    }, 2000);
+    let mounted = true;
 
-    return () => clearInterval(interval);
+    const update = () => {
+      try {
+        const next = getPnLSummary(minConfidence);
+
+        if (mounted && next && typeof next === "object") {
+          setSummary({
+            total: Number(next.total) || 0,
+            wins: Number(next.wins) || 0,
+            losses: Number(next.losses) || 0,
+            winRate: Number(next.winRate) || 0
+          });
+        }
+      } catch {
+        // swallow errors to avoid crashing render
+      }
+    };
+
+    update();
+    const interval = setInterval(update, 2000);
+
+    return () => {
+      mounted = false;
+      clearInterval(interval);
+    };
   }, [minConfidence]);
 
   return (
