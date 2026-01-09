@@ -1,28 +1,28 @@
-// src/services/backgroundRunner.js
-
-import { autoEnterSignals } from "../engine/tradeDecisionEngine";
-import { resolveSignals } from "../engine/signalResolver";
-import { getLivePrice } from "../engine/priceFeed";
+import { autoEnterSignals } from "../engine/tradeDecisionEngine.js";
+import { resolveSignals } from "../engine/signalAutoResolver.js";
+import { getLivePrice } from "../engine/priceFeed.js";
 
 let started = false;
 
 export function startBackgroundRunner() {
-  // 🔒 Prevent multiple runners (VERY IMPORTANT)
   if (started) return;
   started = true;
 
-  console.log("[backgroundRunner] started");
+  // Run once immediately
+  try {
+    autoEnterSignals();
+    resolveSignals(getLivePrice);
+  } catch (e) {
+    console.error("Background runner init error", e);
+  }
 
-  // 🔁 Run every second (Polymarket-style)
+  // Run every 15 seconds
   setInterval(() => {
     try {
-      // 1️⃣ Apply auto-entry rules (confidence + SAFE window)
       autoEnterSignals();
-
-      // 2️⃣ Resolve expired signals with price proof
       resolveSignals(getLivePrice);
-    } catch (err) {
-      console.error("[backgroundRunner] error", err);
+    } catch (e) {
+      console.error("Background runner tick error", e);
     }
-  }, 1000);
+  }, 15_000);
 }
