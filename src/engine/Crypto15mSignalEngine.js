@@ -1,85 +1,70 @@
 // src/engine/Crypto15mSignalEngine.js
-// FINAL — Polymarket-style MANUAL signal engine (15m)
-
-import { getLivePrice } from "./priceFeed";
 
 const STORAGE_KEY = "pm_signal_history";
-const TF_MS = 15 * 60 * 1000;        // 15 minutes
-const ENTRY_WINDOW_MS = 60 * 1000;   // SAFE entry = first 60s
+const INTERVAL_MS = 15 * 60 * 1000; // 15 minutes
+const SAFE_ENTRY_MS = 2 * 60 * 1000; // first 2 minutes only
 
-// simple in-memory guard (prevents duplicates per TF)
-let lastCandleId = null;
-
-export function runCrypto15mEngine() {
-  if (typeof window === "undefined") return;
-
-  const now = Date.now();
-  const candleId = Math.floor(now / TF_MS);
-
-  // 🚫 Only ONE signal per 15m candle
-  if (candleId === lastCandleId) return;
-  lastCandleId = candleId;
-
-  // Load history
-  let history = [];
+function loadSignals() {
   try {
-    history = JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]");
+    return JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
   } catch {
-    history = [];
+    return [];
   }
+}
 
-  // --- MARKET SELECTION (keep simple + deterministic) ---
-  const symbol = "BTC";
-  const price = getLivePrice(symbol);
-  if (typeof price !== "number") return;
+function saveSignals(signals) {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(signals));
+}
 
-  // --- CONFIDENCE LOGIC (deterministic, visible, explainable) ---
-  // (placeholder — you can improve later)
-  const confidence = Math.min(
-    85,
-    Math.max(55, Math.round(60 + Math.random() * 25))
+function getNextCandleTime(now) {
+  return Math.floor(now / INTERVAL_MS) * INTERVAL_MS + INTERVAL_MS;
+}
+
+function hasActiveSignal(signals, now) {
+  return signals.some(
+    s =>
+      s.outcome === "pending" &&
+      now < s.resolveAt
   );
+}
+
+function generateSignal(now) {
+  const resolveAt = getNextCandleTime(now);
 
   const bias = Math.random() > 0.5 ? "UP" : "DOWN";
+  const confidence = Math.floor(55 + Math.random() * 25); // 55–80%
 
-  const createdAt = now;
-  const entryOpenAt = createdAt;
-  const entryCloseAt = createdAt + ENTRY_WINDOW_MS;
-  const resolveAt = createdAt + TF_MS;
-
-  const signal = {
-    id: `${symbol}-${createdAt}`,
-    symbol,
-    market: `${symbol} Up or Down - 15 minute`,
+  return {
+    id: `sig_${now}`,
+    symbol: "BTC",
+    timeframe: "15m",
     bias,
     confidence,
 
-    // timing
-    createdAt,
-    entryOpenAt,
-    entryCloseAt,
-    resolveAt,
-
-    // prices
-    entryPrice: price,
+    entryPrice: null,
     exitPrice: null,
 
-    // lifecycle
-    userDecision: null,     // ENTER / SKIP
-    outcome: "pending",     // REQUIRED for UI
+    createdAt: now,
+    resolveAt,
+    safeUntil: now + SAFE_ENTRY_MS,
 
-    // proof (filled later)
-    proof: null,
+    userDecision: null, // ENTER | SKIP
+    outcome: "pending", // pending | WIN | LOSS | SKIPPED
+
+    proof: null
   };
+}
 
-  history.push(signal);
+export function runCrypto15mSignalEngine() {
+  if (typeof window === "undefined") return;
 
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(history));
+  const now = Date.now();
+  const signals = loadSignals();
 
-  console.log(
-    `[ENGINE] New 15m signal created`,
-    signal.id,
-    bias,
-    confidence + "%"
-  );
+  // 🔥 CRITICAL FIX:
+  // ENSURE THERE IS ALWAYS ONE ACTIVE SIGNAL
+  if (!hasActiveSignal(signals, now)) {
+    signals.push(generateSignal(now));
+    saveSignals(signals);
+  }
 }
