@@ -1,36 +1,34 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import SignalCard from "./SignalCard";
 
-const STORAGE_KEY = "pm_signal_history";
+const STORAGE_KEY = "pm_signals"; // ✅ unified key
 
 export default function Crypto15mSignalsPanel() {
   const [signals, setSignals] = useState([]);
-  const decided = useRef(new Set());
 
   useEffect(() => {
     if (typeof window === "undefined") return;
 
     const poll = () => {
-      let raw = [];
       try {
-        raw = JSON.parse(
+        const raw = JSON.parse(
           window.localStorage.getItem(STORAGE_KEY) || "[]"
         );
+
+        const active = raw.filter(
+          s =>
+            s &&
+            typeof s.createdAt === "number" &&
+            typeof s.resolveAt === "number" &&
+            s.outcome === "pending"
+        );
+
+        setSignals(
+          active.sort((a, b) => b.createdAt - a.createdAt)
+        );
       } catch {
-        raw = [];
+        setSignals([]);
       }
-
-      const active = raw.filter(
-        s =>
-          s &&
-          typeof s.createdAt === "number" &&
-          typeof s.resolveAt === "number" &&
-          s.outcome === "pending"
-      );
-
-      setSignals(
-        active.sort((a, b) => b.createdAt - a.createdAt).slice(0, 4)
-      );
     };
 
     poll();
@@ -39,26 +37,20 @@ export default function Crypto15mSignalsPanel() {
   }, []);
 
   const handleDecision = (id, decision) => {
-    if (typeof window === "undefined") return;
-
-    let raw = [];
-    try {
-      raw = JSON.parse(
-        window.localStorage.getItem(STORAGE_KEY) || "[]"
-      );
-    } catch {
-      raw = [];
-    }
+    const raw = JSON.parse(
+      window.localStorage.getItem(STORAGE_KEY) || "[]"
+    );
 
     const idx = raw.findIndex(s => s.id === id);
-    if (idx !== -1) raw[idx].userDecision = decision;
+    if (idx === -1) return;
+
+    raw[idx].userDecision = decision;
+    raw[idx].enteredAt = Date.now(); // ✅ lock entry
 
     window.localStorage.setItem(
       STORAGE_KEY,
       JSON.stringify(raw)
     );
-
-    setSignals(s => s.filter(sig => sig.id !== id));
   };
 
   return (
