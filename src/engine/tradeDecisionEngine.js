@@ -1,26 +1,55 @@
-const STORAGE_KEY = "pm_signals";
+// src/engine/tradeDecisionEngine.js
+
+const STORAGE_KEY = "pm_signal_history";
+
+const CONFIDENCE_THRESHOLD = 75;
+const TF_MS = 15 * 60 * 1000;
+const SAFE_WINDOW_PCT = 0.6;
 
 export function autoEnterSignals() {
-  const now = Date.now();
-  const signals = JSON.parse(
-    localStorage.getItem(STORAGE_KEY) || "[]"
-  );
+  if (typeof window === "undefined") return;
+
+  let signals = [];
+  try {
+    signals = JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]");
+  } catch {
+    return;
+  }
 
   let changed = false;
+  const now = Date.now();
 
-  for (const s of signals) {
+  signals.forEach(signal => {
     if (
-      s.outcome === "pending" &&
-      !s.userDecision &&
-      s.confidence >= 75 &&              // 🔒 CONFIDENCE RULE
-      now < s.resolveAt - 3 * 60 * 1000   // SAFE WINDOW
+      signal &&
+      signal.outcome === "pending" &&
+      !signal.userDecision &&
+      typeof signal.createdAt === "number" &&
+      typeof signal.confidence === "number"
     ) {
-      s.userDecision = "ENTER";
-      s.enteredAt = now;
-      s.entryPrice = s.entryPrice ?? s.priceAtSignal;
-      changed = true;
+      const elapsed = now - signal.createdAt;
+      const safeWindowMs = TF_MS * SAFE_WINDOW_PCT;
+
+      // 🚨 STRICT RULES (NO EXCEPTIONS)
+      if (
+        signal.confidence >= CONFIDENCE_THRESHOLD &&
+        elapsed <= safeWindowMs
+      ) {
+        signal.userDecision = "ENTER";
+        signal.entryPrice = signal.priceAtSignal;
+        signal.enteredAt = now;
+
+        console.log(
+          `[tradeDecision] ENTER ${signal.id} @ ${signal.entryPrice}`
+        );
+        changed = true;
+      } else if (elapsed > safeWindowMs) {
+        signal.userDecision = "SKIP";
+        signal.skippedAt = now;
+        changed = true;
+      }
     }
-  }
+  });
 
   if (changed) {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(signals));
