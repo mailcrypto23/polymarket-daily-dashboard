@@ -1,88 +1,65 @@
-import { explainConfidence } from "./SignalConfidence";
-
-const TF = 15 * 60 * 1000;
-
 export default function SignalCard({ signal, onDecision }) {
-  const remaining = Math.max(0, signal.resolveAt - Date.now());
-  const conf = explainConfidence({
-    confidence: signal.confidence,
-    remainingMs: remaining,
-    tfMs: TF
-  });
+  const now = Date.now();
 
-  const entryState =
-    remaining <= 0
-      ? "LOCKED"
-      : remaining > TF * 0.6
-      ? "SAFE"
-      : remaining > TF * 0.25
-      ? "RISKY"
-      : "LATE";
-
-  const tradable =
+  const safe =
+    typeof signal.confidence === "number" &&
     signal.confidence >= 70 &&
-    entryState === "SAFE" &&
-    signal.outcome === "pending";
+    now < signal.resolveAt;
+
+  const remaining = Math.max(
+    0,
+    Math.floor((signal.resolveAt - now) / 1000)
+  );
 
   return (
-    <div className="rounded-xl border border-white/10 bg-white/5 p-4 space-y-3">
-      <div className="flex justify-between">
-        <div>
-          <div className="font-semibold">{signal.question}</div>
-          <div className="text-xs opacity-60">
-            Resolves in {Math.ceil(remaining / 1000)}s
-          </div>
+    <div className="rounded-xl bg-white/5 p-4 space-y-3">
+      {/* HEADER */}
+      <div className="flex justify-between items-center">
+        <div className="font-semibold">
+          {signal.symbol} · 15m
         </div>
-        <div className="text-right">
-          <div className="font-bold">{signal.confidence}%</div>
-          <div className={`text-xs ${conf.color}`}>{conf.label}</div>
+        <div
+          className={`text-sm ${
+            safe ? "text-green-400" : "text-yellow-400"
+          }`}
+        >
+          {safe ? "SAFE" : "LOCKED"}
         </div>
       </div>
 
-      <div className="text-xs opacity-60">{conf.reason}</div>
+      {/* CONFIDENCE */}
+      <div className="flex justify-between text-sm">
+        <span>Confidence</span>
+        <span className="font-bold">
+          {signal.confidence ?? "—"}%
+        </span>
+      </div>
 
-      {signal.outcome !== "pending" && (
-        <div
-          className={`text-sm font-semibold ${
-            signal.outcome === "win"
-              ? "text-green-400"
-              : signal.outcome === "loss"
-              ? "text-red-400"
-              : "text-yellow-400"
+      {/* TIMER */}
+      <div className="text-xs text-white/60">
+        Resolves in: {remaining}s
+      </div>
+
+      {/* ACTION */}
+      <div className="flex gap-2">
+        <button
+          disabled={!safe}
+          onClick={() => onDecision(signal.id, "ENTER")}
+          className={`flex-1 py-2 rounded ${
+            safe
+              ? "bg-green-600 hover:bg-green-700"
+              : "bg-gray-700 cursor-not-allowed"
           }`}
         >
-          Resolved: {signal.outcome.toUpperCase()} · PnL {signal.pnl?.toFixed(2)}
-        </div>
-      )}
+          ENTER
+        </button>
 
-      <div className="flex justify-between pt-2 border-t border-white/10">
-        <div className="text-xs">
-          Trade allowed:{" "}
-          <span className={tradable ? "text-green-400" : "text-red-400"}>
-            {tradable ? "YES" : "NO"}
-          </span>
-        </div>
-
-        <div className="space-x-2">
-          <button
-            disabled={!tradable}
-            onClick={() => onDecision(signal.id, "ENTER")}
-            className={`px-3 py-1 text-xs rounded ${
-              tradable
-                ? "bg-green-600"
-                : "bg-white/10 opacity-40 cursor-not-allowed"
-            }`}
-          >
-            ENTER
-          </button>
-
-          <button
-            onClick={() => onDecision(signal.id, "SKIP")}
-            className="px-3 py-1 text-xs rounded bg-red-600"
-          >
-            SKIP
-          </button>
-        </div>
+        <button
+          onClick={() => onDecision(signal.id, "SKIP")}
+          className="flex-1 py-2 rounded bg-red-600 hover:bg-red-700"
+        >
+          SKIP
+        </button>
       </div>
     </div>
   );
