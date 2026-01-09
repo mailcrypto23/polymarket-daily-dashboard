@@ -8,7 +8,6 @@ export function startBackgroundRunner() {
   if (started) return;
   started = true;
 
-  // Run once immediately
   try {
     autoEnterSignals();
     resolveSignals(getLivePrice);
@@ -16,7 +15,6 @@ export function startBackgroundRunner() {
     console.error("Background runner init error", e);
   }
 
-  // Run every 15 seconds
   setInterval(() => {
     try {
       autoEnterSignals();
