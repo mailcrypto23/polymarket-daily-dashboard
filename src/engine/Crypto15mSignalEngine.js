@@ -1,16 +1,14 @@
 // src/engine/Crypto15mSignalEngine.js
+// FINAL – build-safe, Polymarket-style 15m signal engine
 
 const STORAGE_KEY = "pm_signal_history";
 
-// 15 minutes
-const SIGNAL_DURATION_MS = 15 * 60 * 1000;
-
-// SAFE window = first 40% of the signal
-const SAFE_WINDOW_RATIO = 0.4;
+const SIGNAL_DURATION_MS = 15 * 60 * 1000; // 15 minutes
+const SAFE_WINDOW_RATIO = 0.4; // first 40% is SAFE
 
 function loadSignals() {
   try {
-    return JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]");
+    return JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
   } catch {
     return [];
   }
@@ -23,6 +21,7 @@ function saveSignals(signals) {
 function hasActivePendingSignal(signals, now) {
   return signals.some(
     s =>
+      s &&
       s.outcome === "pending" &&
       typeof s.resolveAt === "number" &&
       now < s.resolveAt
@@ -33,34 +32,31 @@ function generateSignal(now) {
   const resolveAt = now + SIGNAL_DURATION_MS;
   const safeUntil = now + SIGNAL_DURATION_MS * SAFE_WINDOW_RATIO;
 
-  const bias = Math.random() > 0.5 ? "UP" : "DOWN";
-  const confidence = Math.floor(55 + Math.random() * 30); // 55–85%
-
   return {
     id: `sig_${now}`,
     symbol: "BTC",
+    market: "Bitcoin 15m",
     timeframe: "15m",
 
-    bias,
-    confidence,
+    bias: Math.random() > 0.5 ? "UP" : "DOWN",
+    confidence: Math.floor(60 + Math.random() * 25), // 60–85
 
     createdAt: now,
     resolveAt,
     safeUntil,
 
+    userDecision: null, // ENTER | SKIP
     entryPrice: null,
     exitPrice: null,
 
-    userDecision: null, // ENTER | SKIP
-    outcome: "pending", // pending | WIN | LOSS | SKIPPED
-
+    outcome: "pending", // pending → WIN | LOSS | SKIPPED
     proof: null
   };
 }
 
 /**
- * ✅ FINAL ENGINE ENTRYPOINT
- * MUST match backgroundRunner import
+ * ✅ THE ONLY EXPORTED ENGINE FUNCTION
+ * This name MUST match backgroundRunner.js import
  */
 export function runCrypto15mSignalEngine() {
   if (typeof window === "undefined") return;
@@ -68,20 +64,21 @@ export function runCrypto15mSignalEngine() {
   const now = Date.now();
   const signals = loadSignals();
 
-  // Remove fully resolved & expired signals (keep history clean)
+  // Keep history but remove very old resolved signals (optional hygiene)
   const cleaned = signals.filter(
     s =>
       s.outcome === "pending" ||
-      (s.outcome !== "pending" && now - s.resolveAt < 60 * 60 * 1000)
+      (typeof s.resolveAt === "number" &&
+        now - s.resolveAt < 60 * 60 * 1000)
   );
 
-  // If a pending signal already exists, do NOTHING
+  // If a pending signal already exists, do nothing
   if (hasActivePendingSignal(cleaned, now)) {
     saveSignals(cleaned);
     return;
   }
 
-  // Otherwise, create exactly ONE new signal
+  // Otherwise create EXACTLY ONE new signal
   const newSignal = generateSignal(now);
   cleaned.push(newSignal);
 
