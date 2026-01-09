@@ -3,7 +3,19 @@ import { explainConfidence } from "./SignalConfidence";
 const TF = 15 * 60 * 1000;
 
 export default function SignalCard({ signal, onDecision }) {
-  const remaining = Math.max(0, signal.resolveAt - Date.now());
+  // 🛡️ HARD GUARDS — prevent runtime crash
+  if (
+    !signal ||
+    typeof signal.resolveAt !== "number" ||
+    typeof signal.confidence !== "number" ||
+    !signal.id
+  ) {
+    return null;
+  }
+
+  const now = Date.now();
+  const remaining = Math.max(0, signal.resolveAt - now);
+
   const conf = explainConfidence({
     confidence: signal.confidence,
     remainingMs: remaining,
@@ -23,24 +35,37 @@ export default function SignalCard({ signal, onDecision }) {
     <div className="rounded-xl border border-white/10 bg-white/5 p-4 space-y-3">
       <div className="flex justify-between items-center">
         <div>
-          <div className="text-white font-semibold">{signal.market}</div>
+          <div className="text-white font-semibold">
+            {signal.market || "Unknown Market"}
+          </div>
           <div className="text-xs text-white/50">
-            Bias: <span className="font-bold">{signal.bias}</span>
+            Bias:{" "}
+            <span className="font-bold">
+              {signal.bias || "—"}
+            </span>
           </div>
         </div>
 
         <div className="text-right">
-          <div className="text-sm font-bold">{signal.confidence}%</div>
-          <div className={`text-xs ${conf.color}`}>{conf.label}</div>
+          <div className="text-sm font-bold">
+            {signal.confidence}%
+          </div>
+          <div className={`text-xs ${conf.color}`}>
+            {conf.label}
+          </div>
         </div>
       </div>
 
-      <div className="text-xs text-white/50">{conf.reason}</div>
+      <div className="text-xs text-white/50">
+        {conf.reason}
+      </div>
 
       <div className="flex justify-between items-center pt-2 border-t border-white/10">
         <div className="text-xs">
           Entry Window:{" "}
-          <span className="font-bold text-white">{entryState}</span>
+          <span className="font-bold text-white">
+            {entryState}
+          </span>
         </div>
 
         <div className="space-x-2">
