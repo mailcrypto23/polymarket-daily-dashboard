@@ -15,46 +15,44 @@ export function runSignalAutoResolver() {
   }
 
   const now = Date.now();
-  let updated = false;
+  let changed = false;
 
-  const nextSignals = signals.map(signal => {
+  const next = signals.map(s => {
     if (
-      signal.outcome !== "pending" ||
-      signal.userDecision !== "ENTER"
+      s.outcome !== "pending" ||
+      s.userDecision !== "ENTER" ||
+      s.confidence < 70
     ) {
-      return signal;
+      return s;
     }
 
-    const price = getLivePrice(signal.asset);
-    if (!price) return signal;
+    const price = getLivePrice(s.asset);
+    if (!price) return s;
 
-    const pnl = simulatePnL(signal, price);
+    const pnl = simulatePnL(s, price);
 
-    if (pnl >= signal.takeProfit) {
-      updated = true;
-      logSignalOutcome(signal, "WIN", pnl);
-      return { ...signal, outcome: "win", pnl };
+    if (pnl >= s.takeProfit) {
+      changed = true;
+      logSignalOutcome(s, "WIN", pnl);
+      return { ...s, outcome: "win", pnl, exitPrice: price };
     }
 
-    if (pnl <= -signal.stopLoss) {
-      updated = true;
-      logSignalOutcome(signal, "LOSS", pnl);
-      return { ...signal, outcome: "loss", pnl };
+    if (pnl <= -s.stopLoss) {
+      changed = true;
+      logSignalOutcome(s, "LOSS", pnl);
+      return { ...s, outcome: "loss", pnl, exitPrice: price };
     }
 
-    if (now >= signal.resolveAt) {
-      updated = true;
-      logSignalOutcome(signal, "TIME", pnl);
-      return { ...signal, outcome: "timeout", pnl };
+    if (now >= s.resolveAt) {
+      changed = true;
+      logSignalOutcome(s, "TIMEOUT", pnl);
+      return { ...s, outcome: "timeout", pnl, exitPrice: price };
     }
 
-    return signal;
+    return s;
   });
 
-  if (updated) {
-    localStorage.setItem(
-      STORAGE_KEY,
-      JSON.stringify(nextSignals)
-    );
+  if (changed) {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
   }
 }
