@@ -3,16 +3,7 @@ import { explainConfidence } from "./SignalConfidence";
 const TF = 15 * 60 * 1000;
 
 export default function SignalCard({ signal, onDecision }) {
-  if (
-    !signal ||
-    typeof signal.resolveAt !== "number" ||
-    typeof signal.confidence !== "number"
-  ) {
-    return null;
-  }
-
   const remaining = Math.max(0, signal.resolveAt - Date.now());
-
   const conf = explainConfidence({
     confidence: signal.confidence,
     remainingMs: remaining,
@@ -28,40 +19,58 @@ export default function SignalCard({ signal, onDecision }) {
       ? "RISKY"
       : "LATE";
 
+  const tradable =
+    signal.confidence >= 70 &&
+    entryState === "SAFE" &&
+    signal.outcome === "pending";
+
   return (
     <div className="rounded-xl border border-white/10 bg-white/5 p-4 space-y-3">
-      <div className="flex justify-between items-center">
+      <div className="flex justify-between">
         <div>
-          <div className="text-white font-semibold">
-            {signal.market || "Unknown Market"}
-          </div>
-          <div className="text-xs text-white/50">
-            Bias: <span className="font-bold">{signal.bias || "—"}</span>
+          <div className="font-semibold">{signal.question}</div>
+          <div className="text-xs opacity-60">
+            Resolves in {Math.ceil(remaining / 1000)}s
           </div>
         </div>
-
         <div className="text-right">
-          <div className="text-sm font-bold">{signal.confidence}%</div>
+          <div className="font-bold">{signal.confidence}%</div>
           <div className={`text-xs ${conf.color}`}>{conf.label}</div>
         </div>
       </div>
 
-      <div className="text-xs text-white/50">{conf.reason}</div>
+      <div className="text-xs opacity-60">{conf.reason}</div>
 
-      <div className="flex justify-between items-center pt-2 border-t border-white/10">
+      {signal.outcome !== "pending" && (
+        <div
+          className={`text-sm font-semibold ${
+            signal.outcome === "win"
+              ? "text-green-400"
+              : signal.outcome === "loss"
+              ? "text-red-400"
+              : "text-yellow-400"
+          }`}
+        >
+          Resolved: {signal.outcome.toUpperCase()} · PnL {signal.pnl?.toFixed(2)}
+        </div>
+      )}
+
+      <div className="flex justify-between pt-2 border-t border-white/10">
         <div className="text-xs">
-          Entry Window:{" "}
-          <span className="font-bold text-white">{entryState}</span>
+          Trade allowed:{" "}
+          <span className={tradable ? "text-green-400" : "text-red-400"}>
+            {tradable ? "YES" : "NO"}
+          </span>
         </div>
 
         <div className="space-x-2">
           <button
-            disabled={entryState !== "SAFE"}
+            disabled={!tradable}
             onClick={() => onDecision(signal.id, "ENTER")}
             className={`px-3 py-1 text-xs rounded ${
-              entryState === "SAFE"
+              tradable
                 ? "bg-green-600"
-                : "bg-white/10 text-white/30 cursor-not-allowed"
+                : "bg-white/10 opacity-40 cursor-not-allowed"
             }`}
           >
             ENTER
