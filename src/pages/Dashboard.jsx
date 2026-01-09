@@ -11,12 +11,13 @@ import { runCrypto15mEngine } from "../engine/Crypto15mSignalEngine";
 
 export default function Dashboard() {
   useEffect(() => {
-    // ❌ DO NOT FORCE ON EVERY REFRESH
+    // ✅ Run once on mount to ensure signals exist
     runCrypto15mEngine();
 
+    // ✅ Controlled cadence (15m engine, not UI-driven)
     const interval = setInterval(() => {
       runCrypto15mEngine();
-    }, 60_000);
+    }, 60_000); // safe heartbeat, engine handles its own timing
 
     return () => clearInterval(interval);
   }, []);
