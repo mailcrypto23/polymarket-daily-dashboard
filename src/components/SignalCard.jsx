@@ -1,38 +1,80 @@
-export function explainConfidence({ confidence, remainingMs, tfMs }) {
-  if (typeof confidence !== "number") {
-    return {
-      label: "Unknown",
-      reason: "Insufficient data",
-      color: "text-white/40"
-    };
+import { explainConfidence } from "./SignalConfidence";
+
+const TF = 15 * 60 * 1000;
+
+export default function SignalCard({ signal, onDecision }) {
+  if (
+    !signal ||
+    typeof signal.resolveAt !== "number" ||
+    typeof signal.confidence !== "number"
+  ) {
+    return null;
   }
 
-  const pct = remainingMs / tfMs;
+  const remaining = Math.max(0, signal.resolveAt - Date.now());
 
-  if (confidence >= 70 && pct > 0.6)
-    return {
-      label: "Strong Momentum",
-      reason: "High confidence early in window",
-      color: "text-green-400"
-    };
+  const conf = explainConfidence({
+    confidence: signal.confidence,
+    remainingMs: remaining,
+    tfMs: TF
+  });
 
-  if (confidence >= 60 && pct > 0.35)
-    return {
-      label: "Moderate Edge",
-      reason: "Usable signal in mid window",
-      color: "text-yellow-400"
-    };
+  const entryState =
+    remaining <= 0
+      ? "LOCKED"
+      : remaining > TF * 0.6
+      ? "SAFE"
+      : remaining > TF * 0.25
+      ? "RISKY"
+      : "LATE";
 
-  if (confidence >= 60)
-    return {
-      label: "Late Momentum",
-      reason: "Edge exists but timing is late",
-      color: "text-orange-400"
-    };
+  return (
+    <div className="rounded-xl border border-white/10 bg-white/5 p-4 space-y-3">
+      <div className="flex justify-between items-center">
+        <div>
+          <div className="text-white font-semibold">
+            {signal.market || "Unknown Market"}
+          </div>
+          <div className="text-xs text-white/50">
+            Bias: <span className="font-bold">{signal.bias || "—"}</span>
+          </div>
+        </div>
 
-  return {
-    label: "Weak Signal",
-    reason: "Low confidence or poor timing",
-    color: "text-red-400"
-  };
+        <div className="text-right">
+          <div className="text-sm font-bold">{signal.confidence}%</div>
+          <div className={`text-xs ${conf.color}`}>{conf.label}</div>
+        </div>
+      </div>
+
+      <div className="text-xs text-white/50">{conf.reason}</div>
+
+      <div className="flex justify-between items-center pt-2 border-t border-white/10">
+        <div className="text-xs">
+          Entry Window:{" "}
+          <span className="font-bold text-white">{entryState}</span>
+        </div>
+
+        <div className="space-x-2">
+          <button
+            disabled={entryState !== "SAFE"}
+            onClick={() => onDecision(signal.id, "ENTER")}
+            className={`px-3 py-1 text-xs rounded ${
+              entryState === "SAFE"
+                ? "bg-green-600"
+                : "bg-white/10 text-white/30 cursor-not-allowed"
+            }`}
+          >
+            ENTER
+          </button>
+
+          <button
+            onClick={() => onDecision(signal.id, "SKIP")}
+            className="px-3 py-1 text-xs rounded bg-red-600"
+          >
+            SKIP
+          </button>
+        </div>
+      </div>
+    </div>
+  );
 }
