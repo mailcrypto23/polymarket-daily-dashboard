@@ -1,50 +1,87 @@
-// src/components/Crypto15mSignalCard.jsx
-import SafeWindowTimer from "./SafeWindowTimer";
+import { useCountdown } from "../hooks/useCountdown";
 
-export default function Crypto15mSignalCard({ signal, onDecision }) {
-  if (!signal) return null;
+export default function Crypto15mSignalCard({ signal }) {
+  const resolve = useCountdown(signal.resolveAt);
+  const entry = useCountdown(signal.entryClosesAt);
 
-  const locked = Date.now() > signal.safeUntil;
+  const entryOpen = !entry.isExpired;
+  const resolved = resolve.isExpired;
 
   return (
-    <div className="rounded-xl bg-gradient-to-br from-purple-900/40 to-black/40 p-4 border border-white/10">
-      <div className="flex justify-between items-center">
+    <div className="rounded-xl bg-gradient-to-br from-purple-700 to-purple-900 p-4 shadow-lg relative">
+
+      {/* Header */}
+      <div className="flex justify-between items-start mb-2">
         <div>
-          <div className="text-white font-semibold">
-            {signal.symbol} · 15m
-          </div>
-          <div className="text-xs text-white/50">
-            Bias: {signal.bias}
-          </div>
+          <h3 className="font-semibold text-white text-sm">
+            {signal.symbol} Up or Down · 15m
+          </h3>
+          <p className="text-xs text-white/70">
+            Signal @ {new Date(signal.signalAt).toLocaleTimeString()}
+          </p>
         </div>
-        <div className="text-purple-400 font-bold">
-          {signal.confidence}%
+
+        <div className="text-right">
+          <div className="text-lg font-bold text-white">
+            {signal.confidence}%
+          </div>
+          <div className="text-xs text-white/70">
+            {signal.direction}
+          </div>
         </div>
       </div>
 
-      <SafeWindowTimer
-        createdAt={signal.createdAt}
-        safeUntil={signal.safeUntil}
-        resolveAt={signal.resolveAt}
-      />
+      {/* Resolve Timer */}
+      <div
+        className={`text-xs mb-2 ${
+          resolve.isUrgent ? "text-red-400 font-semibold" : "text-white/70"
+        }`}
+      >
+        Resolve in {resolve.label}
+      </div>
 
-      <div className="flex gap-3 mt-4">
+      {/* Entry Status */}
+      <div className="text-xs mb-3">
+        {entryOpen ? (
+          <span className="text-green-400">
+            ENTRY OPEN · closes in {entry.label}
+          </span>
+        ) : (
+          <span className="text-white/40">ENTRY LOCKED</span>
+        )}
+      </div>
+
+      {/* Buttons */}
+      <div className="flex gap-2">
         <button
-          disabled={locked}
-          onClick={() => onDecision(signal.id, "ENTER")}
-          className={`flex-1 py-2 rounded-lg text-sm font-semibold
-            ${locked ? "bg-gray-700 cursor-not-allowed" : "bg-green-600 hover:bg-green-500"}`}
+          disabled={!entryOpen}
+          className={`flex-1 py-2 rounded-lg text-sm font-semibold transition ${
+            entryOpen
+              ? "bg-green-500 hover:bg-green-600 text-black"
+              : "bg-white/10 text-white/30 cursor-not-allowed"
+          }`}
         >
-          ENTER
+          {entryOpen ? "YES" : "ENTRY LOCKED"}
         </button>
 
         <button
-          onClick={() => onDecision(signal.id, "SKIP")}
-          className="flex-1 py-2 rounded-lg text-sm font-semibold bg-red-600 hover:bg-red-500"
+          disabled={!entryOpen}
+          className={`flex-1 py-2 rounded-lg text-sm font-semibold transition ${
+            entryOpen
+              ? "bg-red-500 hover:bg-red-600 text-black"
+              : "bg-white/10 text-white/30 cursor-not-allowed"
+          }`}
         >
-          SKIP
+          {entryOpen ? "NO" : "ENTRY LOCKED"}
         </button>
       </div>
+
+      {/* Resolved Overlay */}
+      {resolved && (
+        <div className="absolute inset-0 bg-black/50 rounded-xl flex items-center justify-center text-white text-sm font-semibold">
+          RESOLVED
+        </div>
+      )}
     </div>
   );
 }
