@@ -1,72 +1,62 @@
-import { useEffect } from "react";
+// src/pages/Dashboard.jsx
+import { useEffect, useState } from "react";
 
-import Crypto15mSignalsPanel from "../components/Crypto15mSignalsPanel";
-import TopOpportunities from "../components/TopOpportunities";
-import TractionPanel from "../components/TractionPanel";
+import HighConfidenceOpportunities from "../components/HighConfidenceOpportunities";
+import TractionStats from "../components/TractionStats";
 import PriceMovement from "../components/PriceMovement";
-import MarketDepthPanel from "../components/MarketDepthPanel";
-import LiquidityHeatmap from "../components/charts/LiquidityHeatmap";
+import MarketDepth from "../components/MarketDepth";
+import LiquidityHeatmap from "../components/LiquidityHeatmap";
+
+const STORAGE_KEY = "pm_signal_history";
 
 export default function Dashboard() {
+  const [signals, setSignals] = useState([]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    const pollSignals = () => {
+      try {
+        const raw = JSON.parse(
+          localStorage.getItem(STORAGE_KEY) || "[]"
+        );
+
+        // Only show ACTIVE or PENDING signals
+        const active = raw.filter(
+          s =>
+            s &&
+            s.outcome === "pending" &&
+            typeof s.createdAt === "number"
+        );
+
+        setSignals(active);
+      } catch {
+        setSignals([]);
+      }
+    };
+
+    pollSignals();
+    const interval = setInterval(pollSignals, 1000);
+    return () => clearInterval(interval);
+  }, []);
+
   return (
-    <div className="space-y-10 max-w-7xl mx-auto px-4">
+    <div className="space-y-8">
 
-      {/* ===============================
-          ACTIVE 15-MIN SIGNAL (PRIMARY)
-         =============================== */}
-      <section>
-        <h2 className="text-2xl font-bold mb-3">
-          Crypto 15-Minute Signals
-        </h2>
-        <Crypto15mSignalsPanel />
-      </section>
+      {/* 🔥 HIGH CONFIDENCE (CRYPTO SIGNALS LIVE HERE) */}
+      <HighConfidenceOpportunities signals={signals} />
 
-      {/* ===============================
-          HIGH-CONFIDENCE OPPORTUNITIES
-          (SHIFTED UP — POLYMARKET STYLE)
-         =============================== */}
-      <section>
-        <h2 className="text-2xl font-bold mb-4">
-          🔥 High-Confidence Opportunities
-        </h2>
-        <TopOpportunities />
-      </section>
+      {/* 📊 TRACTION */}
+      <TractionStats />
 
-      {/* ===============================
-          PERFORMANCE & TRACTION
-         =============================== */}
-      <section>
-        <h2 className="text-2xl font-bold mb-4">
-          Traction & Signal Performance
-        </h2>
-        <TractionPanel />
-      </section>
+      {/* 📈 PRICE + DEPTH */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <PriceMovement />
+        <MarketDepth />
+      </div>
 
-      {/* ===============================
-          MARKET CONTEXT
-         =============================== */}
-      <section className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div>
-          <h3 className="text-xl font-semibold mb-2">
-            Price Movement
-          </h3>
-          <PriceMovement />
-        </div>
-
-        <div>
-          <h3 className="text-xl font-semibold mb-2">
-            Market Depth
-          </h3>
-          <MarketDepthPanel />
-        </div>
-      </section>
-
-      {/* ===============================
-          LIQUIDITY CONTEXT
-         =============================== */}
-      <section>
-        <LiquidityHeatmap />
-      </section>
+      {/* 🌊 LIQUIDITY */}
+      <LiquidityHeatmap />
 
     </div>
   );
