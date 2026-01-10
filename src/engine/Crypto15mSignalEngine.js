@@ -1,86 +1,163 @@
 // src/engine/Crypto15mSignalEngine.js
-// FINAL – build-safe, Polymarket-style 15m signal engine
 
-const STORAGE_KEY = "pm_signal_history";
+/* =========================================================
+   CONFIG
+========================================================= */
 
-const SIGNAL_DURATION_MS = 15 * 60 * 1000; // 15 minutes
-const SAFE_WINDOW_RATIO = 0.4; // first 40% is SAFE
+const ASSETS = ["BTC", "ETH", "SOL", "XRP"];
+const TIMEFRAME_MS = 15 * 60 * 1000;
+const SAFE_ENTRY_RATIO = 0.4; // first 40% of candle
 
-function loadSignals() {
-  try {
-    return JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
-  } catch {
-    return [];
-  }
-}
+/* =========================================================
+   ENGINE STATE (IN-MEMORY, UI-SAFE)
+========================================================= */
 
-function saveSignals(signals) {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(signals));
-}
+const engineState = {};
 
-function hasActivePendingSignal(signals, now) {
-  return signals.some(
-    s =>
-      s &&
-      s.outcome === "pending" &&
-      typeof s.resolveAt === "number" &&
-      now < s.resolveAt
-  );
-}
-
-function generateSignal(now) {
-  const resolveAt = now + SIGNAL_DURATION_MS;
-  const safeUntil = now + SIGNAL_DURATION_MS * SAFE_WINDOW_RATIO;
-
-  return {
-    id: `sig_${now}`,
-    symbol: "BTC",
-    market: "Bitcoin 15m",
-    timeframe: "15m",
-
-    bias: Math.random() > 0.5 ? "UP" : "DOWN",
-    confidence: Math.floor(60 + Math.random() * 25), // 60–85
-
-    createdAt: now,
-    resolveAt,
-    safeUntil,
-
-    userDecision: null, // ENTER | SKIP
-    entryPrice: null,
-    exitPrice: null,
-
-    outcome: "pending", // pending → WIN | LOSS | SKIPPED
-    proof: null
+for (const asset of ASSETS) {
+  engineState[asset] = {
+    activeSignal: null,
+    history: [],
   };
 }
 
-/**
- * ✅ THE ONLY EXPORTED ENGINE FUNCTION
- * This name MUST match backgroundRunner.js import
- */
+/* =========================================================
+   UTILITIES
+========================================================= */
+
+function now() {
+  return Date.now();
+}
+
+function generateId(symbol) {
+  return `${symbol}-15m-${now()}`;
+}
+
+function randomDirection() {
+  return Math.random() > 0.5 ? "UP" : "DOWN";
+}
+
+function randomConfidence() {
+  // realistic confidence range
+  return +(0.62 + Math.random() * 0.18).toFixed(2); // 62% – 80%
+}
+
+function computeTimes() {
+  const start = now();
+  const resolveAt = start + TIMEFRAME_MS;
+  const entryClosesAt = start + TIMEFRAME_MS * SAFE_ENTRY_RATIO;
+
+  return { start, resolveAt, entryClosesAt };
+}
+
+/* =========================================================
+   CORE: CREATE SIGNAL
+========================================================= */
+
+function createSignal(symbol) {
+  const { start, resolveAt, entryClosesAt } = computeTimes();
+
+  return {
+    id: generateId(symbol),
+    symbol,
+    timeframe: "15m",
+    direction: randomDirection(),
+    confidence: randomConfidence(),
+    createdAt: start,
+    resolveAt,
+    entryClosesAt,
+    entryOpen: true,
+    resolved: false,
+    result: null, // WIN | LOSS
+    userAction: null, // ENTER | SKIP
+  };
+}
+
+/* =========================================================
+   CORE: RESOLVE SIGNAL
+========================================================= */
+
+function resolveSignal(signal) {
+  signal.resolved = true;
+
+  // Simple deterministic resolution for now
+  const winChance = signal.confidence;
+  signal.result = Math.random() < winChance ? "WIN" : "LOSS";
+
+  return signal;
+}
+
+/* =========================================================
+   ENGINE TICK (IDEMPOTENT)
+========================================================= */
+
 export function runCrypto15mSignalEngine() {
-  if (typeof window === "undefined") return;
+  const currentTime = now();
 
-  const now = Date.now();
-  const signals = loadSignals();
+  for (const asset of ASSETS) {
+    const state = engineState[asset];
+    let signal = state.activeSignal;
 
-  // Keep history but remove very old resolved signals (optional hygiene)
-  const cleaned = signals.filter(
-    s =>
-      s.outcome === "pending" ||
-      (typeof s.resolveAt === "number" &&
-        now - s.resolveAt < 60 * 60 * 1000)
-  );
+    // 1️⃣ No signal → create one
+    if (!signal) {
+      state.activeSignal = createSignal(asset);
+      continue;
+    }
 
-  // If a pending signal already exists, do nothing
-  if (hasActivePendingSignal(cleaned, now)) {
-    saveSignals(cleaned);
-    return;
+    // 2️⃣ Entry window expired → lock entry
+    if (signal.entryOpen && currentTime >= signal.entryClosesAt) {
+      signal.entryOpen = false;
+    }
+
+    // 3️⃣ Resolve signal
+    if (!signal.resolved && currentTime >= signal.resolveAt) {
+      resolveSignal(signal);
+
+      state.history.unshift(signal);
+      state.history = state.history.slice(0, 50); // cap history
+
+      state.activeSignal = createSignal(asset);
+    }
   }
+}
 
-  // Otherwise create EXACTLY ONE new signal
-  const newSignal = generateSignal(now);
-  cleaned.push(newSignal);
+/* =========================================================
+   USER ACTIONS
+========================================================= */
 
-  saveSignals(cleaned);
+export function enterSignal(symbol) {
+  const signal = engineState[symbol]?.activeSignal;
+  if (!signal || !signal.entryOpen) return false;
+
+  signal.userAction = "ENTER";
+  return true;
+}
+
+export function skipSignal(symbol) {
+  const signal = engineState[symbol]?.activeSignal;
+  if (!signal || !signal.entryOpen) return false;
+
+  signal.userAction = "SKIP";
+  signal.entryOpen = false;
+  return true;
+}
+
+/* =========================================================
+   SELECTORS (READ-ONLY)
+========================================================= */
+
+export function getActive15mSignals() {
+  const result = {};
+  for (const asset of ASSETS) {
+    result[asset] = engineState[asset].activeSignal;
+  }
+  return result;
+}
+
+export function getLastResolvedSignals(limit = 4) {
+  return Object.values(engineState)
+    .flatMap(s => s.history)
+    .filter(s => s.resolved)
+    .sort((a, b) => b.resolveAt - a.resolveAt)
+    .slice(0, limit);
 }
