@@ -17,17 +17,10 @@ export default function Dashboard() {
 
     const poll = () => {
       try {
-        const raw = JSON.parse(
-          localStorage.getItem(STORAGE_KEY) || "[]"
-        );
-
+        const raw = JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]");
         const active = raw.filter(
-          s =>
-            s &&
-            s.outcome === "pending" &&
-            typeof s.resolveAt === "number"
+          s => s && s.outcome === "pending"
         );
-
         setSignals(active);
       } catch {
         setSignals([]);
@@ -42,7 +35,7 @@ export default function Dashboard() {
   return (
     <div className="space-y-10 max-w-7xl mx-auto px-4">
 
-      {/* 🔥 CRYPTO 15M SIGNALS → HIGH-CONFIDENCE OPPORTUNITIES */}
+      {/* 🔥 CRYPTO 15M SIGNALS */}
       <HighConfidenceOpportunities signals={signals} />
 
       {/* 📊 TRACTION */}
@@ -53,7 +46,7 @@ export default function Dashboard() {
         <TractionPanel />
       </section>
 
-      {/* 📈 MARKET CONTEXT */}
+      {/* 📈 MARKET */}
       <section className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <div>
           <h3 className="text-xl font-semibold mb-2">
@@ -61,7 +54,6 @@ export default function Dashboard() {
           </h3>
           <PriceMovement />
         </div>
-
         <div>
           <h3 className="text-xl font-semibold mb-2">
             Market Depth
@@ -70,11 +62,7 @@ export default function Dashboard() {
         </div>
       </section>
 
-      {/* 🌊 LIQUIDITY */}
-      <section>
-        <LiquidityHeatmap />
-      </section>
-
+      <LiquidityHeatmap />
     </div>
   );
 }
