@@ -1,92 +1,104 @@
 import { useEffect, useState } from "react";
-
-const STORAGE_KEY = "pm_signal_history";
+import { getResolvedSignals } from "../engine/signalStore";
 
 export default function TractionPanel() {
   const [signals, setSignals] = useState([]);
 
-  // 🔁 Poll localStorage so UI is reactive
   useEffect(() => {
-    const poll = () => {
-      try {
-        const data = JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
-        setSignals(data);
-      } catch {
-        setSignals([]);
-      }
-    };
+    // Pull latest resolved signals (engine-owned data)
+    const resolved = getResolvedSignals()
+      .slice(-4)            // last 4 only
+      .reverse();           // newest on top
 
-    poll();
-    const interval = setInterval(poll, 1000);
-    return () => clearInterval(interval);
+    setSignals(resolved);
   }, []);
 
-  const total = signals.length;
-  const resolved = signals.filter(s => s.outcome && s.outcome !== "pending");
-  const wins = resolved.filter(s => s.outcome === "win");
-
-  const winRate =
-    resolved.length > 0
-      ? ((wins.length / resolved.length) * 100).toFixed(1)
-      : "—";
-
-  // ✅ FIXED CSV EXPORT
-  const exportCSV = () => {
-    if (!signals.length) return;
-
-    const header = ["Time", "Market", "Side", "Confidence", "Outcome"];
-
-    const rows = signals.map(s => [
-      // ✅ Safe timestamp fallback
-      new Date(s.createdAt || s.timestamp || Date.now()).toISOString(),
-      s.market,
-      s.side,
-      s.confidence,
-      s.outcome ?? "pending"
-    ]);
-
-    const csv = [header, ...rows]
-      .map(row => row.map(v => `"${v}"`).join(","))
-      .join("\n");
-
-    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
-    const url = URL.createObjectURL(blob);
-
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = "crypto-15m-signals.csv";
-    document.body.appendChild(a); // ✅ REQUIRED
-    a.click();
-    document.body.removeChild(a);
-
-    URL.revokeObjectURL(url);
-  };
-
   return (
-    <>
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-        <div className="p-4 rounded-lg bg-white/5">
-          Total Signals
-          <div className="text-xl font-bold">{total}</div>
-        </div>
-
-        <div className="p-4 rounded-lg bg-white/5">
-          Resolved
-          <div className="text-xl font-bold">{resolved.length}</div>
-        </div>
-
-        <div className="p-4 rounded-lg bg-white/5">
-          Win Rate
-          <div className="text-xl font-bold">{winRate}</div>
-        </div>
+    <div className="space-y-6">
+      {/* Summary row (already expected by Dashboard) */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <Stat label="Total Signals" value={signals.length} />
+        <Stat label="Resolved" value={signals.length} />
+        <Stat label="Win Rate" value={calcWinRate(signals)} />
       </div>
 
-      <button
-        onClick={exportCSV}
-        className="px-4 py-2 rounded bg-purple-600 hover:bg-purple-700 text-white text-sm"
-      >
-        Export CSV
-      </button>
-    </>
+      {/* History */}
+      <div className="bg-slate-900/60 rounded-xl p-4">
+        <h3 className="text-lg font-semibold mb-3">
+          Recent 15m Crypto Outcomes
+        </h3>
+
+        {signals.length === 0 ? (
+          <div className="text-sm text-gray-400">
+            No resolved signals yet.
+          </div>
+        ) : (
+          <ul className="space-y-3">
+            {signals.map((s) => (
+              <li
+                key={s.id}
+                className="flex items-center justify-between bg-slate-800/70 rounded-lg px-4 py-3"
+              >
+                <div>
+                  <div className="font-medium">
+                    {s.asset} · 15m · {s.direction.toUpperCase()}
+                  </div>
+                  <div className="text-xs text-gray-400">
+                    Entry: {formatTime(s.entryAt)} · Resolve:{" "}
+                    {formatTime(s.resolveAt)}
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-3">
+                  <div className="text-sm text-purple-300">
+                    {Math.round(s.confidence * 100)}%
+                  </div>
+
+                  <ResultBadge win={s.result === "WIN"} />
+                </div>
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
+    </div>
   );
+}
+
+/* ---------- helpers ---------- */
+
+function Stat({ label, value }) {
+  return (
+    <div className="bg-slate-900/70 rounded-lg p-4">
+      <div className="text-sm text-gray-400">{label}</div>
+      <div className="text-2xl font-semibold">{value}</div>
+    </div>
+  );
+}
+
+function ResultBadge({ win }) {
+  return (
+    <span
+      className={`px-3 py-1 rounded-full text-xs font-semibold ${
+        win
+          ? "bg-green-500/20 text-green-400"
+          : "bg-red-500/20 text-red-400"
+      }`}
+    >
+      {win ? "WIN" : "LOSS"}
+    </span>
+  );
+}
+
+function formatTime(ts) {
+  return new Date(ts).toLocaleTimeString([], {
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
+
+function calcWinRate(signals) {
+  if (!signals.length) return "—";
+  const wins = signals.filter((s) => s.result === "WIN").length;
+  return `${Math.round((wins / signals.length) * 100)}%`;
 }
