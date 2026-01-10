@@ -1,25 +1,10 @@
-import { useEffect } from "react";
-
 import Crypto15mSignalGrid from "../components/Crypto15mSignalGrid";
 import TractionPanel from "../components/TractionPanel";
 import PriceMovement from "../components/PriceMovement";
 import MarketDepthPanel from "../components/MarketDepthPanel";
 import LiquidityHeatmap from "../components/charts/LiquidityHeatmap";
 
-import { runCrypto15mEngine } from "../engine/Crypto15mSignalEngine";
-
 export default function Dashboard() {
-  useEffect(() => {
-    // Run engine once on mount (safe, no auto-trading)
-    runCrypto15mEngine();
-
-    const interval = setInterval(() => {
-      runCrypto15mEngine();
-    }, 60_000); // check every minute
-
-    return () => clearInterval(interval);
-  }, []);
-
   return (
     <div className="space-y-12 max-w-7xl mx-auto px-4">
 
