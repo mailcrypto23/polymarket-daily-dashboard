@@ -1,20 +1,40 @@
+import { useEffect } from "react";
+
 import Crypto15mSignalsPanel from "../components/Crypto15mSignalsPanel";
+import TopOpportunities from "../components/TopOpportunities";
 import TractionPanel from "../components/TractionPanel";
 import PriceMovement from "../components/PriceMovement";
 import MarketDepthPanel from "../components/MarketDepthPanel";
 import LiquidityHeatmap from "../components/charts/LiquidityHeatmap";
-import TopOpportunities from "../components/TopOpportunities";
 
 export default function Dashboard() {
   return (
     <div className="space-y-10 max-w-7xl mx-auto px-4">
+
+      {/* ===============================
+          ACTIVE 15-MIN SIGNAL (PRIMARY)
+         =============================== */}
       <section>
-        <h2 className="text-2xl font-bold mb-4">
+        <h2 className="text-2xl font-bold mb-3">
           Crypto 15-Minute Signals
         </h2>
         <Crypto15mSignalsPanel />
       </section>
 
+      {/* ===============================
+          HIGH-CONFIDENCE OPPORTUNITIES
+          (SHIFTED UP — POLYMARKET STYLE)
+         =============================== */}
+      <section>
+        <h2 className="text-2xl font-bold mb-4">
+          🔥 High-Confidence Opportunities
+        </h2>
+        <TopOpportunities />
+      </section>
+
+      {/* ===============================
+          PERFORMANCE & TRACTION
+         =============================== */}
       <section>
         <h2 className="text-2xl font-bold mb-4">
           Traction & Signal Performance
@@ -22,6 +42,9 @@ export default function Dashboard() {
         <TractionPanel />
       </section>
 
+      {/* ===============================
+          MARKET CONTEXT
+         =============================== */}
       <section className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <div>
           <h3 className="text-xl font-semibold mb-2">
@@ -29,6 +52,7 @@ export default function Dashboard() {
           </h3>
           <PriceMovement />
         </div>
+
         <div>
           <h3 className="text-xl font-semibold mb-2">
             Market Depth
@@ -37,16 +61,13 @@ export default function Dashboard() {
         </div>
       </section>
 
+      {/* ===============================
+          LIQUIDITY CONTEXT
+         =============================== */}
       <section>
         <LiquidityHeatmap />
       </section>
 
-      <section>
-        <h2 className="text-2xl font-bold mb-4">
-          🔥 High-Confidence Opportunities
-        </h2>
-        <TopOpportunities />
-      </section>
     </div>
   );
 }
