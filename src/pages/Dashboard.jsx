@@ -21,7 +21,6 @@ export default function Dashboard() {
           localStorage.getItem(STORAGE_KEY) || "[]"
         );
 
-        // only active signals
         const active = raw.filter(
           s =>
             s &&
@@ -43,10 +42,10 @@ export default function Dashboard() {
   return (
     <div className="space-y-10 max-w-7xl mx-auto px-4">
 
-      {/* 🔥 HIGH-CONFIDENCE OPPORTUNITIES (CRYPTO 15M SIGNALS LIVE HERE) */}
+      {/* 🔥 CRYPTO 15M SIGNALS → HIGH-CONFIDENCE OPPORTUNITIES */}
       <HighConfidenceOpportunities signals={signals} />
 
-      {/* 📊 PERFORMANCE */}
+      {/* 📊 TRACTION */}
       <section>
         <h2 className="text-2xl font-bold mb-4">
           Traction & Signal Performance
