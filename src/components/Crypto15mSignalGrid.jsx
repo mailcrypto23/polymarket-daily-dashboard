@@ -1,11 +1,11 @@
-// src/components/Crypto15mSignalGrid.jsx
-
 import { useEffect, useState } from "react";
 import {
   getActive15mSignals,
   enterSignal,
   skipSignal,
 } from "../engine/Crypto15mSignalEngine";
+
+import ConfidenceExplanation from "./ConfidenceExplanation";
 
 const ASSETS = ["BTC", "ETH", "SOL", "XRP"];
 
@@ -31,7 +31,7 @@ export default function Crypto15mSignalGrid() {
 
   return (
     <section className="mb-10">
-      {/* SINGLE heading (fixes duplicate title bug) */}
+      {/* ✅ Single heading (duplicate title fixed) */}
       <h2 className="text-xl font-bold mb-4">
         🔥 High-Confidence Crypto 15-Minute Signals
       </h2>
@@ -48,7 +48,7 @@ export default function Crypto15mSignalGrid() {
           return (
             <div
               key={s.id}
-              className="rounded-xl p-5 bg-gradient-to-br from-purple-700 to-purple-900 shadow-lg relative"
+              className="rounded-xl p-5 bg-gradient-to-br from-purple-700 to-purple-900 shadow-lg"
             >
               {/* Header */}
               <div className="flex justify-between items-start mb-2">
@@ -119,6 +119,9 @@ export default function Crypto15mSignalGrid() {
                   {locked ? "ENTRY LOCKED" : "NO"}
                 </button>
               </div>
+
+              {/* ✅ Confidence explanation panel */}
+              <ConfidenceExplanation signal={s} />
             </div>
           );
         })}
