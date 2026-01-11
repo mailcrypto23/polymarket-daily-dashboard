@@ -8,49 +8,50 @@ import LiquidityHeatmap from "../components/charts/LiquidityHeatmap";
 
 export default function Dashboard() {
   return (
-    <div className="space-y-10 max-w-[1400px] mx-auto px-4">
+    <div className="space-y-10 max-w-7xl mx-auto px-4">
 
-      {/* 🔥 SINGLE MAIN TITLE (REMOVED DUPLICATE) */}
+      {/* 🔥 MAIN PAGE TITLE (ONLY ONCE) */}
       <section>
-        <h1 className="text-3xl font-extrabold tracking-tight mb-4">
+        <h1 className="text-3xl font-bold tracking-tight">
           🔥 High-Confidence Crypto 15-Minute Signals
         </h1>
+      </section>
+
+      {/* SIGNAL GRID */}
+      <section>
         <Crypto15mSignalGrid />
       </section>
 
-      {/* 📊 TRACTION */}
-      <section>
+      {/* TRACTION */}
+      <section className="bg-black/40 border border-white/10 rounded-xl p-4">
         <TractionPanel />
       </section>
 
-      {/* 📈 ANALYTICS — COMPACT GRID */}
-      <section className="grid grid-cols-12 gap-4">
-
-        {/* Confidence vs Win Rate */}
-        <div className="col-span-12 lg:col-span-4 bg-black/40 border border-white/10 rounded-xl p-4">
+      {/* ANALYTICS ROW */}
+      <section className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="bg-black/40 border border-white/10 rounded-xl p-4">
           <ConfidenceWinRateChart />
         </div>
 
-        {/* Entry Timing vs PnL */}
-        <div className="col-span-12 lg:col-span-4 bg-black/40 border border-white/10 rounded-xl p-4">
+        <div className="bg-black/40 border border-white/10 rounded-xl p-4">
           <EntryTimingPnLChart />
         </div>
+      </section>
 
-        {/* Price Movement */}
-        <div className="col-span-12 lg:col-span-4 bg-black/40 border border-white/10 rounded-xl p-4">
+      {/* PRICE + DEPTH */}
+      <section className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="bg-black/40 border border-white/10 rounded-xl p-4">
           <PriceMovement />
         </div>
 
-        {/* Liquidity Heatmap (WIDE) */}
-        <div className="col-span-12 lg:col-span-8 bg-black/40 border border-white/10 rounded-xl p-4">
-          <LiquidityHeatmap />
-        </div>
-
-        {/* Market Depth (TALL + NARROW) */}
-        <div className="col-span-12 lg:col-span-4 bg-black/40 border border-white/10 rounded-xl p-4">
+        <div className="bg-black/40 border border-white/10 rounded-xl p-4">
           <MarketDepthPanel />
         </div>
+      </section>
 
+      {/* LIQUIDITY */}
+      <section className="bg-black/40 border border-white/10 rounded-xl p-4">
+        <LiquidityHeatmap />
       </section>
 
     </div>
