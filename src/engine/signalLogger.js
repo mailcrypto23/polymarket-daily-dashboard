@@ -1,10 +1,12 @@
 /* ================================
-   SIGNAL LOGGER – SAFE v2 (FINAL)
+   SIGNAL LOGGER – CANONICAL v3
    ================================ */
 
 const STORAGE_KEY = "pm_signal_history_v2";
 
-/* Load stored signals */
+/* -------------------------------
+   LOAD / SAVE
+-------------------------------- */
 function loadSignals() {
   try {
     return JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
@@ -13,13 +15,12 @@ function loadSignals() {
   }
 }
 
-/* Persist signals */
 function saveSignals(signals) {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(signals));
 }
 
-/* --------------------------------
-   LOG NEW SIGNAL (ENTRY)
+/* -------------------------------
+   LOG ENTRY (NEW SIGNAL)
 -------------------------------- */
 export function logSignal({
   id,
@@ -44,7 +45,7 @@ export function logSignal({
     createdAt,
     resolveAt,
     resolvedAt: null,
-    outcome: "PENDING", // PENDING | WIN | LOSS
+    outcome: "PENDING" // PENDING | WIN | LOSS
   };
 
   signals.unshift(signal);
@@ -53,13 +54,14 @@ export function logSignal({
   return signal;
 }
 
-/* --------------------------------
-   RESOLVE SIGNAL (AUTO)
+/* -------------------------------
+   🔑 THIS WAS MISSING / BROKEN
+   RESOLVE SIGNAL (AUTO ENGINE)
 -------------------------------- */
 export function logResolvedSignal({
   id,
   exitPrice,
-  outcome,
+  outcome,            // WIN | LOSS
   resolvedAt = Date.now()
 }) {
   const signals = loadSignals();
@@ -70,31 +72,28 @@ export function logResolvedSignal({
   signals[index] = {
     ...signals[index],
     exitPrice,
-    outcome,       // WIN | LOSS
+    outcome,
     resolvedAt
   };
 
   saveSignals(signals);
 }
 
-/* --------------------------------
-   READ HELPERS (UI / ANALYTICS)
+/* -------------------------------
+   READ HELPERS (UI)
 -------------------------------- */
-
-/* Last N resolved signals */
 export function getResolvedSignals(limit = 4) {
   return loadSignals()
     .filter(s => s.outcome === "WIN" || s.outcome === "LOSS")
     .slice(0, limit);
 }
 
-/* All signals (debug / export) */
 export function getAllSignals() {
   return loadSignals();
 }
 
-/* --------------------------------
-   EXPORT CSV
+/* -------------------------------
+   CSV EXPORT
 -------------------------------- */
 export function exportSignalCSV() {
   const signals = loadSignals();
