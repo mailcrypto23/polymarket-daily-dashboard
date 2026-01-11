@@ -1,5 +1,3 @@
-// src/engine/Crypto15mSignalEngine.js
-
 /* =========================================================
    CONFIG
 ========================================================= */
@@ -37,9 +35,63 @@ function randomDirection() {
   return Math.random() > 0.5 ? "UP" : "DOWN";
 }
 
-function randomConfidence() {
-  // realistic confidence range
-  return +(0.62 + Math.random() * 0.18).toFixed(2); // 62% – 80%
+/* ---------- Confidence helpers ---------- */
+
+function rand(min, max) {
+  return min + Math.random() * (max - min);
+}
+
+/**
+ * Build Polymarket-style confidence explanation
+ * (matches ConfidenceExplanation.jsx)
+ */
+function buildConfidenceBreakdown({
+  momentum,
+  trend,
+  volatility,
+  liquidity,
+  timePenalty,
+}) {
+  const base =
+    momentum * 0.3 +
+    trend * 0.3 +
+    volatility * 0.2 +
+    liquidity * 0.2;
+
+  const final = Math.max(0, Math.min(1, base - timePenalty));
+
+  return {
+    momentum: Math.round(momentum * 100),
+    trend: Math.round(trend * 100),
+    volatility: Math.round(volatility * 100),
+    liquidity: Math.round(liquidity * 100),
+    timePenalty: Math.round(timePenalty * 100),
+    finalConfidence: Math.round(final * 100),
+  };
+}
+
+/**
+ * Generate realistic, explainable confidence inputs
+ */
+function generateConfidenceBreakdown(entryRatio) {
+  const momentum = rand(0.65, 0.9);
+  const trend = rand(0.6, 0.9);
+  const volatility = rand(0.55, 0.8);
+  const liquidity = rand(0.7, 0.95);
+
+  // penalty increases if user enters late
+  const timePenalty =
+    entryRatio > SAFE_ENTRY_RATIO
+      ? rand(0.05, 0.12)
+      : 0;
+
+  return buildConfidenceBreakdown({
+    momentum,
+    trend,
+    volatility,
+    liquidity,
+    timePenalty,
+  });
 }
 
 function computeTimes() {
@@ -57,16 +109,23 @@ function computeTimes() {
 function createSignal(symbol) {
   const { start, resolveAt, entryClosesAt } = computeTimes();
 
+  // confidence inputs are generated at creation time
+  const confidenceBreakdown = generateConfidenceBreakdown(0);
+
   return {
     id: generateId(symbol),
     symbol,
     timeframe: "15m",
     direction: randomDirection(),
-    confidence: randomConfidence(),
+
+    confidence: confidenceBreakdown.finalConfidence / 100,
+    confidenceBreakdown,
+
     createdAt: start,
     resolveAt,
     entryClosesAt,
     entryOpen: true,
+
     resolved: false,
     result: null, // WIN | LOSS
     userAction: null, // ENTER | SKIP
@@ -80,7 +139,7 @@ function createSignal(symbol) {
 function resolveSignal(signal) {
   signal.resolved = true;
 
-  // Simple deterministic resolution for now
+  // deterministic win probability driven by confidence
   const winChance = signal.confidence;
   signal.result = Math.random() < winChance ? "WIN" : "LOSS";
 
@@ -114,7 +173,7 @@ export function runCrypto15mSignalEngine() {
       resolveSignal(signal);
 
       state.history.unshift(signal);
-      state.history = state.history.slice(0, 50); // cap history
+      state.history = state.history.slice(0, 50);
 
       state.activeSignal = createSignal(asset);
     }
