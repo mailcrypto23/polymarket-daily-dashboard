@@ -1,168 +1,75 @@
-// src/engine/Crypto15mSignalEngine.js
+// src/components/TractionPanel.jsx
 
-import { upsertSignal } from "./signalStore";
+import { useEffect, useState } from "react";
+import { getResolvedSignals } from "../engine/signalStore";
+import SignalProofCard from "./SignalProofCard";
 
-/* =========================================================
-   CONFIG
-========================================================= */
+export default function TractionPanel() {
+  const [signals, setSignals] = useState([]);
 
-const ASSETS = ["BTC", "ETH", "SOL", "XRP"];
-const TIMEFRAME_MS = 15 * 60 * 1000;
-const SAFE_ENTRY_RATIO = 0.4;
+  useEffect(() => {
+    const load = () => {
+      setSignals(getResolvedSignals(4));
+    };
 
-/* =========================================================
-   ENGINE STATE (IN-MEMORY)
-========================================================= */
+    load();
+    const interval = setInterval(load, 2000);
+    return () => clearInterval(interval);
+  }, []);
 
-const engineState = {};
+  const wins = signals.filter(s => s.outcome === "WIN").length;
+  const losses = signals.filter(s => s.outcome === "LOSS").length;
+  const resolved = signals.length;
+  const winRate =
+    resolved > 0 ? Math.round((wins / resolved) * 100) : null;
 
-for (const asset of ASSETS) {
-  engineState[asset] = {
-    activeSignal: null,
-    history: [],
-  };
-}
+  return (
+    <div className="space-y-6">
 
-/* =========================================================
-   UTILITIES
-========================================================= */
+      {/* ===== SUMMARY ===== */}
+      <div className="grid grid-cols-3 gap-4">
+        <div className="rounded-lg bg-white/5 p-4">
+          <div className="text-sm text-white/60">Resolved</div>
+          <div className="text-2xl font-bold">{resolved}</div>
+        </div>
 
-const now = () => Date.now();
+        <div className="rounded-lg bg-white/5 p-4">
+          <div className="text-sm text-white/60">Wins</div>
+          <div className="text-2xl font-bold text-green-400">
+            {wins}
+          </div>
+        </div>
 
-const generateId = symbol =>
-  `${symbol}-15m-${now()}`;
+        <div className="rounded-lg bg-white/5 p-4">
+          <div className="text-sm text-white/60">Win Rate</div>
+          <div className="text-2xl font-bold">
+            {winRate !== null ? `${winRate}%` : "—"}
+          </div>
+        </div>
+      </div>
 
-const randomDirection = () =>
-  Math.random() > 0.5 ? "UP" : "DOWN";
+      {/* ===== PROOF CARDS ===== */}
+      <div className="rounded-xl bg-white/5 p-4">
+        <h4 className="font-semibold mb-3">
+          Recent 15m Crypto Outcomes
+        </h4>
 
-const randomConfidence = () =>
-  +(0.62 + Math.random() * 0.18).toFixed(2);
+        {signals.length === 0 && (
+          <div className="text-white/50 text-sm">
+            No resolved signals yet.
+          </div>
+        )}
 
-const randomPrice = base =>
-  +(base * (1 + (Math.random() - 0.5) * 0.01)).toFixed(2);
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+          {signals.map(signal => (
+            <SignalProofCard
+              key={signal.id}
+              signal={signal}
+            />
+          ))}
+        </div>
+      </div>
 
-function computeTimes() {
-  const start = now();
-  return {
-    start,
-    resolveAt: start + TIMEFRAME_MS,
-    entryClosesAt: start + TIMEFRAME_MS * SAFE_ENTRY_RATIO,
-  };
-}
-
-/* =========================================================
-   CREATE SIGNAL
-========================================================= */
-
-function createSignal(symbol) {
-  const { start, resolveAt, entryClosesAt } = computeTimes();
-  const entryPrice = randomPrice(1000 + Math.random() * 500);
-
-  return {
-    id: generateId(symbol),
-    asset: symbol,
-    timeframe: "15m",
-    direction: randomDirection(),
-    confidence: randomConfidence(),
-    createdAt: start,
-    resolveAt,
-    entryClosesAt,
-    entryOpen: true,
-    entryPrice,
-    exitPrice: null,
-    resolved: false,
-    outcome: null, // WIN | LOSS
-    userAction: null, // ENTER | SKIP
-  };
-}
-
-/* =========================================================
-   RESOLVE SIGNAL (PERSIST HERE)
-========================================================= */
-
-function resolveSignal(signal) {
-  const exitPrice = randomPrice(signal.entryPrice);
-
-  const isWin =
-    (signal.direction === "UP" && exitPrice > signal.entryPrice) ||
-    (signal.direction === "DOWN" && exitPrice < signal.entryPrice);
-
-  signal.exitPrice = exitPrice;
-  signal.resolved = true;
-  signal.outcome = isWin ? "WIN" : "LOSS";
-  signal.resolvedAt = now();
-
-  // 🔥 PERSIST TO STORE (THIS IS THE FIX)
-  upsertSignal({
-    id: signal.id,
-    asset: signal.asset,
-    direction: signal.direction,
-    confidence: signal.confidence,
-    entryPrice: signal.entryPrice,
-    exitPrice: signal.exitPrice,
-    outcome: signal.outcome,
-    createdAt: signal.createdAt,
-    resolvedAt: signal.resolvedAt,
-    timeframe: signal.timeframe,
-  });
-
-  return signal;
-}
-
-/* =========================================================
-   ENGINE LOOP
-========================================================= */
-
-export function runCrypto15mSignalEngine() {
-  const t = now();
-
-  for (const asset of ASSETS) {
-    const state = engineState[asset];
-    let signal = state.activeSignal;
-
-    if (!signal) {
-      state.activeSignal = createSignal(asset);
-      continue;
-    }
-
-    if (signal.entryOpen && t >= signal.entryClosesAt) {
-      signal.entryOpen = false;
-    }
-
-    if (!signal.resolved && t >= signal.resolveAt) {
-      resolveSignal(signal);
-      state.history.unshift(signal);
-      state.history = state.history.slice(0, 50);
-      state.activeSignal = createSignal(asset);
-    }
-  }
-}
-
-/* =========================================================
-   USER ACTIONS
-========================================================= */
-
-export function enterSignal(symbol) {
-  const s = engineState[symbol]?.activeSignal;
-  if (!s || !s.entryOpen) return false;
-  s.userAction = "ENTER";
-  return true;
-}
-
-export function skipSignal(symbol) {
-  const s = engineState[symbol]?.activeSignal;
-  if (!s || !s.entryOpen) return false;
-  s.userAction = "SKIP";
-  s.entryOpen = false;
-  return true;
-}
-
-/* =========================================================
-   SELECTORS
-========================================================= */
-
-export function getActive15mSignals() {
-  const out = {};
-  for (const a of ASSETS) out[a] = engineState[a].activeSignal;
-  return out;
+    </div>
+  );
 }
