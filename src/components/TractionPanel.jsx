@@ -1,104 +1,89 @@
 import { useEffect, useState } from "react";
-import { getResolvedSignals } from "../engine/signalStore";
+import { getResolvedSignals } from "../engine/signalAutoResolver";
 
 export default function TractionPanel() {
   const [signals, setSignals] = useState([]);
 
   useEffect(() => {
-    // Pull latest resolved signals (engine-owned data)
-    const resolved = getResolvedSignals()
-      .slice(-4)            // last 4 only
-      .reverse();           // newest on top
+    const load = () => {
+      setSignals(getResolvedSignals(4));
+    };
 
-    setSignals(resolved);
+    load();
+    const interval = setInterval(load, 2000);
+    return () => clearInterval(interval);
   }, []);
 
+  const wins = signals.filter(s => s.outcome === "WIN").length;
+  const losses = signals.filter(s => s.outcome === "LOSS").length;
+  const winRate =
+    signals.length > 0
+      ? Math.round((wins / signals.length) * 100)
+      : null;
+
   return (
-    <div className="space-y-6">
-      {/* Summary row (already expected by Dashboard) */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <Stat label="Total Signals" value={signals.length} />
-        <Stat label="Resolved" value={signals.length} />
-        <Stat label="Win Rate" value={calcWinRate(signals)} />
+    <div className="space-y-4">
+
+      {/* Summary */}
+      <div className="grid grid-cols-3 gap-4">
+        <div className="rounded-lg bg-white/5 p-4">
+          <div className="text-sm text-white/60">Resolved</div>
+          <div className="text-2xl font-bold">{signals.length}</div>
+        </div>
+
+        <div className="rounded-lg bg-white/5 p-4">
+          <div className="text-sm text-white/60">Wins</div>
+          <div className="text-2xl font-bold text-green-400">
+            {wins}
+          </div>
+        </div>
+
+        <div className="rounded-lg bg-white/5 p-4">
+          <div className="text-sm text-white/60">Win Rate</div>
+          <div className="text-2xl font-bold">
+            {winRate !== null ? `${winRate}%` : "—"}
+          </div>
+        </div>
       </div>
 
-      {/* History */}
-      <div className="bg-slate-900/60 rounded-xl p-4">
-        <h3 className="text-lg font-semibold mb-3">
+      {/* Recent outcomes */}
+      <div className="rounded-xl bg-white/5 p-4">
+        <h4 className="font-semibold mb-3">
           Recent 15m Crypto Outcomes
-        </h3>
+        </h4>
 
-        {signals.length === 0 ? (
-          <div className="text-sm text-gray-400">
+        {signals.length === 0 && (
+          <div className="text-white/50 text-sm">
             No resolved signals yet.
           </div>
-        ) : (
-          <ul className="space-y-3">
-            {signals.map((s) => (
-              <li
-                key={s.id}
-                className="flex items-center justify-between bg-slate-800/70 rounded-lg px-4 py-3"
-              >
-                <div>
-                  <div className="font-medium">
-                    {s.asset} · 15m · {s.direction.toUpperCase()}
-                  </div>
-                  <div className="text-xs text-gray-400">
-                    Entry: {formatTime(s.entryAt)} · Resolve:{" "}
-                    {formatTime(s.resolveAt)}
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-3">
-                  <div className="text-sm text-purple-300">
-                    {Math.round(s.confidence * 100)}%
-                  </div>
-
-                  <ResultBadge win={s.result === "WIN"} />
-                </div>
-              </li>
-            ))}
-          </ul>
         )}
+
+        <div className="space-y-2">
+          {signals.map(s => (
+            <div
+              key={s.id}
+              className="flex justify-between items-center text-sm border-b border-white/10 pb-1"
+            >
+              <div>
+                <span className="font-semibold">{s.asset}</span>{" "}
+                {s.direction} ·{" "}
+                {new Date(s.createdAt).toLocaleTimeString()}
+              </div>
+
+              <div
+                className={
+                  s.outcome === "WIN"
+                    ? "text-green-400 font-bold"
+                    : "text-red-400 font-bold"
+                }
+              >
+                {s.outcome}
+              </div>
+            </div>
+          ))}
+        </div>
       </div>
+
     </div>
   );
-}
-
-/* ---------- helpers ---------- */
-
-function Stat({ label, value }) {
-  return (
-    <div className="bg-slate-900/70 rounded-lg p-4">
-      <div className="text-sm text-gray-400">{label}</div>
-      <div className="text-2xl font-semibold">{value}</div>
-    </div>
-  );
-}
-
-function ResultBadge({ win }) {
-  return (
-    <span
-      className={`px-3 py-1 rounded-full text-xs font-semibold ${
-        win
-          ? "bg-green-500/20 text-green-400"
-          : "bg-red-500/20 text-red-400"
-      }`}
-    >
-      {win ? "WIN" : "LOSS"}
-    </span>
-  );
-}
-
-function formatTime(ts) {
-  return new Date(ts).toLocaleTimeString([], {
-    hour: "2-digit",
-    minute: "2-digit",
-  });
-}
-
-function calcWinRate(signals) {
-  if (!signals.length) return "—";
-  const wins = signals.filter((s) => s.result === "WIN").length;
-  return `${Math.round((wins / signals.length) * 100)}%`;
 }
