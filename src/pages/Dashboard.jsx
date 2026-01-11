@@ -8,46 +8,71 @@ import LiquidityHeatmap from "../components/charts/LiquidityHeatmap";
 
 export default function Dashboard() {
   return (
-    <div className="max-w-7xl mx-auto px-4 space-y-10">
+    <div className="max-w-[1400px] mx-auto px-6 space-y-10">
 
-      {/* 🔥 PRIMARY — SIGNALS */}
+      {/* ===============================
+         HERO TITLE (ONLY ONCE)
+      =============================== */}
       <section>
-        <h2 className="text-2xl font-bold mb-4">
+        <h1 className="text-3xl font-bold tracking-tight">
           🔥 High-Confidence Crypto 15-Minute Signals
-        </h2>
+        </h1>
+      </section>
+
+      {/* ===============================
+         ZONE 1 — SIGNAL GRID
+      =============================== */}
+      <section>
         <Crypto15mSignalGrid />
       </section>
 
-      {/* 📊 TRACTION (COMPACT SUMMARY) */}
-      <section>
+      {/* ===============================
+         ZONE 2 — TRACTION
+      =============================== */}
+      <section className="bg-black/40 border border-white/10 rounded-xl p-4">
         <TractionPanel />
       </section>
 
-      {/* 🧠 EDGE PROOF — ANALYTICS */}
-      <section className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <ConfidenceWinRateChart />
-        <EntryTimingPnLChart />
+      {/* ===============================
+         ZONE 3 — EDGE PROOF (ANALYTICS)
+      =============================== */}
+      <section className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+
+        <div className="bg-black/40 border border-white/10 rounded-xl p-4">
+          <ConfidenceWinRateChart />
+        </div>
+
+        <div className="bg-black/40 border border-white/10 rounded-xl p-4">
+          <EntryTimingPnLChart />
+        </div>
+
       </section>
 
-      {/* 📈 MARKET CONTEXT */}
+      {/* ===============================
+         ZONE 4 — MARKET CONTEXT
+      =============================== */}
       <section className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div>
+
+        <div className="bg-black/40 border border-white/10 rounded-xl p-4">
           <h3 className="text-lg font-semibold mb-2">
             Price Movement
           </h3>
           <PriceMovement />
         </div>
 
-        <div>
+        <div className="bg-black/40 border border-white/10 rounded-xl p-4">
           <h3 className="text-lg font-semibold mb-2">
             Market Depth
           </h3>
           <MarketDepthPanel />
         </div>
+
       </section>
 
-      {/* 🌊 LIQUIDITY (SUPPORTING SIGNAL) */}
-      <section>
+      {/* ===============================
+         ZONE 5 — LIQUIDITY
+      =============================== */}
+      <section className="bg-black/40 border border-white/10 rounded-xl p-4">
         <LiquidityHeatmap />
       </section>
 
