@@ -36,9 +36,6 @@ const generateId = symbol =>
 const randomDirection = () =>
   Math.random() > 0.5 ? "UP" : "DOWN";
 
-const randomConfidence = () =>
-  +(0.65 + Math.random() * 0.2).toFixed(2); // 65–85%
-
 function computeTimes() {
   const start = now();
   return {
@@ -78,10 +75,15 @@ function createSignal(symbol) {
     direction: randomDirection(),
     confidence: breakdown.finalConfidence / 100,
     confidenceBreakdown: breakdown,
+
     createdAt: start,
     resolveAt,
     entryClosesAt,
+
     entryOpen: true,
+    enteredAt: null,
+    entryDelayMs: null,
+
     resolved: false,
     result: null, // WIN | LOSS
     userAction: null,
@@ -109,16 +111,19 @@ export function runCrypto15mSignalEngine() {
     const state = engineState[asset];
     let signal = state.activeSignal;
 
+    // create new
     if (!signal) {
       state.activeSignal = createSignal(asset);
       continue;
     }
 
+    // close entry window
     if (signal.entryOpen && t >= signal.entryClosesAt) {
       signal.entryOpen = false;
       signal.confidenceBreakdown.timePenalty = 5;
     }
 
+    // resolve
     if (!signal.resolved && t >= signal.resolveAt) {
       resolveSignal(signal);
 
@@ -140,13 +145,18 @@ export function runCrypto15mSignalEngine() {
 export function enterSignal(symbol) {
   const s = engineState[symbol]?.activeSignal;
   if (!s || !s.entryOpen) return false;
+
   s.userAction = "ENTER";
+  s.enteredAt = now();
+  s.entryDelayMs = s.enteredAt - s.createdAt;
+
   return true;
 }
 
 export function skipSignal(symbol) {
   const s = engineState[symbol]?.activeSignal;
   if (!s || !s.entryOpen) return false;
+
   s.userAction = "SKIP";
   s.entryOpen = false;
   return true;
