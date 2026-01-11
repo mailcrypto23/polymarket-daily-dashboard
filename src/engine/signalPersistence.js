@@ -37,3 +37,17 @@ export function persistResolvedSignal(signal) {
     // fail silently (quota / private mode)
   }
 }
+
+/* ---------------------------------------------------------
+   Seed resolved signals ONCE (dashboard never empty)
+--------------------------------------------------------- */
+export function seedResolvedSignals(seed = []) {
+  const existing = loadResolvedSignals();
+  if (existing.length > 0) return;
+
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(seed));
+  } catch {
+    // ignore
+  }
+}
