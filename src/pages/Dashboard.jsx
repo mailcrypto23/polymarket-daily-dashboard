@@ -7,28 +7,38 @@ import MarketDepthPanel from "../components/MarketDepthPanel";
 import LiquidityHeatmap from "../components/charts/LiquidityHeatmap";
 
 export default function Dashboard() {
-  return (
-    <div className="space-y-10 max-w-7xl mx-auto px-4">
+  const lastUpdated = new Date().toLocaleTimeString([], {
+    hour: "2-digit",
+    minute: "2-digit",
+  });
 
-      {/* 🔥 MAIN PAGE TITLE (ONLY ONCE) */}
-      <section>
-        <h1 className="text-3xl font-bold tracking-tight">
+  return (
+    <div className="space-y-8 max-w-7xl mx-auto px-4">
+
+      {/* 🔥 TITLE + META */}
+      <section className="space-y-1">
+        <h1 className="text-xl font-semibold tracking-tight text-white/90">
           🔥 High-Confidence Crypto 15-Minute Signals
         </h1>
+        <div className="text-xs text-white/40">
+          Last updated · {lastUpdated}
+        </div>
       </section>
 
-      {/* SIGNAL GRID */}
-      <section>
-        <Crypto15mSignalGrid />
+      {/* ➡️ HORIZONTAL SCROLLING SIGNALS */}
+      <section className="-mx-4 px-4 overflow-x-auto">
+        <div className="flex gap-4 min-w-max">
+          <Crypto15mSignalGrid />
+        </div>
       </section>
 
-      {/* TRACTION */}
+      {/* 📊 TRACTION — SINGLE ROW KPI STRIP */}
       <section className="bg-black/40 border border-white/10 rounded-xl p-4">
-        <TractionPanel />
+        <TractionPanel variant="compact" />
       </section>
 
-      {/* ANALYTICS ROW */}
-      <section className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      {/* 📈 ANALYTICS — CONNECTED ROW */}
+      <section className="grid grid-cols-1 lg:grid-cols-2 gap-5">
         <div className="bg-black/40 border border-white/10 rounded-xl p-4">
           <ConfidenceWinRateChart />
         </div>
@@ -38,8 +48,8 @@ export default function Dashboard() {
         </div>
       </section>
 
-      {/* PRICE + DEPTH */}
-      <section className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      {/* 📉 PRICE + DEPTH */}
+      <section className="grid grid-cols-1 lg:grid-cols-2 gap-5">
         <div className="bg-black/40 border border-white/10 rounded-xl p-4">
           <PriceMovement />
         </div>
@@ -49,7 +59,7 @@ export default function Dashboard() {
         </div>
       </section>
 
-      {/* LIQUIDITY */}
+      {/* 🌊 LIQUIDITY */}
       <section className="bg-black/40 border border-white/10 rounded-xl p-4">
         <LiquidityHeatmap />
       </section>
