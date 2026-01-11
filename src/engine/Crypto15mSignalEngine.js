@@ -12,7 +12,7 @@ const TIMEFRAME_MS = 15 * 60 * 1000;
 const SAFE_ENTRY_RATIO = 0.4;
 
 /* =========================================================
-   ENGINE STATE (LOGIC ONLY — NO JSX)
+   ENGINE STATE
 ========================================================= */
 
 const engineState = {};
@@ -36,21 +36,12 @@ const generateId = symbol =>
 const randomDirection = () =>
   Math.random() > 0.5 ? "UP" : "DOWN";
 
-function computeTimes() {
-  const start = now();
-  return {
-    start,
-    resolveAt: start + TIMEFRAME_MS,
-    entryClosesAt: start + TIMEFRAME_MS * SAFE_ENTRY_RATIO,
-  };
-}
-
 /* =========================================================
    CREATE SIGNAL
 ========================================================= */
 
 function createSignal(symbol) {
-  const { start, resolveAt, entryClosesAt } = computeTimes();
+  const start = now();
 
   const breakdown = {
     momentum: Math.round(70 + Math.random() * 20),
@@ -77,15 +68,15 @@ function createSignal(symbol) {
     confidenceBreakdown: breakdown,
 
     createdAt: start,
-    resolveAt,
-    entryClosesAt,
-
-    entryOpen: true,
-    enteredAt: null,
+    entryAt: null,
     entryDelayMs: null,
 
+    resolveAt: start + TIMEFRAME_MS,
+    entryClosesAt: start + TIMEFRAME_MS * SAFE_ENTRY_RATIO,
+
+    entryOpen: true,
     resolved: false,
-    result: null, // WIN | LOSS
+    result: null,
     userAction: null,
   };
 }
@@ -109,28 +100,25 @@ export function runCrypto15mSignalEngine() {
 
   for (const asset of ASSETS) {
     const state = engineState[asset];
-    let signal = state.activeSignal;
+    const signal = state.activeSignal;
 
-    // create new
     if (!signal) {
       state.activeSignal = createSignal(asset);
       continue;
     }
 
-    // close entry window
     if (signal.entryOpen && t >= signal.entryClosesAt) {
       signal.entryOpen = false;
       signal.confidenceBreakdown.timePenalty = 5;
     }
 
-    // resolve
     if (!signal.resolved && t >= signal.resolveAt) {
       resolveSignal(signal);
 
       state.history.unshift(signal);
       state.history = state.history.slice(0, 50);
 
-      // 🔐 persist for analytics
+      // 🔐 persist with timing metadata
       persistResolvedSignal(signal);
 
       state.activeSignal = createSignal(asset);
@@ -147,8 +135,8 @@ export function enterSignal(symbol) {
   if (!s || !s.entryOpen) return false;
 
   s.userAction = "ENTER";
-  s.enteredAt = now();
-  s.entryDelayMs = s.enteredAt - s.createdAt;
+  s.entryAt = now();
+  s.entryDelayMs = s.entryAt - s.createdAt;
 
   return true;
 }
@@ -172,7 +160,7 @@ export function getActive15mSignals() {
   return out;
 }
 
-export function getLastResolvedSignals(limit = 4) {
+export function getLastResolvedSignals(limit = 50) {
   const persisted = loadResolvedSignals();
 
   const inMemory = Object.values(engineState)
