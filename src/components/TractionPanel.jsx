@@ -1,3 +1,5 @@
+// src/components/TractionPanel.jsx
+
 import { useEffect, useState } from "react";
 import { getResolvedSignals } from "../engine/signalAutoResolver";
 
@@ -22,23 +24,25 @@ export default function TractionPanel() {
       : null;
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-6">
 
       {/* Summary */}
       <div className="grid grid-cols-3 gap-4">
-        <div className="rounded-lg bg-white/5 p-4">
+        <div className="rounded-xl bg-white/5 p-4">
           <div className="text-sm text-white/60">Resolved</div>
-          <div className="text-2xl font-bold">{signals.length}</div>
+          <div className="text-2xl font-bold">
+            {signals.length}
+          </div>
         </div>
 
-        <div className="rounded-lg bg-white/5 p-4">
+        <div className="rounded-xl bg-white/5 p-4">
           <div className="text-sm text-white/60">Wins</div>
           <div className="text-2xl font-bold text-green-400">
             {wins}
           </div>
         </div>
 
-        <div className="rounded-lg bg-white/5 p-4">
+        <div className="rounded-xl bg-white/5 p-4">
           <div className="text-sm text-white/60">Win Rate</div>
           <div className="text-2xl font-bold">
             {winRate !== null ? `${winRate}%` : "—"}
@@ -65,9 +69,14 @@ export default function TractionPanel() {
               className="flex justify-between items-center text-sm border-b border-white/10 pb-1"
             >
               <div>
-                <span className="font-semibold">{s.asset}</span>{" "}
+                <span className="font-semibold">
+                  {s.asset}
+                </span>{" "}
                 {s.direction} ·{" "}
-                {new Date(s.createdAt).toLocaleTimeString()}
+                {new Date(s.createdAt).toLocaleTimeString([], {
+                  hour: "2-digit",
+                  minute: "2-digit",
+                })}
               </div>
 
               <div
