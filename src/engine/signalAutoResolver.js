@@ -1,69 +1,49 @@
 // src/engine/signalAutoResolver.js
-// Responsible for resolving expired 15m signals into WIN / LOSS
-// SAFE: analytics-only, no trading execution
 
 import { getLivePrice } from "./priceFeed";
+import { logResolvedSignal } from "./signalLogger";
+import { getActiveSignals, updateSignal } from "./signalStore";
 
-const STORAGE_KEY = "crypto_15m_signals";
-
-/**
- * Resolve all expired signals
- */
-export async function resolveSignals() {
-  let signals = [];
-
-  try {
-    signals = JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
-  } catch {
-    return;
-  }
-
+// Resolve signals whose resolveAt has passed
+export function resolveExpiredSignals() {
   const now = Date.now();
-  let updated = false;
+  const activeSignals = getActiveSignals();
 
-  for (const signal of signals) {
-    // Skip already resolved
-    if (signal.outcome) continue;
+  activeSignals.forEach(signal => {
+    if (signal.resolvedAt) return;
+    if (now < signal.resolveAt) return;
 
-    // Skip if not yet time
-    if (now < signal.resolveAt) continue;
+    const price = getLivePrice(signal.asset);
+    if (!price) return;
 
-    const exitPrice = await getLivePrice(signal.asset);
+    const isWin =
+      signal.direction === "UP"
+        ? price > signal.entryPrice
+        : price < signal.entryPrice;
 
-    if (!exitPrice || !signal.entryPrice) continue;
+    updateSignal(signal.id, {
+      exitPrice: price,
+      resolvedAt: now,
+      outcome: isWin ? "WIN" : "LOSS",
+    });
 
-    signal.exitPrice = exitPrice;
-    signal.resolvedAt = now;
-
-    // Determine WIN / LOSS
-    if (signal.direction === "UP") {
-      signal.outcome =
-        exitPrice > signal.entryPrice ? "WIN" : "LOSS";
-    } else {
-      signal.outcome =
-        exitPrice < signal.entryPrice ? "WIN" : "LOSS";
-    }
-
-    updated = true;
-  }
-
-  if (updated) {
-    localStorage.setItem(
-      STORAGE_KEY,
-      JSON.stringify(signals)
-    );
-  }
+    logResolvedSignal({
+      ...signal,
+      exitPrice: price,
+      resolvedAt: now,
+      outcome: isWin ? "WIN" : "LOSS",
+    });
+  });
 }
 
-/**
- * Get last N resolved signals (newest first)
- */
+// Used by TractionPanel
 export function getResolvedSignals(limit = 4) {
   try {
-    const signals =
-      JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
+    const all = JSON.parse(
+      localStorage.getItem("pm_signal_history") || "[]"
+    );
 
-    return signals
+    return all
       .filter(s => s.outcome)
       .sort((a, b) => b.resolvedAt - a.resolvedAt)
       .slice(0, limit);
