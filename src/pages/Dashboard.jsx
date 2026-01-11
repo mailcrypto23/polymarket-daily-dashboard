@@ -25,7 +25,7 @@ export default function Dashboard() {
         <TractionPanel />
       </section>
 
-      {/* 📊 CONFIDENCE vs WIN-RATE (STEP 8D) */}
+      {/* 📊 CONFIDENCE vs WIN-RATE */}
       <section>
         <ConfidenceWinRateChart />
       </section>
