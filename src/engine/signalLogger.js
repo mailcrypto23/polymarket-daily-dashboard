@@ -1,10 +1,10 @@
 /* ================================
-   SIGNAL LOGGER – SAFE v1
+   SIGNAL LOGGER – SAFE v2 (FINAL)
    ================================ */
 
-const STORAGE_KEY = "pm_signal_history";
+const STORAGE_KEY = "pm_signal_history_v2";
 
-/* Load existing signals */
+/* Load stored signals */
 function loadSignals() {
   try {
     return JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
@@ -13,70 +13,105 @@ function loadSignals() {
   }
 }
 
-/* Save signals */
+/* Persist signals */
 function saveSignals(signals) {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(signals));
 }
 
-/* Log a NEW signal */
+/* --------------------------------
+   LOG NEW SIGNAL (ENTRY)
+-------------------------------- */
 export function logSignal({
-  market,
-  side,
-  confidence,
+  id,
+  asset,
+  direction,          // UP / DOWN
+  confidence,         // 0–1
+  entryPrice,
   source = "crypto-15m",
-  price
+  createdAt = Date.now(),
+  resolveAt
 }) {
   const signals = loadSignals();
 
   const signal = {
-    id: crypto.randomUUID(),
-    timestamp: Date.now(),
-    market,
-    side,               // YES or NO
-    confidence,         // 0–100
-    price,
+    id: id ?? crypto.randomUUID(),
+    asset,
+    direction,
+    confidence,
+    entryPrice,
+    exitPrice: null,
     source,
-    outcome: "pending", // pending | win | loss
+    createdAt,
+    resolveAt,
     resolvedAt: null,
-    pnl: 0
+    outcome: "PENDING", // PENDING | WIN | LOSS
   };
 
-  signals.push(signal);
-  saveSignals(signals);
+  signals.unshift(signal);
+  saveSignals(signals.slice(0, 200));
 
   return signal;
 }
 
-/* Resolve signal after 15 minutes */
-export function resolveSignal(id, finalPrice) {
+/* --------------------------------
+   RESOLVE SIGNAL (AUTO)
+-------------------------------- */
+export function logResolvedSignal({
+  id,
+  exitPrice,
+  outcome,
+  resolvedAt = Date.now()
+}) {
   const signals = loadSignals();
-  const signal = signals.find(s => s.id === id);
-  if (!signal || signal.outcome !== "pending") return;
+  const index = signals.findIndex(s => s.id === id);
 
-  const win =
-    (signal.side === "YES" && finalPrice > signal.price) ||
-    (signal.side === "NO" && finalPrice < signal.price);
+  if (index === -1) return;
 
-  signal.outcome = win ? "win" : "loss";
-  signal.resolvedAt = Date.now();
-  signal.pnl = win ? 1 : -1; // $1 simulation
+  signals[index] = {
+    ...signals[index],
+    exitPrice,
+    outcome,       // WIN | LOSS
+    resolvedAt
+  };
 
   saveSignals(signals);
 }
 
-/* Export CSV (DOWNLOAD BUTTON / CONSOLE USE) */
+/* --------------------------------
+   READ HELPERS (UI / ANALYTICS)
+-------------------------------- */
+
+/* Last N resolved signals */
+export function getResolvedSignals(limit = 4) {
+  return loadSignals()
+    .filter(s => s.outcome === "WIN" || s.outcome === "LOSS")
+    .slice(0, limit);
+}
+
+/* All signals (debug / export) */
+export function getAllSignals() {
+  return loadSignals();
+}
+
+/* --------------------------------
+   EXPORT CSV
+-------------------------------- */
 export function exportSignalCSV() {
   const signals = loadSignals();
-  if (!signals.length) return alert("No signal data");
+  if (!signals.length) {
+    alert("No signal data available");
+    return;
+  }
 
   const headers = [
-    "timestamp",
-    "market",
-    "side",
+    "createdAt",
+    "asset",
+    "direction",
     "confidence",
-    "price",
+    "entryPrice",
+    "exitPrice",
     "outcome",
-    "pnl"
+    "resolvedAt"
   ];
 
   const rows = signals.map(s =>
@@ -89,7 +124,7 @@ export function exportSignalCSV() {
 
   const a = document.createElement("a");
   a.href = url;
-  a.download = "pm_signal_history.csv";
+  a.download = "crypto_15m_signal_history.csv";
   a.click();
 
   URL.revokeObjectURL(url);
