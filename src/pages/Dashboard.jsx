@@ -1,6 +1,7 @@
 import Crypto15mSignalGrid from "../components/Crypto15mSignalGrid";
 import TractionPanel from "../components/TractionPanel";
 import ConfidenceWinRateChart from "../components/ConfidenceWinRateChart";
+import EntryTimingPnLChart from "../components/EntryTimingPnLChart";
 import PriceMovement from "../components/PriceMovement";
 import MarketDepthPanel from "../components/MarketDepthPanel";
 import LiquidityHeatmap from "../components/charts/LiquidityHeatmap";
@@ -28,6 +29,11 @@ export default function Dashboard() {
       {/* 📊 CONFIDENCE vs WIN-RATE */}
       <section>
         <ConfidenceWinRateChart />
+      </section>
+
+      {/* ⏱ ENTRY TIMING vs PnL (EDGE DECAY PROOF) */}
+      <section>
+        <EntryTimingPnLChart />
       </section>
 
       {/* 📈 PRICE + DEPTH */}
