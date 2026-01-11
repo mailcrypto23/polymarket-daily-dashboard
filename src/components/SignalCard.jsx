@@ -1,65 +1,65 @@
-export default function SignalCard({ signal, onDecision }) {
-  const now = Date.now();
+export default function SignalProofCard({ signal }) {
+  if (!signal) return null;
 
-  const safe =
-    typeof signal.confidence === "number" &&
-    signal.confidence >= 70 &&
-    now < signal.resolveAt;
+  const isWin = signal.outcome === "WIN";
 
-  const remaining = Math.max(
-    0,
-    Math.floor((signal.resolveAt - now) / 1000)
-  );
+  const entry = Number(signal.entryPrice);
+  const exit = Number(signal.exitPrice);
+  const pnl = exit - entry;
+  const pnlPct = entry ? ((pnl / entry) * 100).toFixed(2) : "0.00";
 
   return (
-    <div className="rounded-xl bg-white/5 p-4 space-y-3">
-      {/* HEADER */}
+    <div className="rounded-xl bg-black/40 border border-white/10 p-4 space-y-3">
+
+      {/* Header */}
       <div className="flex justify-between items-center">
-        <div className="font-semibold">
-          {signal.symbol} · 15m
+        <div className="text-sm font-semibold">
+          {signal.symbol || signal.asset} · 15m · {signal.direction}
         </div>
+
         <div
-          className={`text-sm ${
-            safe ? "text-green-400" : "text-yellow-400"
+          className={`text-sm font-bold ${
+            isWin ? "text-green-400" : "text-red-400"
           }`}
         >
-          {safe ? "SAFE" : "LOCKED"}
+          {signal.outcome}
         </div>
       </div>
 
-      {/* CONFIDENCE */}
-      <div className="flex justify-between text-sm">
-        <span>Confidence</span>
-        <span className="font-bold">
-          {signal.confidence ?? "—"}%
-        </span>
+      {/* Price Proof */}
+      <div className="grid grid-cols-2 gap-3 text-xs">
+        <div className="rounded-lg bg-white/5 p-2">
+          <div className="text-white/50 mb-1">Entry</div>
+          <div className="font-mono text-white">
+            ${entry.toFixed(2)}
+          </div>
+        </div>
+
+        <div className="rounded-lg bg-white/5 p-2">
+          <div className="text-white/50 mb-1">Exit</div>
+          <div className="font-mono text-white">
+            ${exit.toFixed(2)}
+          </div>
+        </div>
       </div>
 
-      {/* TIMER */}
-      <div className="text-xs text-white/60">
-        Resolves in: {remaining}s
+      {/* PnL */}
+      <div
+        className={`text-xs font-semibold ${
+          pnl >= 0 ? "text-green-400" : "text-red-400"
+        }`}
+      >
+        PnL: {pnl >= 0 ? "+" : ""}
+        {pnl.toFixed(2)} ({pnlPct}%)
       </div>
 
-      {/* ACTION */}
-      <div className="flex gap-2">
-        <button
-          disabled={!safe}
-          onClick={() => onDecision(signal.id, "ENTER")}
-          className={`flex-1 py-2 rounded ${
-            safe
-              ? "bg-green-600 hover:bg-green-700"
-              : "bg-gray-700 cursor-not-allowed"
-          }`}
-        >
-          ENTER
-        </button>
-
-        <button
-          onClick={() => onDecision(signal.id, "SKIP")}
-          className="flex-1 py-2 rounded bg-red-600 hover:bg-red-700"
-        >
-          SKIP
-        </button>
+      {/* Resolution Time */}
+      <div className="text-[11px] text-white/50">
+        Resolved at{" "}
+        {new Date(signal.resolvedAt).toLocaleTimeString([], {
+          hour: "2-digit",
+          minute: "2-digit",
+        })}
       </div>
     </div>
   );
