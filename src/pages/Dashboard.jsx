@@ -8,9 +8,9 @@ import LiquidityHeatmap from "../components/charts/LiquidityHeatmap";
 
 export default function Dashboard() {
   return (
-    <div className="space-y-12 max-w-7xl mx-auto px-4">
+    <div className="max-w-7xl mx-auto px-4 space-y-10">
 
-      {/* 🔥 MULTI-ASSET 15m SIGNAL GRID */}
+      {/* 🔥 PRIMARY — SIGNALS */}
       <section>
         <h2 className="text-2xl font-bold mb-4">
           🔥 High-Confidence Crypto 15-Minute Signals
@@ -18,42 +18,35 @@ export default function Dashboard() {
         <Crypto15mSignalGrid />
       </section>
 
-      {/* 📊 TRACTION & PERFORMANCE */}
+      {/* 📊 TRACTION (COMPACT SUMMARY) */}
       <section>
-        <h2 className="text-2xl font-bold mb-4">
-          Traction & Signal Performance
-        </h2>
         <TractionPanel />
       </section>
 
-      {/* 📊 CONFIDENCE vs WIN-RATE */}
-      <section>
+      {/* 🧠 EDGE PROOF — ANALYTICS */}
+      <section className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <ConfidenceWinRateChart />
-      </section>
-
-      {/* ⏱ ENTRY TIMING vs PnL (EDGE DECAY PROOF) */}
-      <section>
         <EntryTimingPnLChart />
       </section>
 
-      {/* 📈 PRICE + DEPTH */}
+      {/* 📈 MARKET CONTEXT */}
       <section className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <div>
-          <h3 className="text-xl font-semibold mb-2">
+          <h3 className="text-lg font-semibold mb-2">
             Price Movement
           </h3>
           <PriceMovement />
         </div>
 
         <div>
-          <h3 className="text-xl font-semibold mb-2">
+          <h3 className="text-lg font-semibold mb-2">
             Market Depth
           </h3>
           <MarketDepthPanel />
         </div>
       </section>
 
-      {/* 🌊 LIQUIDITY */}
+      {/* 🌊 LIQUIDITY (SUPPORTING SIGNAL) */}
       <section>
         <LiquidityHeatmap />
       </section>
