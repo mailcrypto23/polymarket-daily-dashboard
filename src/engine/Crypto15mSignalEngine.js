@@ -9,7 +9,7 @@ const TIMEFRAME_MS = 15 * 60 * 1000;
 const SAFE_ENTRY_RATIO = 0.4;
 
 /* =========================================================
-   ENGINE STATE (PURE LOGIC)
+   ENGINE STATE (LOGIC ONLY — NO JSX)
 ========================================================= */
 
 const engineState = {};
@@ -52,12 +52,30 @@ function computeTimes() {
 function createSignal(symbol) {
   const { start, resolveAt, entryClosesAt } = computeTimes();
 
+  const breakdown = {
+    momentum: Math.round(70 + Math.random() * 20),
+    trend: Math.round(65 + Math.random() * 20),
+    volatility: Math.round(60 + Math.random() * 25),
+    liquidity: Math.round(65 + Math.random() * 20),
+    timePenalty: 0,
+  };
+
+  const avg =
+    (breakdown.momentum +
+      breakdown.trend +
+      breakdown.volatility +
+      breakdown.liquidity) /
+    4;
+
+  breakdown.finalConfidence = Math.round(avg);
+
   return {
     id: generateId(symbol),
     symbol,
     timeframe: "15m",
     direction: randomDirection(),
-    confidence: randomConfidence(),
+    confidence: breakdown.finalConfidence / 100,
+    confidenceBreakdown: breakdown,
     createdAt: start,
     resolveAt,
     entryClosesAt,
@@ -65,16 +83,6 @@ function createSignal(symbol) {
     resolved: false,
     result: null,
     userAction: null,
-
-    // used by ConfidenceExplanation.jsx
-    confidenceBreakdown: {
-      momentum: Math.round(70 + Math.random() * 20),
-      trend: Math.round(65 + Math.random() * 20),
-      volatility: Math.round(60 + Math.random() * 25),
-      liquidity: Math.round(65 + Math.random() * 20),
-      timePenalty: 0,
-      finalConfidence: 0,
-    },
   };
 }
 
@@ -86,7 +94,6 @@ function resolveSignal(signal) {
   signal.resolved = true;
   signal.result =
     Math.random() < signal.confidence ? "WIN" : "LOSS";
-  return signal;
 }
 
 /* =========================================================
