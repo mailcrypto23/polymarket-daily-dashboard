@@ -1,102 +1,72 @@
 // src/engine/signalAutoResolver.js
+// Responsible for resolving expired 15m signals into WIN / LOSS
+// SAFE: analytics-only, no trading execution
 
 import { getLivePrice } from "./priceFeed";
-import {
-  getActive15mSignals,
-  removeActiveSignal,
-} from "./Crypto15mSignalEngine";
 
-const HISTORY_KEY = "pm_signal_history";
+const STORAGE_KEY = "crypto_15m_signals";
 
 /**
- * Resolve all expired 15m signals
- * Safe to run every second
+ * Resolve all expired signals
  */
-export async function resolveExpiredSignals() {
-  const activeSignals = getActive15mSignals();
-  const now = Date.now();
-
-  for (const asset in activeSignals) {
-    const signal = activeSignals[asset];
-
-    if (signal.resolved) continue;
-    if (now < signal.resolveAt) continue;
-
-    try {
-      const exitPrice = await getLivePrice(asset);
-      const outcome = determineOutcome(signal, exitPrice);
-
-      const resolvedSignal = {
-        ...signal,
-        exitPrice,
-        resolvedAt: now,
-        outcome,
-        resolved: true,
-      };
-
-      persistResolvedSignal(resolvedSignal);
-      removeActiveSignal(asset);
-
-      console.log(
-        `[RESOLVED] ${asset} ${signal.direction} → ${outcome}`
-      );
-    } catch (err) {
-      console.error(
-        `[RESOLVE ERROR] ${asset}`,
-        err.message
-      );
-    }
-  }
-}
-
-/**
- * Decide WIN / LOSS
- */
-function determineOutcome(signal, exitPrice) {
-  if (signal.direction === "UP") {
-    return exitPrice > signal.entryPrice ? "WIN" : "LOSS";
-  }
-
-  if (signal.direction === "DOWN") {
-    return exitPrice < signal.entryPrice ? "WIN" : "LOSS";
-  }
-
-  return "LOSS";
-}
-
-/**
- * Store resolved signal proof
- */
-function persistResolvedSignal(signal) {
-  let history = [];
+export async function resolveSignals() {
+  let signals = [];
 
   try {
-    history = JSON.parse(
-      localStorage.getItem(HISTORY_KEY)
-    ) || [];
+    signals = JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
   } catch {
-    history = [];
+    return;
   }
 
-  history.unshift(signal);
+  const now = Date.now();
+  let updated = false;
 
-  // keep last 100 signals
-  localStorage.setItem(
-    HISTORY_KEY,
-    JSON.stringify(history.slice(0, 100))
-  );
+  for (const signal of signals) {
+    // Skip already resolved
+    if (signal.outcome) continue;
+
+    // Skip if not yet time
+    if (now < signal.resolveAt) continue;
+
+    const exitPrice = await getLivePrice(signal.asset);
+
+    if (!exitPrice || !signal.entryPrice) continue;
+
+    signal.exitPrice = exitPrice;
+    signal.resolvedAt = now;
+
+    // Determine WIN / LOSS
+    if (signal.direction === "UP") {
+      signal.outcome =
+        exitPrice > signal.entryPrice ? "WIN" : "LOSS";
+    } else {
+      signal.outcome =
+        exitPrice < signal.entryPrice ? "WIN" : "LOSS";
+    }
+
+    updated = true;
+  }
+
+  if (updated) {
+    localStorage.setItem(
+      STORAGE_KEY,
+      JSON.stringify(signals)
+    );
+  }
 }
 
 /**
- * Public helper for UI
+ * Get last N resolved signals (newest first)
  */
 export function getResolvedSignals(limit = 4) {
   try {
-    const history = JSON.parse(
-      localStorage.getItem(HISTORY_KEY)
-    ) || [];
+    const signals =
+      JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
 
-    return history.slice(0, limit);
+    return signals
+      .filter(s => s.outcome)
+      .sort((a, b) => b.resolvedAt - a.resolvedAt)
+      .slice(0, limit);
   } catch {
     return [];
   }
