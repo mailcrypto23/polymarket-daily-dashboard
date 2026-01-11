@@ -1,17 +1,28 @@
 // src/services/backgroundRunner.js
 
 import { runCrypto15mSignalEngine } from "../engine/Crypto15mSignalEngine";
-import { resolveSignals } from "../engine/signalAutoResolver";
-import { getLivePrice } from "../engine/priceFeed";
+import { resolveExpiredSignals } from "../engine/signalAutoResolver";
 
 let started = false;
 
+/**
+ * Starts background engine loop
+ * - Generates 15m signals
+ * - Auto-resolves expired signals
+ * Safe to call once (guarded)
+ */
 export function startBackgroundRunner() {
   if (started) return;
   started = true;
 
-  setInterval(() => {
-    runCrypto15mSignalEngine();
-    resolveSignals(getLivePrice);
+  console.log("[ENGINE] Background runner started");
+
+  setInterval(async () => {
+    try {
+      runCrypto15mSignalEngine();
+      await resolveExpiredSignals();
+    } catch (err) {
+      console.error("[ENGINE ERROR]", err);
+    }
   }, 1000);
 }
