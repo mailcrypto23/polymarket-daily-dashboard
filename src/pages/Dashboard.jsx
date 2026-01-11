@@ -1,5 +1,6 @@
 import Crypto15mSignalGrid from "../components/Crypto15mSignalGrid";
 import TractionPanel from "../components/TractionPanel";
+import ConfidenceWinRateChart from "../components/ConfidenceWinRateChart";
 import PriceMovement from "../components/PriceMovement";
 import MarketDepthPanel from "../components/MarketDepthPanel";
 import LiquidityHeatmap from "../components/charts/LiquidityHeatmap";
@@ -22,6 +23,11 @@ export default function Dashboard() {
           Traction & Signal Performance
         </h2>
         <TractionPanel />
+      </section>
+
+      {/* 📊 CONFIDENCE vs WIN-RATE (STEP 8D) */}
+      <section>
+        <ConfidenceWinRateChart />
       </section>
 
       {/* 📈 PRICE + DEPTH */}
