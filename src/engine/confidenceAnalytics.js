@@ -10,7 +10,7 @@ const BUCKETS = [
 export function getConfidenceWinRateStats(limit = 50) {
   const resolved = getLastResolvedSignals(limit);
 
-  const stats = BUCKETS.map(bucket => {
+  return BUCKETS.map(bucket => {
     const signals = resolved.filter(
       s =>
         s.confidence >= bucket.min &&
@@ -29,6 +29,4 @@ export function getConfidenceWinRateStats(limit = 50) {
           : null,
     };
   });
-
-  return stats;
 }
