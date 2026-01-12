@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   getActive15mSignals,
   enterSignal,
@@ -18,7 +18,9 @@ function formatTime(ms) {
 
 export default function Crypto15mSignalGrid() {
   const [signals, setSignals] = useState({});
+  const containerRef = useRef(null);
 
+  // Live signal refresh
   useEffect(() => {
     const tick = () => {
       setSignals(getActive15mSignals());
@@ -29,27 +31,40 @@ export default function Crypto15mSignalGrid() {
     return () => clearInterval(interval);
   }, []);
 
+  // Auto-scroll newest signal into view
+  useEffect(() => {
+    if (containerRef.current) {
+      containerRef.current.scrollTo({
+        left: containerRef.current.scrollWidth,
+        behavior: "smooth",
+      });
+    }
+  }, [signals]);
+
   return (
-    <div className="flex gap-4 overflow-x-auto pb-2">
+    <div
+      ref={containerRef}
+      className="flex gap-4 overflow-x-auto pb-2 scrollbar-hide"
+    >
       {ASSETS.map(asset => {
         const s = signals[asset];
         if (!s) return null;
 
         const remaining = s.resolveAt - Date.now();
         const locked = !s.entryOpen;
+        const confidencePct = Math.round(s.confidence * 100);
+        const highConfidence = s.confidence >= 0.75;
 
         return (
           <div
             key={s.id}
-            className="
-              min-w-[260px]
-              rounded-xl
-              p-4
+            className={`
+              relative min-w-[260px] rounded-xl p-4
               bg-gradient-to-br from-purple-700 to-purple-900
-              border border-white/10
-              shadow-lg
-              space-y-3
-            "
+              border border-purple-400/20
+              shadow-lg space-y-3
+              ${highConfidence ? "ring-2 ring-purple-400/40 glow" : ""}
+            `}
           >
             {/* Header */}
             <div className="flex justify-between items-start">
@@ -64,7 +79,7 @@ export default function Crypto15mSignalGrid() {
 
               <div className="text-right">
                 <div className="text-xl font-bold text-white">
-                  {Math.round(s.confidence * 100)}%
+                  {confidencePct}%
                 </div>
                 <div className="text-xs text-purple-200">
                   {s.direction}
@@ -112,7 +127,7 @@ export default function Crypto15mSignalGrid() {
               </button>
             </div>
 
-            {/* Confidence Explanation */}
+            {/* Confidence explanation */}
             <ConfidenceExplanation signal={s} />
           </div>
         );
