@@ -1,8 +1,12 @@
 import { getLivePrice } from "./priceFeed";
 import { runCrypto15mSignalEngine } from "./Crypto15mSignalEngine";
+import {
+  startBinancePriceFeed,
+  getBinancePrices,
+} from "./binancePriceFeed";
 
 const ASSETS = ["BTC", "ETH", "SOL", "XRP"];
-const ENGINE_TICK_MS = 2_000; // 2s cadence
+const ENGINE_TICK_MS = 1_000; // 1s engine tick
 
 let started = false;
 
@@ -10,23 +14,26 @@ export function startCryptoSignalEngine() {
   if (started) return;
   started = true;
 
-  async function tick() {
-    const livePrices = {};
+  // 🔴 start WebSocket feed
+  startBinancePriceFeed();
 
+  async function tick() {
+    const livePrices = getBinancePrices();
+
+    // 🟡 fallback to CoinGecko if Binance missing
     for (const asset of ASSETS) {
-      try {
-        livePrices[asset] = await getLivePrice(asset);
-      } catch (err) {
-        console.warn(`Price fetch failed for ${asset}`, err);
+      if (!livePrices[asset]) {
+        try {
+          livePrices[asset] = await getLivePrice(asset);
+        } catch (e) {
+          console.warn(`Fallback price failed for ${asset}`, e);
+        }
       }
     }
 
     runCrypto15mSignalEngine(livePrices);
   }
 
-  // run once immediately
   tick();
-
-  // continue polling
   setInterval(tick, ENGINE_TICK_MS);
 }
