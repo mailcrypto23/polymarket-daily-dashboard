@@ -4,11 +4,9 @@ import {
   enterSignal,
   skipSignal,
 } from "../engine/Crypto15mSignalEngine";
-
 import ConfidenceExplanation from "./ConfidenceExplanation";
 
 const ASSETS = ["BTC", "ETH", "SOL", "XRP"];
-const TOTAL_WINDOW = 15 * 60 * 1000;
 
 function formatTime(ms) {
   if (ms <= 0) return "0:00";
@@ -24,11 +22,11 @@ export default function Crypto15mSignalGrid() {
   useEffect(() => {
     const tick = () => setSignals(getActive15mSignals());
     tick();
-    const interval = setInterval(tick, 1000);
-    return () => clearInterval(interval);
+    const i = setInterval(tick, 1000);
+    return () => clearInterval(i);
   }, []);
 
-  // 🔥 Auto-scroll newest signal
+  // 🔥 auto-scroll newest
   useEffect(() => {
     if (stripRef.current) {
       stripRef.current.scrollTo({
@@ -41,119 +39,90 @@ export default function Crypto15mSignalGrid() {
   return (
     <div
       ref={stripRef}
-      className="flex gap-4 overflow-x-auto scrollbar-hide snap-x snap-mandatory"
+      className="
+        flex gap-4
+        overflow-x-auto scrollbar-hide
+        snap-x snap-mandatory
+        pb-3
+      "
     >
       {ASSETS.map(asset => {
         const s = signals[asset];
         if (!s) return null;
 
         const remaining = s.resolveAt - Date.now();
-        const elapsedRatio = 1 - Math.min(1, remaining / TOTAL_WINDOW);
         const locked = !s.entryOpen;
-        const confidencePct = Math.round(s.confidence * 100);
 
         return (
           <div
             key={s.id}
             className="
-              min-w-[260px]
               snap-start
-              rounded-xl
+              min-w-[260px]
+              card
               p-4
-              bg-gradient-to-br from-purple-700/90 to-purple-900/90
-              border border-white/10
-              shadow-[0_12px_40px_rgba(168,85,247,0.35)]
-              transition-transform duration-200
-              hover:-translate-y-0.5
+              bg-gradient-to-br from-purple-700 to-purple-900
+              space-y-3
+              decay-glow
             "
           >
-            {/* HEADER */}
-            <div className="flex justify-between items-start">
+            {/* Header */}
+            <div className="flex justify-between">
               <div>
-                <h3 className="text-sm font-semibold text-white">
-                  {asset} · 15m
-                </h3>
-
-                {/* 🔥 RESOLVE TIMER */}
-                <p className="text-xs font-semibold text-red-400 flex items-center gap-1">
+                <div className="text-sm font-semibold">{asset} · 15m</div>
+                <div className="text-xs text-red-400 flex items-center gap-1">
                   🔥 Resolve in {formatTime(remaining)}
-                </p>
+                </div>
               </div>
-
-              {/* CONFIDENCE */}
               <div className="text-right">
-                <div
-                  className="text-xl font-bold text-white glow"
-                  style={{
-                    opacity: 1 - elapsedRatio * 0.4,
-                    transform: `scale(${1 - elapsedRatio * 0.06})`,
-                  }}
-                >
-                  {confidencePct}%
+                <div className="text-xl font-bold">
+                  {Math.round(s.confidence * 100)}%
                 </div>
-                <div className="text-xs text-purple-200">
-                  {s.direction}
-                </div>
+                <div className="text-xs opacity-70">{s.direction}</div>
               </div>
             </div>
 
-            {/* ENTRY STATUS */}
-            <div className="text-xs font-semibold mt-1">
+            {/* Entry */}
+            <div className="text-xs font-semibold">
               {locked ? (
                 <span className="text-white/40">ENTRY LOCKED</span>
               ) : (
-                <span className="text-green-400 animate-pulse">
-                  ENTRY OPEN
-                </span>
+                <span className="text-green-400 animate-pulse">ENTRY OPEN</span>
               )}
             </div>
 
-            {/* ACTIONS */}
-            <div className="flex gap-2 mt-2">
+            {/* Actions */}
+            <div className="flex gap-2">
               <button
                 disabled={locked}
                 onClick={() => enterSignal(asset)}
-                className={`flex-1 py-1.5 rounded-md text-xs font-semibold ${
-                  locked
-                    ? "bg-white/10 text-white/30"
-                    : "bg-green-500 text-black hover:bg-green-400"
-                }`}
+                className="flex-1 py-1.5 rounded bg-green-500 text-black text-xs font-bold disabled:opacity-30"
               >
                 YES
               </button>
-
               <button
                 disabled={locked}
                 onClick={() => skipSignal(asset)}
-                className={`flex-1 py-1.5 rounded-md text-xs font-semibold ${
-                  locked
-                    ? "bg-white/10 text-white/30"
-                    : "bg-red-500 text-white hover:bg-red-400"
-                }`}
+                className="flex-1 py-1.5 rounded bg-red-500 text-white text-xs font-bold disabled:opacity-30"
               >
                 NO
               </button>
             </div>
 
-            {/* CONFIDENCE BREAKDOWN */}
             <ConfidenceExplanation signal={s} />
 
-            {/* MICRO ACTIONS */}
-            <div className="flex justify-between text-xs mt-2">
-              <button
-                className="text-white/50 hover:text-white underline"
-                title="Momentum, trend, volatility & liquidity aligned"
-              >
-                Why this signal?
-              </button>
-
+            {/* Micro actions */}
+            <div className="flex justify-between text-xs text-white/40 pt-1">
+              <span>Why this signal?</span>
               <button
                 onClick={() =>
                   navigator.clipboard.writeText(
-                    `${asset} 15m ${s.direction} | Confidence ${confidencePct}% | Momentum + Trend + Liquidity aligned`
+                    `${asset} ${s.direction} · ${Math.round(
+                      s.confidence * 100
+                    )}% confidence`
                   )
                 }
-                className="text-purple-300 hover:text-purple-200"
+                className="hover:text-white"
               >
                 Copy thesis
               </button>
