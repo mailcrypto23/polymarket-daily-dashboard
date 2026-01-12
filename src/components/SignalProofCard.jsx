@@ -3,17 +3,17 @@ export default function SignalProofCard({ signal }) {
 
   const isWin = signal.outcome === "WIN";
 
-  const entry = Number(signal.entryPrice);
-  const exit = Number(signal.exitPrice);
+  const entry = Number(signal.entryPrice || 0);
+  const exit = Number(signal.exitPrice || 0);
   const pnl = exit - entry;
   const pnlPct = entry ? ((pnl / entry) * 100).toFixed(2) : "0.00";
 
   return (
-    <div className="card p-5 space-y-4 bg-black/50">
+    <div className="rounded-xl bg-black/50 border border-white/10 p-5 space-y-4">
 
       {/* HEADER */}
       <div className="flex justify-between items-center">
-        <div className="text-base font-semibold">
+        <div className="text-base font-semibold text-white">
           {signal.symbol || signal.asset} · 15m · {signal.direction}
         </div>
 
@@ -27,17 +27,17 @@ export default function SignalProofCard({ signal }) {
       </div>
 
       {/* PRICE PROOF */}
-      <div className="grid grid-cols-2 gap-4 text-sm">
+      <div className="grid grid-cols-2 gap-4">
         <div className="rounded-lg bg-white/5 p-3">
-          <div className="text-white/50 mb-1">Entry</div>
-          <div className="font-mono text-lg">
+          <div className="text-xs text-white/50 mb-1">Entry</div>
+          <div className="font-mono text-lg text-white">
             ${entry.toFixed(2)}
           </div>
         </div>
 
         <div className="rounded-lg bg-white/5 p-3">
-          <div className="text-white/50 mb-1">Exit</div>
-          <div className="font-mono text-lg">
+          <div className="text-xs text-white/50 mb-1">Exit</div>
+          <div className="font-mono text-lg text-white">
             ${exit.toFixed(2)}
           </div>
         </div>
@@ -54,13 +54,15 @@ export default function SignalProofCard({ signal }) {
       </div>
 
       {/* TIME */}
-      <div className="text-xs text-white/50">
-        Resolved at{" "}
-        {new Date(signal.resolvedAt).toLocaleTimeString([], {
-          hour: "2-digit",
-          minute: "2-digit",
-        })}
-      </div>
+      {signal.resolvedAt && (
+        <div className="text-xs text-white/50">
+          Resolved at{" "}
+          {new Date(signal.resolvedAt).toLocaleTimeString([], {
+            hour: "2-digit",
+            minute: "2-digit",
+          })}
+        </div>
+      )}
     </div>
   );
 }
