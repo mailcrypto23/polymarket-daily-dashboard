@@ -13,6 +13,11 @@ const ASSETS = ["BTC", "ETH", "SOL", "XRP"];
 const TIMEFRAME_MS = 15 * 60 * 1000;
 const SAFE_ENTRY_RATIO = 0.4;
 
+const VIRTUAL_POSITION_USD = 100;
+
+// minimum edge to alert (8%+ is meaningful)
+const MIN_EDGE = 0.08;
+
 /* =========================================================
    ENGINE STATE
 ========================================================= */
@@ -39,7 +44,24 @@ const randomDirection = () =>
   Math.random() > 0.5 ? "UP" : "DOWN";
 
 /* =========================================================
-   CREATE SIGNAL (LIVE PRICE WIRED)
+   MARKET PROBABILITY (APPROX)
+========================================================= */
+
+/**
+ * Temporary approximation until Polymarket odds / orderbook is wired.
+ * Maps short-term price bias → implied probability.
+ */
+function estimateMarketProbability(direction, priceMovePct) {
+  const base = 0.5;
+  const bias = Math.min(Math.abs(priceMovePct) * 5, 0.15); // cap bias
+
+  return direction === "UP"
+    ? base + bias
+    : base - bias;
+}
+
+/* =========================================================
+   CREATE SIGNAL
 ========================================================= */
 
 async function createSignal(symbol) {
@@ -61,18 +83,33 @@ async function createSignal(symbol) {
       breakdown.liquidity) / 4;
 
   breakdown.finalConfidence = Math.round(avg);
+  const modelConfidence = breakdown.finalConfidence / 100;
+
+  // simulate short-term bias proxy
+  const priceBiasPct = (Math.random() - 0.5) * 0.02;
+
+  const direction = randomDirection();
+  const marketProb = estimateMarketProbability(
+    direction,
+    priceBiasPct
+  );
+
+  const edge = modelConfidence - marketProb;
 
   return {
     id: generateId(symbol),
     symbol,
     timeframe: "15m",
-    direction: randomDirection(),
+    direction,
 
-    // 🔴 LIVE PRICE SNAPSHOTS
     priceAtCreation: price,
     priceAtResolve: null,
 
-    confidence: breakdown.finalConfidence / 100,
+    confidence: modelConfidence,
+    marketProbability: Number(marketProb.toFixed(3)),
+    edgePct: Number((edge * 100).toFixed(2)),
+    mispriced: edge >= MIN_EDGE,
+
     confidenceBreakdown: breakdown,
 
     createdAt: start,
@@ -82,6 +119,9 @@ async function createSignal(symbol) {
     resolveAt: start + TIMEFRAME_MS,
     entryClosesAt: start + TIMEFRAME_MS * SAFE_ENTRY_RATIO,
 
+    pnlPct: null,
+    pnlUsd: null,
+
     entryOpen: true,
     resolved: false,
     result: null,
@@ -90,15 +130,24 @@ async function createSignal(symbol) {
 }
 
 /* =========================================================
-   RESOLUTION (LIVE PRICE AT CLOSE)
+   RESOLUTION (REAL PnL)
 ========================================================= */
 
 async function resolveSignal(signal) {
-  signal.priceAtResolve = await getLivePrice(signal.symbol);
-  signal.resolved = true;
+  const closePrice = await getLivePrice(signal.symbol);
+  signal.priceAtResolve = closePrice;
 
-  signal.result =
-    Math.random() < signal.confidence ? "WIN" : "LOSS";
+  const entry = signal.priceAtCreation;
+  const movePct = (closePrice - entry) / entry;
+
+  const dirMult = signal.direction === "UP" ? 1 : -1;
+  const pnlPct = movePct * dirMult;
+  const pnlUsd = pnlPct * VIRTUAL_POSITION_USD;
+
+  signal.pnlPct = Number((pnlPct * 100).toFixed(2));
+  signal.pnlUsd = Number(pnlUsd.toFixed(2));
+  signal.result = pnlUsd >= 0 ? "WIN" : "LOSS";
+  signal.resolved = true;
 }
 
 /* =========================================================
@@ -128,41 +177,27 @@ export async function runCrypto15mSignalEngine() {
       state.history.unshift(signal);
       state.history = state.history.slice(0, 50);
 
-      // 🔐 persist full signal incl. prices
       persistResolvedSignal(signal);
-
       state.activeSignal = await createSignal(asset);
     }
   }
 }
 
 /* =========================================================
-   USER ACTIONS
+   SELECTORS
 ========================================================= */
 
-export function enterSignal(symbol) {
-  const s = engineState[symbol]?.activeSignal;
-  if (!s || !s.entryOpen) return false;
-
-  s.userAction = "ENTER";
-  s.entryAt = now();
-  s.entryDelayMs = s.entryAt - s.createdAt;
-
-  return true;
+export function getMispricedSignals(minEdge = MIN_EDGE) {
+  return Object.values(engineState)
+    .map(s => s.activeSignal)
+    .filter(
+      s =>
+        s &&
+        s.entryOpen &&
+        s.mispriced &&
+        s.edgePct / 100 >= minEdge
+    );
 }
-
-export function skipSignal(symbol) {
-  const s = engineState[symbol]?.activeSignal;
-  if (!s || !s.entryOpen) return false;
-
-  s.userAction = "SKIP";
-  s.entryOpen = false;
-  return true;
-}
-
-/* =========================================================
-   SELECTORS (USED BY ANALYTICS)
-========================================================= */
 
 export function getActive15mSignals() {
   const out = {};
