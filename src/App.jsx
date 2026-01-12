@@ -13,7 +13,6 @@ import Settings from "./pages/Settings";
 import { startBackgroundRunner } from "./services/backgroundRunner";
 
 export default function App() {
-  // ✅ START ENGINE LOOP ONCE (NO FAKE SEEDING)
   useEffect(() => {
     startBackgroundRunner();
   }, []);
