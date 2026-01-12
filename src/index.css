@@ -2,10 +2,9 @@
 @tailwind components;
 @tailwind utilities;
 
-/* ===============================
-   GLOBAL
-================================ */
-
+/* =========================================================
+GLOBAL
+========================================================= */
 html, body {
   height: 100%;
 }
@@ -14,24 +13,18 @@ body {
   @apply bg-black text-white antialiased;
 }
 
-/* ===============================
-   PREMIUM BACKGROUND
-================================ */
-
+/* =========================================================
+PREMIUM BACKGROUND
+========================================================= */
 .bg-premium {
   background:
-    radial-gradient(
-      1200px 600px at 50% -10%,
-      rgba(168, 85, 247, 0.14),
-      transparent 60%
-    ),
-    linear-gradient(to bottom, #050612, #03040a);
+    radial-gradient(1200px 600px at 50% -10%, rgba(168,85,247,.14), transparent 60%),
+    linear-gradient(to bottom, #06070f, #05050b);
 }
 
-/* ===============================
-   SCROLLBAR
-================================ */
-
+/* =========================================================
+SCROLL
+========================================================= */
 .scrollbar-hide {
   -ms-overflow-style: none;
   scrollbar-width: none;
@@ -40,29 +33,36 @@ body {
   display: none;
 }
 
-/* ===============================
-   CONFIDENCE DECAY GLOW
-================================ */
-
-@keyframes decayGlow {
-  0% { box-shadow: 0 0 20px rgba(255, 80, 80, 0.6); }
-  100% { box-shadow: 0 0 6px rgba(168, 85, 247, 0.25); }
+/* =========================================================
+SIGNAL GLOW + URGENCY
+========================================================= */
+@keyframes pulseFire {
+  0% { box-shadow: 0 0 6px rgba(255,80,80,.4); }
+  50% { box-shadow: 0 0 16px rgba(255,80,80,.9); }
+  100% { box-shadow: 0 0 6px rgba(255,80,80,.4); }
 }
 
-.decay-glow {
-  animation: decayGlow 3s ease-out infinite alternate;
+.fire {
+  animation: pulseFire 1.6s infinite;
 }
 
-/* ===============================
-   CARD POLISH
-================================ */
+/* =========================================================
+CONFIDENCE DECAY
+========================================================= */
+@keyframes decay {
+  from { opacity: 1; }
+  to { opacity: .65; }
+}
 
+.decay {
+  animation: decay 60s linear infinite;
+}
+
+/* =========================================================
+CARD
+========================================================= */
 .card {
-  background: linear-gradient(
-    180deg,
-    rgba(255,255,255,0.05),
-    rgba(255,255,255,0.02)
-  );
-  border: 1px solid rgba(255,255,255,0.08);
-  border-radius: 0.75rem;
+  background: linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.02));
+  border: 1px solid rgba(255,255,255,.12);
+  border-radius: 14px;
 }
