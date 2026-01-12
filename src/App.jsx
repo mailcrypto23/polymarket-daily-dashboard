@@ -9,18 +9,13 @@ import OrderbookPage from "./pages/OrderbookPage";
 import Portfolio from "./pages/Portfolio";
 import Settings from "./pages/Settings";
 
-// 🔁 Engine runner
+// 🔁 Engine background runner (price-driven)
 import { startBackgroundRunner } from "./services/backgroundRunner";
 
-// 🧠 Analytics seed
-import { seedResolvedSignals } from "./engine/signalPersistence";
-import { SEED_SIGNALS } from "./engine/seedSignals";
-
 export default function App() {
-  // ✅ START ENGINE LOOP + SEED ANALYTICS ONCE
+  // ✅ START ENGINE LOOP ONCE (NO FAKE SEEDING)
   useEffect(() => {
     startBackgroundRunner();
-    seedResolvedSignals(SEED_SIGNALS);
   }, []);
 
   return (
