@@ -1,28 +1,25 @@
-// src/services/backgroundRunner.js
+/* =========================================================
+   Background Engine Runner (FINAL)
+   - Runs price-driven Crypto15mSignalEngine
+   - No legacy auto-resolvers
+   - No fake seeding
+========================================================= */
 
 import { runCrypto15mSignalEngine } from "../engine/Crypto15mSignalEngine";
-import { resolveExpiredSignals } from "../engine/signalAutoResolver";
 
-let started = false;
+let intervalId = null;
 
-/**
- * Starts background engine loop
- * - Generates 15m signals
- * - Auto-resolves expired signals
- * Safe to call once (guarded)
- */
 export function startBackgroundRunner() {
-  if (started) return;
-  started = true;
+  if (intervalId) return; // prevent double start
 
-  console.log("[ENGINE] Background runner started");
+  intervalId = setInterval(() => {
+    runCrypto15mSignalEngine();
+  }, 1000); // 1s tick
+}
 
-  setInterval(async () => {
-    try {
-      runCrypto15mSignalEngine();
-      await resolveExpiredSignals();
-    } catch (err) {
-      console.error("[ENGINE ERROR]", err);
-    }
-  }, 1000);
+export function stopBackgroundRunner() {
+  if (intervalId) {
+    clearInterval(intervalId);
+    intervalId = null;
+  }
 }
