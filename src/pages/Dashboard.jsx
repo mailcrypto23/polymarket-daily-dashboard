@@ -13,57 +13,57 @@ export default function Dashboard() {
   });
 
   return (
-    <div className="space-y-8 max-w-7xl mx-auto px-4">
+    <div className="bg-premium min-h-screen">
+      <div className="max-w-7xl mx-auto px-4 space-y-6">
 
-      {/* 🔥 TITLE + META */}
-      <section className="space-y-1">
-        <h1 className="text-xl font-semibold tracking-tight text-white/90">
-          🔥 High-Confidence Crypto 15-Minute Signals
-        </h1>
-        <div className="text-xs text-white/40">
-          Last updated · {lastUpdated}
-        </div>
-      </section>
+        {/* 🔥 TITLE */}
+        <header className="pt-6">
+          <h1 className="text-xl font-semibold tracking-tight text-white/90">
+            🔥 High-Confidence Crypto 15-Minute Signals
+          </h1>
+          <p className="text-xs text-white/40 mt-0.5">
+            Last updated · {lastUpdated}
+          </p>
+        </header>
 
-      {/* ➡️ HORIZONTAL SCROLLING SIGNALS */}
-      <section className="-mx-4 px-4 overflow-x-auto">
-        <div className="flex gap-4 min-w-max">
-          <Crypto15mSignalGrid />
-        </div>
-      </section>
+        {/* ➡️ STICKY SIGNAL STRIP */}
+        <section className="sticky top-0 z-30 -mx-4 px-4 py-3 bg-black/70 backdrop-blur border-b border-white/10">
+          <div className="flex gap-4 overflow-x-auto scrollbar-hide">
+            <Crypto15mSignalGrid />
+          </div>
+        </section>
 
-      {/* 📊 TRACTION — SINGLE ROW KPI STRIP */}
-      <section className="bg-black/40 border border-white/10 rounded-xl p-4">
-        <TractionPanel variant="compact" />
-      </section>
+        {/* 📊 TRACTION — COMPACT KPI STRIP */}
+        <section className="card-soft p-4">
+          <TractionPanel variant="compact" />
+        </section>
 
-      {/* 📈 ANALYTICS — CONNECTED ROW */}
-      <section className="grid grid-cols-1 lg:grid-cols-2 gap-5">
-        <div className="bg-black/40 border border-white/10 rounded-xl p-4">
-          <ConfidenceWinRateChart />
-        </div>
+        {/* 📈 ANALYTICS */}
+        <section className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          <div className="card-soft p-4">
+            <ConfidenceWinRateChart />
+          </div>
+          <div className="card-soft p-4">
+            <EntryTimingPnLChart />
+          </div>
+        </section>
 
-        <div className="bg-black/40 border border-white/10 rounded-xl p-4">
-          <EntryTimingPnLChart />
-        </div>
-      </section>
+        {/* 📉 PRICE + DEPTH */}
+        <section className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          <div className="card-soft p-4">
+            <PriceMovement />
+          </div>
+          <div className="card-soft p-4">
+            <MarketDepthPanel />
+          </div>
+        </section>
 
-      {/* 📉 PRICE + DEPTH */}
-      <section className="grid grid-cols-1 lg:grid-cols-2 gap-5">
-        <div className="bg-black/40 border border-white/10 rounded-xl p-4">
-          <PriceMovement />
-        </div>
+        {/* 🌊 LIQUIDITY */}
+        <section className="card-soft p-4 mb-8">
+          <LiquidityHeatmap />
+        </section>
 
-        <div className="bg-black/40 border border-white/10 rounded-xl p-4">
-          <MarketDepthPanel />
-        </div>
-      </section>
-
-      {/* 🌊 LIQUIDITY */}
-      <section className="bg-black/40 border border-white/10 rounded-xl p-4">
-        <LiquidityHeatmap />
-      </section>
-
+      </div>
     </div>
   );
 }
