@@ -13,9 +13,10 @@ const ASSETS = ["BTC", "ETH", "SOL", "XRP"];
 const TIMEFRAME_MS = 15 * 60 * 1000;
 const SAFE_ENTRY_RATIO = 0.4;
 
+// Analytics-only position sizing
 const VIRTUAL_POSITION_USD = 100;
 
-// minimum edge to alert (8%+ is meaningful)
+// Minimum edge to flag mispricing (8%)
 const MIN_EDGE = 0.08;
 
 /* =========================================================
@@ -44,16 +45,12 @@ const randomDirection = () =>
   Math.random() > 0.5 ? "UP" : "DOWN";
 
 /* =========================================================
-   MARKET PROBABILITY (APPROX)
+   MARKET PROBABILITY (APPROXIMATION)
 ========================================================= */
 
-/**
- * Temporary approximation until Polymarket odds / orderbook is wired.
- * Maps short-term price bias → implied probability.
- */
-function estimateMarketProbability(direction, priceMovePct) {
+function estimateMarketProbability(direction, biasPct) {
   const base = 0.5;
-  const bias = Math.min(Math.abs(priceMovePct) * 5, 0.15); // cap bias
+  const bias = Math.min(Math.abs(biasPct) * 5, 0.15);
 
   return direction === "UP"
     ? base + bias
@@ -83,15 +80,15 @@ async function createSignal(symbol) {
       breakdown.liquidity) / 4;
 
   breakdown.finalConfidence = Math.round(avg);
+
   const modelConfidence = breakdown.finalConfidence / 100;
-
-  // simulate short-term bias proxy
-  const priceBiasPct = (Math.random() - 0.5) * 0.02;
-
   const direction = randomDirection();
+
+  // temporary bias proxy (replaced later by real odds)
+  const biasPct = (Math.random() - 0.5) * 0.02;
   const marketProb = estimateMarketProbability(
     direction,
-    priceBiasPct
+    biasPct
   );
 
   const edge = modelConfidence - marketProb;
@@ -130,7 +127,7 @@ async function createSignal(symbol) {
 }
 
 /* =========================================================
-   RESOLUTION (REAL PnL)
+   RESOLUTION (REAL PRICE-BASED PnL)
 ========================================================= */
 
 async function resolveSignal(signal) {
@@ -139,8 +136,8 @@ async function resolveSignal(signal) {
 
   const entry = signal.priceAtCreation;
   const movePct = (closePrice - entry) / entry;
-
   const dirMult = signal.direction === "UP" ? 1 : -1;
+
   const pnlPct = movePct * dirMult;
   const pnlUsd = pnlPct * VIRTUAL_POSITION_USD;
 
@@ -181,6 +178,30 @@ export async function runCrypto15mSignalEngine() {
       state.activeSignal = await createSignal(asset);
     }
   }
+}
+
+/* =========================================================
+   USER ACTIONS (REQUIRED BY UI)
+========================================================= */
+
+export function enterSignal(symbol) {
+  const s = engineState[symbol]?.activeSignal;
+  if (!s || !s.entryOpen) return false;
+
+  s.userAction = "ENTER";
+  s.entryAt = now();
+  s.entryDelayMs = s.entryAt - s.createdAt;
+
+  return true;
+}
+
+export function skipSignal(symbol) {
+  const s = engineState[symbol]?.activeSignal;
+  if (!s || !s.entryOpen) return false;
+
+  s.userAction = "SKIP";
+  s.entryOpen = false;
+  return true;
 }
 
 /* =========================================================
