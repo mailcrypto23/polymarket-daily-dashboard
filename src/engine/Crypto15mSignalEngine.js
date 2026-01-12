@@ -11,6 +11,9 @@ const ASSETS = ["BTC", "ETH", "SOL", "XRP"];
 const TIMEFRAME_MS = 15 * 60 * 1000;
 const SAFE_ENTRY_RATIO = 0.4;
 
+const BASE_CONFIDENCE_RANGE = [0.62, 0.82];
+const LATE_ENTRY_PENALTY = 0.05;
+
 /* =========================================================
    ENGINE STATE
 ========================================================= */
@@ -36,35 +39,56 @@ const generateId = symbol =>
 const randomDirection = () =>
   Math.random() > 0.5 ? "UP" : "DOWN";
 
+const clamp = (v, min, max) =>
+  Math.min(Math.max(v, min), max);
+
+/* =========================================================
+   CONFIDENCE MODEL (TIME + STRUCTURE ONLY)
+========================================================= */
+
+function computeInitialConfidence() {
+  return (
+    BASE_CONFIDENCE_RANGE[0] +
+    Math.random() *
+      (BASE_CONFIDENCE_RANGE[1] - BASE_CONFIDENCE_RANGE[0])
+  );
+}
+
+function applyTimeDecay(confidence, createdAt, resolveAt) {
+  const elapsed = now() - createdAt;
+  const total = resolveAt - createdAt;
+  const ratio = clamp(elapsed / total, 0, 1);
+
+  // non-linear decay
+  const decay = Math.pow(ratio, 0.7) * 0.08;
+
+  return clamp(confidence - decay, 0.55, 0.88);
+}
+
 /* =========================================================
    CREATE SIGNAL
 ========================================================= */
 
 function createSignal(symbol) {
   const start = now();
+  const baseConfidence = computeInitialConfidence();
 
   const breakdown = {
-    momentum: Math.round(70 + Math.random() * 20),
-    trend: Math.round(65 + Math.random() * 20),
-    volatility: Math.round(60 + Math.random() * 25),
-    liquidity: Math.round(65 + Math.random() * 20),
+    momentum: Math.round(baseConfidence * 100),
+    trend: Math.round(baseConfidence * 100),
+    volatility: Math.round(baseConfidence * 100),
+    liquidity: Math.round(baseConfidence * 100),
     timePenalty: 0,
+    finalConfidence: Math.round(baseConfidence * 100),
   };
-
-  const avg =
-    (breakdown.momentum +
-      breakdown.trend +
-      breakdown.volatility +
-      breakdown.liquidity) / 4;
-
-  breakdown.finalConfidence = Math.round(avg);
 
   return {
     id: generateId(symbol),
     symbol,
     timeframe: "15m",
     direction: randomDirection(),
-    confidence: breakdown.finalConfidence / 100,
+
+    confidence: baseConfidence,
     confidenceBreakdown: breakdown,
 
     createdAt: start,
@@ -82,13 +106,15 @@ function createSignal(symbol) {
 }
 
 /* =========================================================
-   RESOLUTION
+   RESOLUTION (DETERMINISTIC)
 ========================================================= */
 
 function resolveSignal(signal) {
   signal.resolved = true;
+
+  // deterministic resolution based on confidence threshold
   signal.result =
-    Math.random() < signal.confidence ? "WIN" : "LOSS";
+    signal.confidence >= 0.65 ? "WIN" : "LOSS";
 }
 
 /* =========================================================
@@ -107,20 +133,35 @@ export function runCrypto15mSignalEngine() {
       continue;
     }
 
+    // 🔒 entry window close
     if (signal.entryOpen && t >= signal.entryClosesAt) {
       signal.entryOpen = false;
       signal.confidenceBreakdown.timePenalty = 5;
+      signal.confidence = clamp(
+        signal.confidence - LATE_ENTRY_PENALTY,
+        0.55,
+        0.88
+      );
     }
 
+    // ⏱ time-based confidence decay
+    signal.confidence = applyTimeDecay(
+      signal.confidence,
+      signal.createdAt,
+      signal.resolveAt
+    );
+
+    signal.confidenceBreakdown.finalConfidence =
+      Math.round(signal.confidence * 100);
+
+    // ⏹ resolve
     if (!signal.resolved && t >= signal.resolveAt) {
       resolveSignal(signal);
 
       state.history.unshift(signal);
       state.history = state.history.slice(0, 50);
 
-      // 🔐 persist with timing metadata
       persistResolvedSignal(signal);
-
       state.activeSignal = createSignal(asset);
     }
   }
