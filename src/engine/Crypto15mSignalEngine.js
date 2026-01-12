@@ -1,8 +1,9 @@
 /* =========================================================
-   Crypto 15m Signal Engine (PRICE-DRIVEN)
-   - Real price resolution (Binance / CoinGecko feed)
+   Crypto 15m Signal Engine — PRICE + MARKET AWARE
+   - Real price-driven resolution
    - Real PnL
-   - Market mispricing edge detection
+   - Polymarket odds ingestion (read-only)
+   - Edge detection + heatmap support
 ========================================================= */
 
 import { getLivePrice } from "./priceFeed";
@@ -19,7 +20,6 @@ const ASSETS = ["BTC", "ETH", "SOL", "XRP"];
 const TIMEFRAME_MS = 15 * 60 * 1000;
 const SAFE_ENTRY_RATIO = 0.4;
 
-// Minimum edge vs market to flag mispricing
 const EDGE_THRESHOLD = 0.06;
 
 /* =========================================================
@@ -45,24 +45,38 @@ const generateId = symbol =>
   `${symbol}-15m-${Date.now()}`;
 
 /* =========================================================
-   CREATE SIGNAL (NO RANDOMNESS)
+   POLYMARKET ODDS INGESTION (READ-ONLY)
+   Expected input from UI / fetch layer:
+   {
+     upPrice: 0.50,
+     downPrice: 0.51
+   }
+========================================================= */
+
+function deriveMarketProbability(odds) {
+  if (!odds || !odds.upPrice || !odds.downPrice) return null;
+
+  return odds.upPrice / (odds.upPrice + odds.downPrice);
+}
+
+/* =========================================================
+   CREATE SIGNAL
 ========================================================= */
 
 async function createSignal(symbol) {
   const start = now();
   const entryPrice = await getLivePrice(symbol);
 
-  // confidence already computed elsewhere in your system
-  const confidence = 0.74; // placeholder — your existing confidence engine feeds this
+  // confidence already computed by your confidence engine
+  const confidence = 0.74;
 
   return {
     id: generateId(symbol),
     symbol,
     timeframe: "15m",
-    direction: confidence >= 0.5 ? "UP" : "DOWN",
 
+    direction: confidence >= 0.5 ? "UP" : "DOWN",
     confidence,
-    confidenceBreakdown: null,
 
     createdAt: start,
     resolveAt: start + TIMEFRAME_MS,
@@ -77,7 +91,8 @@ async function createSignal(symbol) {
     pnl: null,
     result: null,
 
-    // market comparison
+    // Polymarket comparison
+    marketOdds: null,
     marketProbability: null,
     edge: null,
     mispriced: false,
@@ -89,7 +104,7 @@ async function createSignal(symbol) {
 }
 
 /* =========================================================
-   RESOLVE SIGNAL (PRICE DECIDES)
+   RESOLUTION (PRICE DECIDES)
 ========================================================= */
 
 async function resolveSignal(signal) {
@@ -108,14 +123,13 @@ async function resolveSignal(signal) {
   signal.result = pnl > 0 ? "WIN" : "LOSS";
   signal.resolved = true;
 
-  // --- MARKET MISPRICING ---
-  // marketProbability must be injected from Polymarket UI layer
+  // Edge detection
   if (typeof signal.marketProbability === "number") {
     signal.edge = Number(
       (signal.confidence - signal.marketProbability).toFixed(4)
     );
 
-    signal.mispriced = signal.edge > EDGE_THRESHOLD;
+    signal.mispriced = signal.edge >= EDGE_THRESHOLD;
   }
 }
 
@@ -146,14 +160,32 @@ export async function runCrypto15mSignalEngine() {
       state.history = state.history.slice(0, 50);
 
       persistResolvedSignal(signal);
-
       state.activeSignal = await createSignal(asset);
     }
   }
 }
 
 /* =========================================================
-   USER ACTIONS (KEEP FOR UI)
+   POLYMARKET ODDS UPDATE (READ-ONLY)
+========================================================= */
+
+export function updateMarketOdds(symbol, odds) {
+  const s = engineState[symbol]?.activeSignal;
+  if (!s || s.resolved) return;
+
+  s.marketOdds = odds;
+  s.marketProbability = deriveMarketProbability(odds);
+
+  if (typeof s.marketProbability === "number") {
+    s.edge = Number(
+      (s.confidence - s.marketProbability).toFixed(4)
+    );
+    s.mispriced = s.edge >= EDGE_THRESHOLD;
+  }
+}
+
+/* =========================================================
+   USER ACTIONS (UI CONTRACT)
 ========================================================= */
 
 export function enterSignal(symbol) {
@@ -201,4 +233,23 @@ export function getLastResolvedSignals(limit = 50) {
     }, [])
     .sort((a, b) => b.resolveAt - a.resolveAt)
     .slice(0, limit);
+}
+
+/* =========================================================
+   EDGE HEATMAP DATA (FOR UI)
+========================================================= */
+
+export function getEdgeHeatmapData() {
+  const resolved = getLastResolvedSignals(200);
+
+  return resolved
+    .filter(s => typeof s.edge === "number")
+    .map(s => ({
+      symbol: s.symbol,
+      confidence: s.confidence,
+      marketProbability: s.marketProbability,
+      edge: s.edge,
+      pnl: s.pnl,
+      resolvedAt: s.resolveAt,
+    }));
 }
