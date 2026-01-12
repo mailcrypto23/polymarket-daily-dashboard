@@ -13,41 +13,41 @@ export default function Dashboard() {
   });
 
   return (
-    <div className="bg-premium min-h-screen">
+    <div className="space-y-6 w-full px-6">
 
-      {/* TITLE */}
-      <section className="px-6 pt-6 pb-3">
-        <h1 className="text-lg font-semibold">
+      {/* 🔥 HEADER */}
+      <section className="flex flex-col gap-1">
+        <h1 className="text-xl font-semibold tracking-tight">
           🔥 High-Confidence Crypto 15-Minute Signals
         </h1>
-        <div className="text-xs text-white/40">
+        <span className="text-xs text-white/40">
           Last updated · {lastUpdated}
-        </div>
+        </span>
       </section>
 
-      {/* 🔥 STICKY SIGNAL STRIP */}
-      <section className="sticky top-0 z-30 bg-black/80 backdrop-blur px-6 py-3">
+      {/* 🚀 STICKY FULL-WIDTH SIGNAL STRIP */}
+      <section className="sticky top-0 z-30 bg-black/70 backdrop-blur-md py-3 -mx-6 px-6 border-b border-white/10">
         <Crypto15mSignalGrid />
       </section>
 
-      {/* CONTENT */}
-      <section className="px-6 space-y-6 mt-4">
+      {/* 📊 KPI STRIP */}
+      <TractionPanel variant="compact" />
 
-        <TractionPanel variant="compact" />
-
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-          <ConfidenceWinRateChart />
-          <EntryTimingPnLChart />
-        </div>
-
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-          <PriceMovement />
-          <MarketDepthPanel />
-        </div>
-
-        <LiquidityHeatmap />
-
+      {/* 📈 ANALYTICS */}
+      <section className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+        <ConfidenceWinRateChart />
+        <EntryTimingPnLChart />
       </section>
+
+      {/* 📉 PRICE + DEPTH */}
+      <section className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+        <PriceMovement />
+        <MarketDepthPanel />
+      </section>
+
+      {/* 🌊 LIQUIDITY */}
+      <LiquidityHeatmap />
+
     </div>
   );
 }
