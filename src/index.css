@@ -2,7 +2,91 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Optional global styles */
+/* =========================================================
+   GLOBAL BASE STYLES
+========================================================= */
+
+html,
 body {
-  @apply bg-premiumDark text-premiumText;
+  height: 100%;
+}
+
+body {
+  @apply bg-black text-white antialiased;
+}
+
+/* =========================================================
+   PREMIUM BACKGROUND (OPTIONAL SOFT GRADIENT)
+========================================================= */
+
+.bg-premium {
+  background: radial-gradient(
+      1200px 600px at 50% -10%,
+      rgba(168, 85, 247, 0.12),
+      transparent 60%
+    ),
+    linear-gradient(
+      to bottom,
+      #070814,
+      #050612
+    );
+}
+
+/* =========================================================
+   HIDDEN SCROLLBAR (FOR HORIZONTAL SIGNALS)
+========================================================= */
+
+.scrollbar-hide {
+  -ms-overflow-style: none; /* IE & Edge */
+  scrollbar-width: none; /* Firefox */
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+  display: none; /* Chrome, Safari */
+}
+
+/* =========================================================
+   CONFIDENCE GLOW ANIMATION
+========================================================= */
+
+@keyframes confidenceGlow {
+  0% {
+    box-shadow: 0 0 8px rgba(168, 85, 247, 0.35);
+  }
+  50% {
+    box-shadow: 0 0 18px rgba(168, 85, 247, 0.65);
+  }
+  100% {
+    box-shadow: 0 0 8px rgba(168, 85, 247, 0.35);
+  }
+}
+
+.glow {
+  animation: confidenceGlow 2.2s ease-in-out infinite;
+}
+
+/* =========================================================
+   SUBTLE CARD POLISH (OPTIONAL BUT NICE)
+========================================================= */
+
+.card-soft {
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.04),
+    rgba(255, 255, 255, 0.02)
+  );
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 0.75rem;
+}
+
+/* =========================================================
+   MICRO UI HELPERS
+========================================================= */
+
+.text-muted {
+  color: rgba(255, 255, 255, 0.55);
+}
+
+.border-soft {
+  border-color: rgba(255, 255, 255, 0.1);
 }
