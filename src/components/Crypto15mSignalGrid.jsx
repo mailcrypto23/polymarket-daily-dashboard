@@ -26,7 +26,7 @@ export default function Crypto15mSignalGrid() {
     return () => clearInterval(i);
   }, []);
 
-  // 🔥 auto-scroll newest
+  // 🔥 auto-scroll newest signal
   useEffect(() => {
     if (stripRef.current) {
       stripRef.current.scrollTo({
@@ -40,86 +40,113 @@ export default function Crypto15mSignalGrid() {
     <div
       ref={stripRef}
       className="
-        flex gap-4
-        overflow-x-auto scrollbar-hide
+        grid
+        grid-cols-[repeat(auto-fit,minmax(300px,1fr))]
+        gap-4
+        w-full
+        scrollbar-hide
         snap-x snap-mandatory
         pb-3
       "
     >
-      {ASSETS.map(asset => {
+      {ASSETS.map((asset) => {
         const s = signals[asset];
         if (!s) return null;
 
         const remaining = s.resolveAt - Date.now();
         const locked = !s.entryOpen;
+        const confidencePct = Math.round(s.confidence * 100);
 
         return (
           <div
             key={s.id}
             className="
               snap-start
-              min-w-[260px]
               card
-              p-4
-              bg-gradient-to-br from-purple-700 to-purple-900
-              space-y-3
-              decay-glow
+              p-5
+              space-y-4
+              bg-gradient-to-br from-purple-700/90 to-purple-900/95
+              relative
             "
           >
-            {/* Header */}
-            <div className="flex justify-between">
+            {/* HEADER */}
+            <div className="flex justify-between items-start">
               <div>
-                <div className="text-sm font-semibold">{asset} · 15m</div>
-                <div className="text-xs text-red-400 flex items-center gap-1">
+                <div className="text-base font-semibold tracking-tight">
+                  {asset} · 15m
+                </div>
+
+                <div className="text-sm text-red-400 font-semibold flex items-center gap-1 fire">
                   🔥 Resolve in {formatTime(remaining)}
                 </div>
               </div>
+
               <div className="text-right">
-                <div className="text-xl font-bold">
-                  {Math.round(s.confidence * 100)}%
+                <div className="text-3xl font-extrabold leading-none">
+                  {confidencePct}%
                 </div>
-                <div className="text-xs opacity-70">{s.direction}</div>
+                <div className="text-sm uppercase opacity-70">
+                  {s.direction}
+                </div>
               </div>
             </div>
 
-            {/* Entry */}
-            <div className="text-xs font-semibold">
+            {/* ENTRY STATE */}
+            <div className="text-sm font-semibold">
               {locked ? (
                 <span className="text-white/40">ENTRY LOCKED</span>
               ) : (
-                <span className="text-green-400 animate-pulse">ENTRY OPEN</span>
+                <span className="text-green-400 animate-pulse">
+                  ENTRY OPEN
+                </span>
               )}
             </div>
 
-            {/* Actions */}
-            <div className="flex gap-2">
+            {/* ACTIONS */}
+            <div className="flex gap-3">
               <button
                 disabled={locked}
                 onClick={() => enterSignal(asset)}
-                className="flex-1 py-1.5 rounded bg-green-500 text-black text-xs font-bold disabled:opacity-30"
+                className="
+                  flex-1 py-2 rounded-lg
+                  bg-green-500 text-black
+                  text-sm font-bold
+                  disabled:opacity-30
+                "
               >
                 YES
               </button>
               <button
                 disabled={locked}
                 onClick={() => skipSignal(asset)}
-                className="flex-1 py-1.5 rounded bg-red-500 text-white text-xs font-bold disabled:opacity-30"
+                className="
+                  flex-1 py-2 rounded-lg
+                  bg-red-500 text-white
+                  text-sm font-bold
+                  disabled:opacity-30
+                "
               >
                 NO
               </button>
             </div>
 
-            <ConfidenceExplanation signal={s} />
+            {/* CONFIDENCE */}
+            <div className="decay bg-black/40 rounded-lg p-3">
+              <ConfidenceExplanation signal={s} />
+            </div>
 
-            {/* Micro actions */}
-            <div className="flex justify-between text-xs text-white/40 pt-1">
-              <span>Why this signal?</span>
+            {/* MICRO ACTIONS */}
+            <div className="flex justify-between text-sm text-white/50 pt-1">
+              <span className="cursor-help hover:text-white">
+                Why this signal?
+              </span>
+
               <button
                 onClick={() =>
                   navigator.clipboard.writeText(
-                    `${asset} ${s.direction} · ${Math.round(
-                      s.confidence * 100
-                    )}% confidence`
+                    `${asset} ${s.direction} · ${confidencePct}% confidence\nResolve in ${formatTime(
+                      remaining
+                    )}`
                   )
                 }
                 className="hover:text-white"
