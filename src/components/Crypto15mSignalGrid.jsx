@@ -1,5 +1,3 @@
-// src/components/Crypto15mSignalGrid.jsx
-
 import { useEffect, useRef, useState } from "react";
 import {
   getActive15mSignals,
@@ -10,6 +8,7 @@ import {
 import ConfidenceExplanation from "./ConfidenceExplanation";
 
 const ASSETS = ["BTC", "ETH", "SOL", "XRP"];
+const TOTAL_WINDOW = 15 * 60 * 1000;
 
 function formatTime(ms) {
   if (ms <= 0) return "0:00";
@@ -20,9 +19,8 @@ function formatTime(ms) {
 
 export default function Crypto15mSignalGrid() {
   const [signals, setSignals] = useState({});
-  const scrollRef = useRef(null);
+  const stripRef = useRef(null);
 
-  /* 🔁 Live updates */
   useEffect(() => {
     const tick = () => setSignals(getActive15mSignals());
     tick();
@@ -30,62 +28,68 @@ export default function Crypto15mSignalGrid() {
     return () => clearInterval(interval);
   }, []);
 
-  /* 🔥 Auto-scroll to newest signal */
+  // 🔥 Auto-scroll newest signal
   useEffect(() => {
-    if (!scrollRef.current) return;
-    scrollRef.current.scrollTo({
-      left: scrollRef.current.scrollWidth,
-      behavior: "smooth",
-    });
+    if (stripRef.current) {
+      stripRef.current.scrollTo({
+        left: stripRef.current.scrollWidth,
+        behavior: "smooth",
+      });
+    }
   }, [signals]);
 
   return (
     <div
-      ref={scrollRef}
-      className="
-        flex gap-4
-        overflow-x-auto
-        pb-3
-        scrollbar-hide
-        snap-x snap-mandatory
-      "
+      ref={stripRef}
+      className="flex gap-4 overflow-x-auto scrollbar-hide snap-x snap-mandatory"
     >
       {ASSETS.map(asset => {
         const s = signals[asset];
         if (!s) return null;
 
         const remaining = s.resolveAt - Date.now();
+        const elapsedRatio = 1 - Math.min(1, remaining / TOTAL_WINDOW);
         const locked = !s.entryOpen;
+        const confidencePct = Math.round(s.confidence * 100);
 
         return (
           <div
             key={s.id}
-            className={`
-              snap-start
+            className="
               min-w-[260px]
+              snap-start
               rounded-xl
               p-4
-              space-y-3
-              bg-gradient-to-br from-purple-700 to-purple-900
+              bg-gradient-to-br from-purple-700/90 to-purple-900/90
               border border-white/10
-              shadow-lg
-              ${s.confidence >= 0.75 ? "glow" : ""}
-            `}
+              shadow-[0_12px_40px_rgba(168,85,247,0.35)]
+              transition-transform duration-200
+              hover:-translate-y-0.5
+            "
           >
             {/* HEADER */}
             <div className="flex justify-between items-start">
               <div>
-                <h3 className="text-sm font-semibold">
+                <h3 className="text-sm font-semibold text-white">
                   {asset} · 15m
                 </h3>
-                <p className="text-xs text-purple-200">
-                  Resolve in {formatTime(remaining)}
+
+                {/* 🔥 RESOLVE TIMER */}
+                <p className="text-xs font-semibold text-red-400 flex items-center gap-1">
+                  🔥 Resolve in {formatTime(remaining)}
                 </p>
               </div>
 
+              {/* CONFIDENCE */}
               <div className="text-right">
-                <div className="text-xl font-bold">
-                  {Math.round(s.confidence * 100)}%
+                <div
+                  className="text-xl font-bold text-white glow"
+                  style={{
+                    opacity: 1 - elapsedRatio * 0.4,
+                    transform: `scale(${1 - elapsedRatio * 0.06})`,
+                  }}
+                >
+                  {confidencePct}%
                 </div>
                 <div className="text-xs text-purple-200">
                   {s.direction}
@@ -94,22 +98,22 @@ export default function Crypto15mSignalGrid() {
             </div>
 
             {/* ENTRY STATUS */}
-            <div className="text-xs font-semibold">
+            <div className="text-xs font-semibold mt-1">
               {locked ? (
                 <span className="text-white/40">ENTRY LOCKED</span>
               ) : (
-                <span className="text-green-300 animate-pulse">
+                <span className="text-green-400 animate-pulse">
                   ENTRY OPEN
                 </span>
               )}
             </div>
 
             {/* ACTIONS */}
-            <div className="flex gap-2">
+            <div className="flex gap-2 mt-2">
               <button
                 disabled={locked}
                 onClick={() => enterSignal(asset)}
-                className={`flex-1 py-2 rounded-md text-xs font-semibold ${
+                className={`flex-1 py-1.5 rounded-md text-xs font-semibold ${
                   locked
                     ? "bg-white/10 text-white/30"
                     : "bg-green-500 text-black hover:bg-green-400"
@@ -121,7 +125,7 @@ export default function Crypto15mSignalGrid() {
               <button
                 disabled={locked}
                 onClick={() => skipSignal(asset)}
-                className={`flex-1 py-2 rounded-md text-xs font-semibold ${
+                className={`flex-1 py-1.5 rounded-md text-xs font-semibold ${
                   locked
                     ? "bg-white/10 text-white/30"
                     : "bg-red-500 text-white hover:bg-red-400"
@@ -131,14 +135,28 @@ export default function Crypto15mSignalGrid() {
               </button>
             </div>
 
-            {/* 🧠 WHY THIS SIGNAL (HOVER REVEAL) */}
-            <div className="group">
-              <div className="text-xs text-purple-200 cursor-help">
+            {/* CONFIDENCE BREAKDOWN */}
+            <ConfidenceExplanation signal={s} />
+
+            {/* MICRO ACTIONS */}
+            <div className="flex justify-between text-xs mt-2">
+              <button
+                className="text-white/50 hover:text-white underline"
+                title="Momentum, trend, volatility & liquidity aligned"
+              >
                 Why this signal?
-              </div>
-              <div className="hidden group-hover:block mt-2">
-                <ConfidenceExplanation signal={s} />
-              </div>
+              </button>
+
+              <button
+                onClick={() =>
+                  navigator.clipboard.writeText(
+                    `${asset} 15m ${s.direction} | Confidence ${confidencePct}% | Momentum + Trend + Liquidity aligned`
+                  )
+                }
+                className="text-purple-300 hover:text-purple-200"
+              >
+                Copy thesis
+              </button>
             </div>
           </div>
         );
