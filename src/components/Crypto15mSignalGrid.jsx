@@ -45,17 +45,18 @@ export default function Crypto15mSignalGrid() {
         const remaining = s.resolveAt - Date.now();
         const locked = !s.entryOpen;
         const confidencePct = Math.round(s.confidence * 100);
+        const isUrgent = remaining < 5 * 60 * 1000; // last 5 minutes
 
         return (
           <div
             key={s.id}
-            className="
-              rounded-xl
+            className={`
+              card
               p-5
               space-y-4
               bg-gradient-to-br from-black/80 to-black/95
-              border border-white/10
-            "
+              ${isUrgent ? "resolve-border" : ""}
+            `}
           >
             {/* HEADER */}
             <div className="flex justify-between">
@@ -63,13 +64,18 @@ export default function Crypto15mSignalGrid() {
                 <div className="text-base font-semibold">
                   {asset} · 15m
                 </div>
-                <div className="text-sm font-semibold text-red-400">
+
+                <div
+                  className={`text-sm font-semibold flex items-center gap-1 ${
+                    isUrgent ? "fire" : "text-red-400"
+                  }`}
+                >
                   🔥 Resolve in {formatTime(remaining)}
                 </div>
               </div>
 
               <div className="text-right">
-                <div className="text-3xl font-extrabold">
+                <div className="text-3xl font-extrabold leading-none">
                   {confidencePct}%
                 </div>
                 <div className="text-sm opacity-70">
@@ -108,7 +114,7 @@ export default function Crypto15mSignalGrid() {
             </div>
 
             {/* CONFIDENCE */}
-            <div className="bg-black/40 rounded-lg p-3">
+            <div className="bg-black/40 rounded-lg p-3 decay">
               <ConfidenceExplanation signal={s} />
             </div>
 
@@ -118,7 +124,9 @@ export default function Crypto15mSignalGrid() {
               <button
                 onClick={() =>
                   navigator.clipboard.writeText(
-                    `${asset} ${s.direction} · ${confidencePct}%`
+                    `${asset} ${s.direction} · ${confidencePct}%\nResolve in ${formatTime(
+                      remaining
+                    )}`
                   )
                 }
                 className="hover:text-white"
