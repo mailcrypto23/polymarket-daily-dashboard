@@ -16,52 +16,38 @@ export default function Dashboard() {
     <div className="bg-premium min-h-screen">
 
       {/* TITLE */}
-      <div className="max-w-7xl mx-auto px-4 pt-6 pb-2">
-        <h1 className="text-xl font-semibold text-white/90">
+      <section className="px-6 pt-6 pb-3">
+        <h1 className="text-lg font-semibold">
           🔥 High-Confidence Crypto 15-Minute Signals
         </h1>
         <div className="text-xs text-white/40">
           Last updated · {lastUpdated}
         </div>
-      </div>
+      </section>
 
-      {/* 🔒 STICKY SIGNAL STRIP */}
-      <section className="sticky top-0 z-30 bg-black/80 backdrop-blur border-b border-white/10">
-        <div className="px-4 py-4">
-          <Crypto15mSignalGrid />
-        </div>
+      {/* 🔥 STICKY SIGNAL STRIP */}
+      <section className="sticky top-0 z-30 bg-black/80 backdrop-blur px-6 py-3">
+        <Crypto15mSignalGrid />
       </section>
 
       {/* CONTENT */}
-      <div className="max-w-7xl mx-auto px-4 space-y-8 pt-6">
+      <section className="px-6 space-y-6 mt-4">
 
-        <section className="card-soft p-4">
-          <TractionPanel variant="compact" />
-        </section>
+        <TractionPanel variant="compact" />
 
-        <section className="grid grid-cols-1 lg:grid-cols-2 gap-5">
-          <div className="card-soft p-4">
-            <ConfidenceWinRateChart />
-          </div>
-          <div className="card-soft p-4">
-            <EntryTimingPnLChart />
-          </div>
-        </section>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          <ConfidenceWinRateChart />
+          <EntryTimingPnLChart />
+        </div>
 
-        <section className="grid grid-cols-1 lg:grid-cols-2 gap-5">
-          <div className="card-soft p-4">
-            <PriceMovement />
-          </div>
-          <div className="card-soft p-4">
-            <MarketDepthPanel />
-          </div>
-        </section>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          <PriceMovement />
+          <MarketDepthPanel />
+        </div>
 
-        <section className="card-soft p-4">
-          <LiquidityHeatmap />
-        </section>
+        <LiquidityHeatmap />
 
-      </div>
+      </section>
     </div>
   );
 }
