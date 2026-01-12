@@ -1,12 +1,15 @@
 /* =========================================================
-   Crypto 15m Signal Engine — PRICE + MARKET AWARE
+   Crypto 15m Signal Engine — PRICE + MARKET AWARE (FINAL)
    - Real price-driven resolution
-   - Real PnL
-   - Polymarket odds ingestion (read-only)
+   - Odds-based PnL (simulated capital)
+   - Read-only Polymarket odds ingestion
    - Edge detection + heatmap support
+   - UI-safe (ENTER / SKIP preserved)
 ========================================================= */
 
 import { getLivePrice } from "./priceFeed";
+import { getPolymarketOdds } from "./polymarketOddsFeed";
+import { calculateEdge } from "./edgeCalculator";
 import {
   persistResolvedSignal,
   loadResolvedSignals,
@@ -19,7 +22,7 @@ import {
 const ASSETS = ["BTC", "ETH", "SOL", "XRP"];
 const TIMEFRAME_MS = 15 * 60 * 1000;
 const SAFE_ENTRY_RATIO = 0.4;
-
+const STAKE = 1; // simulated unit stake
 const EDGE_THRESHOLD = 0.06;
 
 /* =========================================================
@@ -27,7 +30,6 @@ const EDGE_THRESHOLD = 0.06;
 ========================================================= */
 
 const engineState = {};
-
 for (const asset of ASSETS) {
   engineState[asset] = {
     activeSignal: null,
@@ -36,39 +38,24 @@ for (const asset of ASSETS) {
 }
 
 /* =========================================================
-   UTILITIES
+   UTILS
 ========================================================= */
 
 const now = () => Date.now();
-
-const generateId = symbol =>
-  `${symbol}-15m-${Date.now()}`;
-
-/* =========================================================
-   POLYMARKET ODDS INGESTION (READ-ONLY)
-   Expected input from UI / fetch layer:
-   {
-     upPrice: 0.50,
-     downPrice: 0.51
-   }
-========================================================= */
-
-function deriveMarketProbability(odds) {
-  if (!odds || !odds.upPrice || !odds.downPrice) return null;
-
-  return odds.upPrice / (odds.upPrice + odds.downPrice);
-}
+const generateId = s => `${s}-15m-${Date.now()}`;
 
 /* =========================================================
    CREATE SIGNAL
 ========================================================= */
 
 async function createSignal(symbol) {
-  const start = now();
-  const entryPrice = await getLivePrice(symbol);
+  const createdAt = now();
+  const price = await getLivePrice(symbol);
 
-  // confidence already computed by your confidence engine
-  const confidence = 0.74;
+  if (!price) return null;
+
+  // Confidence already validated by your confidence engine
+  const confidence = 0.74; // placeholder — deterministic upstream
 
   return {
     id: generateId(symbol),
@@ -78,24 +65,24 @@ async function createSignal(symbol) {
     direction: confidence >= 0.5 ? "UP" : "DOWN",
     confidence,
 
-    createdAt: start,
-    resolveAt: start + TIMEFRAME_MS,
-    entryClosesAt: start + TIMEFRAME_MS * SAFE_ENTRY_RATIO,
+    createdAt,
+    resolveAt: createdAt + TIMEFRAME_MS,
+    entryClosesAt: createdAt + TIMEFRAME_MS * SAFE_ENTRY_RATIO,
 
     entryOpen: true,
     resolved: false,
 
-    entryPrice,
-    resolvePrice: null,
+    priceAtSignal: price,
+    priceAtEntry: null,
+    priceAtResolve: null,
 
-    pnl: null,
-    result: null,
-
-    // Polymarket comparison
     marketOdds: null,
     marketProbability: null,
     edge: null,
     mispriced: false,
+
+    pnl: 0,
+    result: null,
 
     userAction: null,
     entryAt: null,
@@ -104,33 +91,32 @@ async function createSignal(symbol) {
 }
 
 /* =========================================================
-   RESOLUTION (PRICE DECIDES)
+   RESOLUTION (PRICE + ODDS)
 ========================================================= */
 
-async function resolveSignal(signal) {
-  const resolvePrice = await getLivePrice(signal.symbol);
-  signal.resolvePrice = resolvePrice;
-
+function resolveSignal(signal) {
   const priceMove =
-    (resolvePrice - signal.entryPrice) / signal.entryPrice;
-
-  const pnl =
     signal.direction === "UP"
-      ? priceMove
-      : -priceMove;
+      ? signal.priceAtResolve > signal.priceAtEntry
+      : signal.priceAtResolve < signal.priceAtEntry;
 
-  signal.pnl = Number(pnl.toFixed(5));
-  signal.result = pnl > 0 ? "WIN" : "LOSS";
-  signal.resolved = true;
+  signal.result = priceMove ? "WIN" : "LOSS";
 
-  // Edge detection
-  if (typeof signal.marketProbability === "number") {
-    signal.edge = Number(
-      (signal.confidence - signal.marketProbability).toFixed(4)
-    );
+  if (
+    signal.userAction === "ENTER" &&
+    typeof signal.marketProbability === "number"
+  ) {
+    const prob = signal.marketProbability;
+    const payout = priceMove
+      ? (1 / prob) - 1
+      : -1;
 
-    signal.mispriced = signal.edge >= EDGE_THRESHOLD;
+    signal.pnl = Number((payout * STAKE).toFixed(4));
+  } else {
+    signal.pnl = 0;
   }
+
+  signal.resolved = true;
 }
 
 /* =========================================================
@@ -149,38 +135,46 @@ export async function runCrypto15mSignalEngine() {
       continue;
     }
 
+    // Close entry window
     if (signal.entryOpen && t >= signal.entryClosesAt) {
       signal.entryOpen = false;
     }
 
+    // Inject Polymarket odds (read-only)
+    if (!signal.marketOdds) {
+      const odds = await getPolymarketOdds(asset);
+      if (odds) {
+        signal.marketOdds = odds;
+        signal.marketProbability = odds.marketProb;
+
+        const edgeObj = calculateEdge({
+          confidence: signal.confidence,
+          marketProb: odds.marketProb,
+        });
+
+        signal.edge = edgeObj?.edge ?? null;
+        signal.mispriced =
+          typeof signal.edge === "number" &&
+          signal.edge >= EDGE_THRESHOLD;
+      }
+    }
+
+    // Resolve signal
     if (!signal.resolved && t >= signal.resolveAt) {
-      await resolveSignal(signal);
+      signal.priceAtResolve = await getLivePrice(asset);
+
+      if (!signal.priceAtEntry) {
+        signal.priceAtEntry = signal.priceAtSignal;
+      }
+
+      resolveSignal(signal);
 
       state.history.unshift(signal);
       state.history = state.history.slice(0, 50);
-
       persistResolvedSignal(signal);
+
       state.activeSignal = await createSignal(asset);
     }
-  }
-}
-
-/* =========================================================
-   POLYMARKET ODDS UPDATE (READ-ONLY)
-========================================================= */
-
-export function updateMarketOdds(symbol, odds) {
-  const s = engineState[symbol]?.activeSignal;
-  if (!s || s.resolved) return;
-
-  s.marketOdds = odds;
-  s.marketProbability = deriveMarketProbability(odds);
-
-  if (typeof s.marketProbability === "number") {
-    s.edge = Number(
-      (s.confidence - s.marketProbability).toFixed(4)
-    );
-    s.mispriced = s.edge >= EDGE_THRESHOLD;
   }
 }
 
@@ -195,6 +189,7 @@ export function enterSignal(symbol) {
   s.userAction = "ENTER";
   s.entryAt = now();
   s.entryDelayMs = s.entryAt - s.createdAt;
+  s.priceAtEntry = s.priceAtSignal;
 
   return true;
 }
@@ -205,7 +200,6 @@ export function skipSignal(symbol) {
 
   s.userAction = "SKIP";
   s.entryOpen = false;
-
   return true;
 }
 
@@ -236,13 +230,11 @@ export function getLastResolvedSignals(limit = 50) {
 }
 
 /* =========================================================
-   EDGE HEATMAP DATA (FOR UI)
+   EDGE HEATMAP DATA (UI)
 ========================================================= */
 
 export function getEdgeHeatmapData() {
-  const resolved = getLastResolvedSignals(200);
-
-  return resolved
+  return getLastResolvedSignals(200)
     .filter(s => typeof s.edge === "number")
     .map(s => ({
       symbol: s.symbol,
