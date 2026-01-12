@@ -1,4 +1,6 @@
-import { useEffect, useRef, useState } from "react";
+// src/components/Crypto15mSignalGrid.jsx
+
+import { useEffect, useState } from "react";
 import {
   getActive15mSignals,
   enterSignal,
@@ -18,34 +20,16 @@ function formatTime(ms) {
 
 export default function Crypto15mSignalGrid() {
   const [signals, setSignals] = useState({});
-  const containerRef = useRef(null);
 
-  // Live signal refresh
   useEffect(() => {
-    const tick = () => {
-      setSignals(getActive15mSignals());
-    };
-
+    const tick = () => setSignals(getActive15mSignals());
     tick();
-    const interval = setInterval(tick, 1000);
-    return () => clearInterval(interval);
+    const id = setInterval(tick, 1000);
+    return () => clearInterval(id);
   }, []);
 
-  // Auto-scroll newest signal into view
-  useEffect(() => {
-    if (containerRef.current) {
-      containerRef.current.scrollTo({
-        left: containerRef.current.scrollWidth,
-        behavior: "smooth",
-      });
-    }
-  }, [signals]);
-
   return (
-    <div
-      ref={containerRef}
-      className="flex gap-4 overflow-x-auto pb-2 scrollbar-hide"
-    >
+    <>
       {ASSETS.map(asset => {
         const s = signals[asset];
         if (!s) return null;
@@ -53,23 +37,25 @@ export default function Crypto15mSignalGrid() {
         const remaining = s.resolveAt - Date.now();
         const locked = !s.entryOpen;
         const confidencePct = Math.round(s.confidence * 100);
-        const highConfidence = s.confidence >= 0.75;
 
         return (
           <div
             key={s.id}
             className={`
-              relative min-w-[260px] rounded-xl p-4
-              bg-gradient-to-br from-purple-700 to-purple-900
-              border border-purple-400/20
-              shadow-lg space-y-3
-              ${highConfidence ? "ring-2 ring-purple-400/40 glow" : ""}
+              min-w-[260px]
+              rounded-xl
+              p-4
+              bg-gradient-to-br from-purple-700/90 to-purple-900/90
+              border border-white/10
+              shadow-lg
+              space-y-3
+              ${confidencePct >= 75 ? "ring-1 ring-purple-400/40" : ""}
             `}
           >
             {/* Header */}
             <div className="flex justify-between items-start">
               <div>
-                <h3 className="font-semibold text-white text-sm">
+                <h3 className="text-sm font-semibold text-white">
                   {asset} · 15m
                 </h3>
                 <p className="text-xs text-purple-200">
@@ -78,7 +64,13 @@ export default function Crypto15mSignalGrid() {
               </div>
 
               <div className="text-right">
-                <div className="text-xl font-bold text-white">
+                <div
+                  className={`text-xl font-bold ${
+                    confidencePct >= 75
+                      ? "text-green-300"
+                      : "text-white"
+                  }`}
+                >
                   {confidencePct}%
                 </div>
                 <div className="text-xs text-purple-200">
@@ -87,14 +79,12 @@ export default function Crypto15mSignalGrid() {
               </div>
             </div>
 
-            {/* Entry status */}
-            <div>
+            {/* Status */}
+            <div className="text-xs font-semibold">
               {locked ? (
-                <span className="text-white/50 text-xs font-semibold">
-                  ENTRY LOCKED
-                </span>
+                <span className="text-white/40">ENTRY LOCKED</span>
               ) : (
-                <span className="text-green-300 text-xs font-semibold animate-pulse">
+                <span className="text-green-300 animate-pulse">
                   ENTRY OPEN
                 </span>
               )}
@@ -127,11 +117,11 @@ export default function Crypto15mSignalGrid() {
               </button>
             </div>
 
-            {/* Confidence explanation */}
+            {/* Confidence */}
             <ConfidenceExplanation signal={s} />
           </div>
         );
       })}
-    </div>
+    </>
   );
 }
