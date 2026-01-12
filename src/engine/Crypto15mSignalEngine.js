@@ -14,6 +14,10 @@ const SAFE_ENTRY_RATIO = 0.4;
 const BASE_CONFIDENCE_RANGE = [0.62, 0.82];
 const LATE_ENTRY_PENALTY = 0.05;
 
+// Live price tuning
+const MOMENTUM_WINDOW = 30; // ticks
+const MOMENTUM_SCALE = 0.002;
+
 /* =========================================================
    ENGINE STATE
 ========================================================= */
@@ -24,6 +28,7 @@ for (const asset of ASSETS) {
   engineState[asset] = {
     activeSignal: null,
     history: [],
+    prices: [],
   };
 }
 
@@ -43,7 +48,7 @@ const clamp = (v, min, max) =>
   Math.min(Math.max(v, min), max);
 
 /* =========================================================
-   CONFIDENCE MODEL (TIME + STRUCTURE ONLY)
+   CONFIDENCE MODEL
 ========================================================= */
 
 function computeInitialConfidence() {
@@ -54,14 +59,25 @@ function computeInitialConfidence() {
   );
 }
 
+function computeMomentumScore(prices, direction) {
+  if (prices.length < MOMENTUM_WINDOW) return 0;
+
+  const pNow = prices.at(-1);
+  const pPast = prices.at(-MOMENTUM_WINDOW);
+  const rawMove = (pNow - pPast) / pPast;
+
+  const directionalMove =
+    direction === "UP" ? rawMove : -rawMove;
+
+  return clamp(directionalMove / MOMENTUM_SCALE, -0.08, 0.08);
+}
+
 function applyTimeDecay(confidence, createdAt, resolveAt) {
   const elapsed = now() - createdAt;
   const total = resolveAt - createdAt;
   const ratio = clamp(elapsed / total, 0, 1);
 
-  // non-linear decay
   const decay = Math.pow(ratio, 0.7) * 0.08;
-
   return clamp(confidence - decay, 0.55, 0.88);
 }
 
@@ -73,15 +89,6 @@ function createSignal(symbol) {
   const start = now();
   const baseConfidence = computeInitialConfidence();
 
-  const breakdown = {
-    momentum: Math.round(baseConfidence * 100),
-    trend: Math.round(baseConfidence * 100),
-    volatility: Math.round(baseConfidence * 100),
-    liquidity: Math.round(baseConfidence * 100),
-    timePenalty: 0,
-    finalConfidence: Math.round(baseConfidence * 100),
-  };
-
   return {
     id: generateId(symbol),
     symbol,
@@ -89,7 +96,14 @@ function createSignal(symbol) {
     direction: randomDirection(),
 
     confidence: baseConfidence,
-    confidenceBreakdown: breakdown,
+    confidenceBreakdown: {
+      momentum: Math.round(baseConfidence * 100),
+      trend: Math.round(baseConfidence * 100),
+      volatility: Math.round(baseConfidence * 100),
+      liquidity: Math.round(baseConfidence * 100),
+      timePenalty: 0,
+      finalConfidence: Math.round(baseConfidence * 100),
+    },
 
     createdAt: start,
     entryAt: null,
@@ -106,29 +120,58 @@ function createSignal(symbol) {
 }
 
 /* =========================================================
-   RESOLUTION (DETERMINISTIC)
+   RESOLUTION (PRICE-AWARE)
 ========================================================= */
 
-function resolveSignal(signal) {
+function resolveSignal(signal, prices) {
   signal.resolved = true;
 
-  // deterministic resolution based on confidence threshold
+  if (prices.length < 2) {
+    signal.result = "LOSS";
+    return;
+  }
+
+  const entryPrice = prices[0];
+  const finalPrice = prices.at(-1);
+
+  const correct =
+    signal.direction === "UP"
+      ? finalPrice > entryPrice
+      : finalPrice < entryPrice;
+
   signal.result =
-    signal.confidence >= 0.65 ? "WIN" : "LOSS";
+    correct && signal.confidence >= 0.6
+      ? "WIN"
+      : "LOSS";
 }
 
 /* =========================================================
-   ENGINE TICK
+   ENGINE TICK (PRICE-DRIVEN)
 ========================================================= */
 
-export function runCrypto15mSignalEngine() {
+/**
+ * @param {Object} livePrices
+ * example:
+ * { BTC: 43210.2, ETH: 2310.4, SOL: 98.12 }
+ */
+export function runCrypto15mSignalEngine(livePrices = {}) {
   const t = now();
 
   for (const asset of ASSETS) {
     const state = engineState[asset];
     const signal = state.activeSignal;
 
+    // 📈 collect live price
+    const price = livePrices[asset];
+    if (price) {
+      state.prices.push(price);
+      if (state.prices.length > 120) {
+        state.prices.shift();
+      }
+    }
+
     if (!signal) {
+      state.prices = [];
       state.activeSignal = createSignal(asset);
       continue;
     }
@@ -144,7 +187,19 @@ export function runCrypto15mSignalEngine() {
       );
     }
 
-    // ⏱ time-based confidence decay
+    // 📊 momentum-based confidence update
+    const momentumDelta = computeMomentumScore(
+      state.prices,
+      signal.direction
+    );
+
+    signal.confidence = clamp(
+      signal.confidence + momentumDelta,
+      0.55,
+      0.88
+    );
+
+    // ⏱ time decay
     signal.confidence = applyTimeDecay(
       signal.confidence,
       signal.createdAt,
@@ -156,12 +211,14 @@ export function runCrypto15mSignalEngine() {
 
     // ⏹ resolve
     if (!signal.resolved && t >= signal.resolveAt) {
-      resolveSignal(signal);
+      resolveSignal(signal, state.prices);
 
       state.history.unshift(signal);
       state.history = state.history.slice(0, 50);
 
       persistResolvedSignal(signal);
+
+      state.prices = [];
       state.activeSignal = createSignal(asset);
     }
   }
