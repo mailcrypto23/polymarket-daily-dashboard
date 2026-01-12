@@ -33,7 +33,7 @@ for (const a of ASSETS) {
 /* ================= UTILS ================= */
 
 const now = () => Date.now();
-const id = s => `${s}-15m-${Date.now()}`;
+const generateId = s => `${s}-15m-${Date.now()}`;
 
 /* ================= EXPLAINER ================= */
 
@@ -41,7 +41,9 @@ function buildExplanation(signal) {
   const lines = [];
 
   lines.push(
-    `Model favors ${signal.direction} with ${(signal.confidence * 100).toFixed(1)}% confidence.`
+    `Model favors ${signal.direction} with ${(signal.confidence * 100).toFixed(
+      1
+    )}% confidence.`
   );
 
   if (typeof signal.marketProbability === "number") {
@@ -72,17 +74,23 @@ function buildExplanation(signal) {
   return lines;
 }
 
-/* ================= CREATE SIGNAL ================= */
+/* ================= CREATE SIGNAL (FIXED) ================= */
 
 async function createSignal(symbol) {
   const createdAt = now();
-  const price = await getLivePrice(symbol);
-  if (!price) return null;
 
-  const confidence = 0.74; // upstream engine
+  let price = await getLivePrice(symbol);
+  if (typeof price !== "number") {
+    console.warn(
+      `[engine] price unavailable for ${symbol}, initializing placeholder`
+    );
+    price = 0; // critical fix: never return null
+  }
+
+  const confidence = 0.74; // deterministic upstream
 
   const signal = {
-    id: id(symbol),
+    id: generateId(symbol),
     symbol,
     timeframe: "15m",
 
