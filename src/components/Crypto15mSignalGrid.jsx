@@ -1,5 +1,3 @@
-// src/components/Crypto15mSignalGrid.jsx
-
 import { useEffect, useState } from "react";
 import {
   getActive15mSignals,
@@ -32,91 +30,93 @@ export default function Crypto15mSignalGrid() {
   }, []);
 
   return (
-    <section className="mb-10">
-      <h2 className="text-xl font-bold mb-4">
-        🔥 High-Confidence Crypto 15-Minute Signals
-      </h2>
+    <div className="flex gap-4 overflow-x-auto pb-2">
+      {ASSETS.map(asset => {
+        const s = signals[asset];
+        if (!s) return null;
 
-      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
-        {ASSETS.map(asset => {
-          const s = signals[asset];
-          if (!s) return null;
+        const remaining = s.resolveAt - Date.now();
+        const locked = !s.entryOpen;
 
-          const remaining = s.resolveAt - Date.now();
-          const locked = !s.entryOpen;
-
-          return (
-            <div
-              key={s.id}
-              className="rounded-xl p-5 bg-gradient-to-br from-purple-700 to-purple-900 shadow-lg space-y-3"
-            >
-              {/* Header */}
-              <div className="flex justify-between items-start">
-                <div>
-                  <h3 className="font-semibold text-white text-sm">
-                    {asset} Up or Down · 15m
-                  </h3>
-                  <p className="text-xs text-purple-200">
-                    Resolve in {formatTime(remaining)}
-                  </p>
-                </div>
-
-                <div className="text-right">
-                  <div className="text-xl font-bold text-white">
-                    {Math.round(s.confidence * 100)}%
-                  </div>
-                  <div className="text-xs text-purple-200">
-                    {s.direction}
-                  </div>
-                </div>
-              </div>
-
-              {/* Entry status */}
+        return (
+          <div
+            key={s.id}
+            className="
+              min-w-[260px]
+              rounded-xl
+              p-4
+              bg-gradient-to-br from-purple-700 to-purple-900
+              border border-white/10
+              shadow-lg
+              space-y-3
+            "
+          >
+            {/* Header */}
+            <div className="flex justify-between items-start">
               <div>
-                {locked ? (
-                  <span className="text-white/50 text-xs font-semibold">
-                    ENTRY LOCKED
-                  </span>
-                ) : (
-                  <span className="text-green-300 text-xs font-semibold animate-pulse">
-                    ENTRY OPEN
-                  </span>
-                )}
+                <h3 className="font-semibold text-white text-sm">
+                  {asset} · 15m
+                </h3>
+                <p className="text-xs text-purple-200">
+                  Resolve in {formatTime(remaining)}
+                </p>
               </div>
 
-              {/* Actions */}
-              <div className="flex gap-3">
-                <button
-                  disabled={locked}
-                  onClick={() => enterSignal(asset)}
-                  className={`flex-1 py-2 rounded-lg text-sm font-semibold transition ${
-                    locked
-                      ? "bg-white/10 text-white/30"
-                      : "bg-green-500 text-black hover:bg-green-400"
-                  }`}
-                >
-                  YES
-                </button>
-
-                <button
-                  disabled={locked}
-                  onClick={() => skipSignal(asset)}
-                  className={`flex-1 py-2 rounded-lg text-sm font-semibold transition ${
-                    locked
-                      ? "bg-white/10 text-white/30"
-                      : "bg-red-500 text-white hover:bg-red-400"
-                  }`}
-                >
-                  NO
-                </button>
+              <div className="text-right">
+                <div className="text-xl font-bold text-white">
+                  {Math.round(s.confidence * 100)}%
+                </div>
+                <div className="text-xs text-purple-200">
+                  {s.direction}
+                </div>
               </div>
-
-              {/* ✅ CONFIDENCE EXPLANATION (STEP 7 FIX) */}
-              <ConfidenceExplanation signal={s} />
             </div>
-          );
-        })}
-      </div>
-    </section>
+
+            {/* Entry status */}
+            <div>
+              {locked ? (
+                <span className="text-white/50 text-xs font-semibold">
+                  ENTRY LOCKED
+                </span>
+              ) : (
+                <span className="text-green-300 text-xs font-semibold animate-pulse">
+                  ENTRY OPEN
+                </span>
+              )}
+            </div>
+
+            {/* Actions */}
+            <div className="flex gap-2">
+              <button
+                disabled={locked}
+                onClick={() => enterSignal(asset)}
+                className={`flex-1 py-2 rounded-md text-xs font-semibold transition ${
+                  locked
+                    ? "bg-white/10 text-white/30"
+                    : "bg-green-500 text-black hover:bg-green-400"
+                }`}
+              >
+                YES
+              </button>
+
+              <button
+                disabled={locked}
+                onClick={() => skipSignal(asset)}
+                className={`flex-1 py-2 rounded-md text-xs font-semibold transition ${
+                  locked
+                    ? "bg-white/10 text-white/30"
+                    : "bg-red-500 text-white hover:bg-red-400"
+                }`}
+              >
+                NO
+              </button>
+            </div>
+
+            {/* Confidence Explanation */}
+            <ConfidenceExplanation signal={s} />
+          </div>
+        );
+      })}
+    </div>
   );
 }
