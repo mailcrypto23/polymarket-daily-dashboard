@@ -17,13 +17,13 @@ export default function Crypto15mSignalCard({ signal }) {
             {signal.symbol} Up or Down · 15m
           </h3>
           <p className="text-xs text-white/70">
-            Signal @ {new Date(signal.signalAt).toLocaleTimeString()}
+            Signal @ {new Date(signal.createdAt).toLocaleTimeString()}
           </p>
         </div>
 
         <div className="text-right">
           <div className="text-lg font-bold text-white">
-            {signal.confidence}%
+            {(signal.confidence * 100).toFixed(0)}%
           </div>
           <div className="text-xs text-white/70">
             {signal.direction}
@@ -52,7 +52,7 @@ export default function Crypto15mSignalCard({ signal }) {
       </div>
 
       {/* Buttons */}
-      <div className="flex gap-2">
+      <div className="flex gap-2 mb-3">
         <button
           disabled={!entryOpen}
           className={`flex-1 py-2 rounded-lg text-sm font-semibold transition ${
@@ -61,7 +61,7 @@ export default function Crypto15mSignalCard({ signal }) {
               : "bg-white/10 text-white/30 cursor-not-allowed"
           }`}
         >
-          {entryOpen ? "YES" : "ENTRY LOCKED"}
+          YES
         </button>
 
         <button
@@ -72,8 +72,33 @@ export default function Crypto15mSignalCard({ signal }) {
               : "bg-white/10 text-white/30 cursor-not-allowed"
           }`}
         >
-          {entryOpen ? "NO" : "ENTRY LOCKED"}
+          NO
         </button>
+      </div>
+
+      {/* WHY THIS TRADE — HOVER EXPLAINER */}
+      <div className="relative group text-xs text-white/60 cursor-help">
+        Why this trade?
+
+        <div className="
+          absolute bottom-full left-0 mb-2 w-80
+          opacity-0 group-hover:opacity-100
+          transition-opacity duration-200
+          pointer-events-none z-20
+        ">
+          <div className="
+            bg-black/80 backdrop-blur
+            border border-white/10
+            rounded-lg p-3 shadow-xl
+            text-xs text-gray-200
+          ">
+            {signal.explanation?.map((line, i) => (
+              <div key={i} className="mb-1 last:mb-0">
+                {line}
+              </div>
+            ))}
+          </div>
+        </div>
       </div>
 
       {/* Resolved Overlay */}
