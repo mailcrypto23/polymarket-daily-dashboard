@@ -1,42 +1,63 @@
+/* =========================================================
+   Live Price Feed — Binance REST (FINAL)
+   - Fixes XRP permanently
+   - Unified source for BTC / ETH / SOL / XRP
+   - Caching + in-flight deduplication
+   - No rate-limit surprises
+========================================================= */
+
 const CACHE = {};
-const TTL = 10_000;
 const IN_FLIGHT = {};
+const TTL = 5_000; // 5 seconds
+
+const SYMBOL_MAP = {
+  BTC: "BTCUSDT",
+  ETH: "ETHUSDT",
+  SOL: "SOLUSDT",
+  XRP: "XRPUSDT",
+};
 
 export async function getLivePrice(symbol) {
+  const pair = SYMBOL_MAP[symbol];
+  if (!pair) {
+    console.warn("[priceFeed] Unsupported symbol:", symbol);
+    return null;
+  }
+
   const now = Date.now();
 
-  if (CACHE[symbol] && now - CACHE[symbol].ts < TTL) {
-    return CACHE[symbol].price;
+  // Serve cached price
+  if (CACHE[pair] && now - CACHE[pair].ts < TTL) {
+    return CACHE[pair].price;
   }
 
-  if (IN_FLIGHT[symbol]) {
-    return IN_FLIGHT[symbol];
+  // Deduplicate in-flight requests
+  if (IN_FLIGHT[pair]) {
+    return IN_FLIGHT[pair];
   }
 
-  const idMap = {
-    BTC: "bitcoin",
-    ETH: "ethereum",
-    SOL: "solana",
-    XRP: "ripple"
-  };
-
-  const id = idMap[symbol];
-  if (!id) throw new Error("Unsupported symbol");
-
-  IN_FLIGHT[symbol] = fetch(
-    `https://api.coingecko.com/api/v3/simple/price?ids=${id}&vs_currencies=usd`
+  IN_FLIGHT[pair] = fetch(
+    `https://api.binance.com/api/v3/ticker/price?symbol=${pair}`
   )
-    .then(r => r.json())
+    .then(res => {
+      if (!res.ok) throw new Error("Binance fetch failed");
+      return res.json();
+    })
     .then(data => {
-      const price = data[id].usd;
-      CACHE[symbol] = { price, ts: now };
-      delete IN_FLIGHT[symbol];
+      const price = Number(data.price);
+      if (!Number.isFinite(price)) {
+        throw new Error("Invalid price");
+      }
+
+      CACHE[pair] = { price, ts: Date.now() };
+      delete IN_FLIGHT[pair];
       return price;
     })
     .catch(err => {
-      delete IN_FLIGHT[symbol];
-      throw err;
+      console.error("[priceFeed] error:", pair, err.message);
+      delete IN_FLIGHT[pair];
+      return null;
     });
 
-  return IN_FLIGHT[symbol];
+  return IN_FLIGHT[pair];
 }
