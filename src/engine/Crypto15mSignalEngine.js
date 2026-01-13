@@ -1,10 +1,9 @@
 /* =========================================================
-   Crypto 15m Signal Engine — PRICE + MARKET AWARE (FINAL)
-   - Real price-driven resolution
-   - Odds-based PnL (simulated capital)
-   - Read-only Polymarket odds ingestion
-   - Edge detection
-   - Deterministic trade explanation
+   Crypto 15m Signal Engine — FINAL
+   - WebSocket price-driven
+   - Odds-based PnL
+   - XRP-safe initialization
+   - Deterministic explanations
 ========================================================= */
 
 import { getLivePrice } from "./priceFeed";
@@ -49,45 +48,42 @@ function buildExplanation(signal) {
   if (typeof signal.marketProbability === "number") {
     const m = (signal.marketProbability * 100).toFixed(1);
     const e = (signal.edge * 100).toFixed(1);
-
-    if (signal.edge > 0) {
-      lines.push(`Market implies ${m}%, creating a +${e}% edge.`);
-    } else {
-      lines.push(`Market odds (${m}%) offer no positive edge.`);
-    }
+    lines.push(
+      signal.edge > 0
+        ? `Market implies ${m}%, creating a +${e}% edge.`
+        : `Market odds (${m}%) offer no positive edge.`
+    );
   } else {
-    lines.push(`Market odds not yet available.`);
+    lines.push("Market odds not yet available.");
   }
 
-  if (!signal.entryOpen) {
-    lines.push(`Entry window closed — late entries underperform.`);
-  } else {
-    lines.push(`Entry window open with sufficient time remaining.`);
-  }
+  lines.push(
+    signal.entryOpen
+      ? "Entry window open with sufficient time remaining."
+      : "Entry window closed — late entries underperform."
+  );
 
-  if (signal.mispriced && signal.entryOpen) {
-    lines.push(`✅ Trade qualifies as positive expected value.`);
-  } else {
-    lines.push(`⚠ Trade does not meet strict EV criteria.`);
-  }
+  lines.push(
+    signal.mispriced && signal.entryOpen
+      ? "✅ Trade qualifies as positive expected value."
+      : "⚠ Trade does not meet strict EV criteria."
+  );
 
   return lines;
 }
 
-/* ================= CREATE SIGNAL (FIXED) ================= */
+/* ================= CREATE SIGNAL (XRP FIX) ================= */
 
 async function createSignal(symbol) {
   const createdAt = now();
 
   let price = await getLivePrice(symbol);
-  if (typeof price !== "number") {
-    console.warn(
-      `[engine] price unavailable for ${symbol}, initializing placeholder`
-    );
-    price = 0; // critical fix: never return null
+  if (!Number.isFinite(price)) {
+    console.warn(`[engine] price missing for ${symbol}, bootstrapping`);
+    price = 0; // critical: never return null
   }
 
-  const confidence = 0.74; // deterministic upstream
+  const confidence = 0.74;
 
   const signal = {
     id: generateId(symbol),
@@ -137,15 +133,9 @@ function resolveSignal(signal) {
 
   signal.result = won ? "WIN" : "LOSS";
 
-  if (
-    signal.userAction === "ENTER" &&
-    typeof signal.marketProbability === "number"
-  ) {
+  if (signal.userAction === "ENTER" && signal.marketProbability) {
     const p = signal.marketProbability;
-    const payout = won ? (1 / p) - 1 : -1;
-    signal.pnl = Number((payout * STAKE).toFixed(4));
-  } else {
-    signal.pnl = 0;
+    signal.pnl = Number(((won ? 1 / p - 1 : -1) * STAKE).toFixed(4));
   }
 
   signal.resolved = true;
@@ -182,9 +172,7 @@ export async function runCrypto15mSignalEngine() {
         });
 
         s.edge = edgeObj?.edge ?? null;
-        s.mispriced =
-          typeof s.edge === "number" && s.edge >= EDGE_THRESHOLD;
-
+        s.mispriced = typeof s.edge === "number" && s.edge >= EDGE_THRESHOLD;
         s.explanation = buildExplanation(s);
       }
     }
@@ -202,29 +190,6 @@ export async function runCrypto15mSignalEngine() {
       state.activeSignal = await createSignal(asset);
     }
   }
-}
-
-/* ================= USER ACTIONS ================= */
-
-export function enterSignal(symbol) {
-  const s = engineState[symbol]?.activeSignal;
-  if (!s || !s.entryOpen) return false;
-
-  s.userAction = "ENTER";
-  s.entryAt = now();
-  s.entryDelayMs = s.entryAt - s.createdAt;
-  s.priceAtEntry = s.priceAtSignal;
-  return true;
-}
-
-export function skipSignal(symbol) {
-  const s = engineState[symbol]?.activeSignal;
-  if (!s || !s.entryOpen) return false;
-
-  s.userAction = "SKIP";
-  s.entryOpen = false;
-  s.explanation = buildExplanation(s);
-  return true;
 }
 
 /* ================= SELECTORS ================= */
