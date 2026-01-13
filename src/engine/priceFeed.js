@@ -1,16 +1,12 @@
 /* =========================================================
-   Live Price Feed (FINAL)
-   - WebSocket first
+   Unified Live Price Feed
+   - WebSocket first (Binance)
    - REST fallback
-   - XRP-safe
 ========================================================= */
 
-import { startBinancePriceFeed, getWsPrice } from "./binanceWsFeed";
-
-startBinancePriceFeed();
+import { startBinanceWsFeed, getWsPrice } from "./binanceWsFeed";
 
 const CACHE = {};
-const IN_FLIGHT = {};
 const TTL = 5_000;
 
 const SYMBOL_MAP = {
@@ -20,42 +16,39 @@ const SYMBOL_MAP = {
   XRP: "XRPUSDT",
 };
 
-export async function getLivePrice(symbol) {
-  // 1️⃣ WebSocket first
-  const wsPrice = getWsPrice(symbol);
-  if (Number.isFinite(wsPrice)) return wsPrice;
+// start WS immediately (browser-safe)
+if (typeof window !== "undefined") {
+  startBinanceWsFeed();
+}
 
-  // 2️⃣ REST fallback
+export async function getLivePrice(symbol) {
+  // 1️⃣ Try WebSocket price
+  const wsPrice = getWsPrice(symbol);
+  if (typeof wsPrice === "number") return wsPrice;
+
   const pair = SYMBOL_MAP[symbol];
   if (!pair) return null;
 
   const now = Date.now();
 
+  // 2️⃣ REST cache
   if (CACHE[pair] && now - CACHE[pair].ts < TTL) {
     return CACHE[pair].price;
   }
 
-  if (IN_FLIGHT[pair]) {
-    return IN_FLIGHT[pair];
+  // 3️⃣ REST fallback
+  try {
+    const res = await fetch(
+      `https://api.binance.com/api/v3/ticker/price?symbol=${pair}`
+    );
+    const data = await res.json();
+    const price = Number(data.price);
+
+    if (!Number.isFinite(price)) return null;
+
+    CACHE[pair] = { price, ts: now };
+    return price;
+  } catch {
+    return null;
   }
-
-  IN_FLIGHT[pair] = fetch(
-    `https://api.binance.com/api/v3/ticker/price?symbol=${pair}`
-  )
-    .then(r => r.json())
-    .then(data => {
-      const price = Number(data.price);
-      if (!Number.isFinite(price)) throw new Error("Invalid price");
-
-      CACHE[pair] = { price, ts: Date.now() };
-      delete IN_FLIGHT[pair];
-      return price;
-    })
-    .catch(err => {
-      console.error("[priceFeed]", pair, err.message);
-      delete IN_FLIGHT[pair];
-      return null;
-    });
-
-  return IN_FLIGHT[pair];
 }
