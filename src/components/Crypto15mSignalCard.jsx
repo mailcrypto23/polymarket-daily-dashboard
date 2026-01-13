@@ -1,4 +1,8 @@
 import { useCountdown } from "../hooks/useCountdown";
+import {
+  enterSignal,
+  skipSignal,
+} from "../engine/Crypto15mSignalEngine";
 
 export default function Crypto15mSignalCard({ signal }) {
   const resolve = useCountdown(signal.resolveAt);
@@ -14,7 +18,7 @@ export default function Crypto15mSignalCard({ signal }) {
       <div className="flex justify-between items-start mb-2">
         <div>
           <h3 className="font-semibold text-white text-sm">
-            {signal.symbol} Up or Down · 15m
+            {signal.symbol} · 15m
           </h3>
           <p className="text-xs text-white/70">
             Signal @ {new Date(signal.createdAt).toLocaleTimeString()}
@@ -37,7 +41,7 @@ export default function Crypto15mSignalCard({ signal }) {
           resolve.isUrgent ? "text-red-400 font-semibold" : "text-white/70"
         }`}
       >
-        Resolve in {resolve.label}
+        🔥 Resolve in {resolve.label}
       </div>
 
       {/* Entry Status */}
@@ -55,6 +59,7 @@ export default function Crypto15mSignalCard({ signal }) {
       <div className="flex gap-2 mb-3">
         <button
           disabled={!entryOpen}
+          onClick={() => enterSignal(signal.symbol)}
           className={`flex-1 py-2 rounded-lg text-sm font-semibold transition ${
             entryOpen
               ? "bg-green-500 hover:bg-green-600 text-black"
@@ -66,6 +71,7 @@ export default function Crypto15mSignalCard({ signal }) {
 
         <button
           disabled={!entryOpen}
+          onClick={() => skipSignal(signal.symbol)}
           className={`flex-1 py-2 rounded-lg text-sm font-semibold transition ${
             entryOpen
               ? "bg-red-500 hover:bg-red-600 text-black"
@@ -80,21 +86,28 @@ export default function Crypto15mSignalCard({ signal }) {
       <div className="relative group text-xs text-white/60 cursor-help">
         Why this trade?
 
-        <div className="
-          absolute bottom-full left-0 mb-2 w-80
-          opacity-0 group-hover:opacity-100
-          transition-opacity duration-200
-          pointer-events-none z-20
-        ">
-          <div className="
-            bg-black/80 backdrop-blur
-            border border-white/10
-            rounded-lg p-3 shadow-xl
-            text-xs text-gray-200
-          ">
-            {signal.explanation?.map((line, i) => (
+        <div
+          className="
+            absolute bottom-full left-0 mb-2 w-80
+            opacity-0 group-hover:opacity-100
+            transition-opacity duration-200
+            pointer-events-none z-20
+          "
+        >
+          <div
+            className="
+              bg-black/80 backdrop-blur
+              border border-white/10
+              rounded-lg p-3 shadow-xl
+              text-xs text-gray-200
+            "
+          >
+            {(signal.explanation?.length
+              ? signal.explanation
+              : ["Explanation pending — market odds still loading."]
+            ).map((line, i) => (
               <div key={i} className="mb-1 last:mb-0">
-                {line}
+                • {line}
               </div>
             ))}
           </div>
@@ -104,7 +117,8 @@ export default function Crypto15mSignalCard({ signal }) {
       {/* Resolved Overlay */}
       {resolved && (
         <div className="absolute inset-0 bg-black/50 rounded-xl flex items-center justify-center text-white text-sm font-semibold">
-          RESOLVED
+          RESOLVED · PnL {signal.pnl >= 0 ? "+" : ""}
+          {signal.pnl}
         </div>
       )}
     </div>
