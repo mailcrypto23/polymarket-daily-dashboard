@@ -214,3 +214,33 @@ export function getLastResolvedSignals(limit = 50) {
     .sort((a, b) => b.resolveAt - a.resolveAt)
     .slice(0, limit);
 }
+/* ================= UI ACTION EXPORTS (REQUIRED) ================= */
+
+// ⚠️ DO NOT MOVE, DO NOT NEST, DO NOT RENAME
+
+export function enterSignal(symbol) {
+  const s = engineState[symbol]?.activeSignal;
+  if (!s || !s.entryOpen) return false;
+
+  s.userAction = "ENTER";
+  s.entryAt = Date.now();
+  s.entryDelayMs = s.entryAt - s.createdAt;
+  s.priceAtEntry = s.priceAtSignal;
+
+  return true;
+}
+
+export function skipSignal(symbol) {
+  const s = engineState[symbol]?.activeSignal;
+  if (!s || !s.entryOpen) return false;
+
+  s.userAction = "SKIP";
+  s.entryOpen = false;
+
+  if (typeof buildExplanation === "function") {
+    s.explanation = buildExplanation(s);
+  }
+
+  return true;
+}
+
