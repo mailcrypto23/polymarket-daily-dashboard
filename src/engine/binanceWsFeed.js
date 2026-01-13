@@ -1,7 +1,7 @@
 /* =========================================================
    Binance WebSocket Price Feed
-   - Sub-second updates
-   - Shared in-memory prices
+   - Sub-second price updates
+   - Browser-safe
 ========================================================= */
 
 const SYMBOL_MAP = {
@@ -16,7 +16,7 @@ let socket = null;
 let lastMessageAt = 0;
 
 export function startBinanceWsFeed() {
-  if (socket) return;
+  if (socket || typeof window === "undefined") return;
 
   const streams = Object.values(SYMBOL_MAP)
     .map(s => `${s}@trade`)
@@ -29,9 +29,9 @@ export function startBinanceWsFeed() {
   socket.onmessage = event => {
     const msg = JSON.parse(event.data);
     const symbol = msg?.data?.s;
-    const price = parseFloat(msg?.data?.p);
+    const price = Number(msg?.data?.p);
 
-    if (!symbol || !price) return;
+    if (!symbol || !Number.isFinite(price)) return;
 
     const asset = Object.keys(SYMBOL_MAP).find(
       k => SYMBOL_MAP[k].toUpperCase() === symbol
