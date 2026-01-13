@@ -1,14 +1,17 @@
 /* =========================================================
-   Live Price Feed — Binance REST (FINAL)
-   - Fixes XRP permanently
-   - Unified source for BTC / ETH / SOL / XRP
-   - Caching + in-flight deduplication
-   - No rate-limit surprises
+   Live Price Feed (FINAL)
+   - WebSocket first
+   - REST fallback
+   - XRP-safe
 ========================================================= */
+
+import { startBinancePriceFeed, getWsPrice } from "./binanceWsFeed";
+
+startBinancePriceFeed();
 
 const CACHE = {};
 const IN_FLIGHT = {};
-const TTL = 5_000; // 5 seconds
+const TTL = 5_000;
 
 const SYMBOL_MAP = {
   BTC: "BTCUSDT",
@@ -18,20 +21,20 @@ const SYMBOL_MAP = {
 };
 
 export async function getLivePrice(symbol) {
+  // 1️⃣ WebSocket first
+  const wsPrice = getWsPrice(symbol);
+  if (Number.isFinite(wsPrice)) return wsPrice;
+
+  // 2️⃣ REST fallback
   const pair = SYMBOL_MAP[symbol];
-  if (!pair) {
-    console.warn("[priceFeed] Unsupported symbol:", symbol);
-    return null;
-  }
+  if (!pair) return null;
 
   const now = Date.now();
 
-  // Serve cached price
   if (CACHE[pair] && now - CACHE[pair].ts < TTL) {
     return CACHE[pair].price;
   }
 
-  // Deduplicate in-flight requests
   if (IN_FLIGHT[pair]) {
     return IN_FLIGHT[pair];
   }
@@ -39,22 +42,17 @@ export async function getLivePrice(symbol) {
   IN_FLIGHT[pair] = fetch(
     `https://api.binance.com/api/v3/ticker/price?symbol=${pair}`
   )
-    .then(res => {
-      if (!res.ok) throw new Error("Binance fetch failed");
-      return res.json();
-    })
+    .then(r => r.json())
     .then(data => {
       const price = Number(data.price);
-      if (!Number.isFinite(price)) {
-        throw new Error("Invalid price");
-      }
+      if (!Number.isFinite(price)) throw new Error("Invalid price");
 
       CACHE[pair] = { price, ts: Date.now() };
       delete IN_FLIGHT[pair];
       return price;
     })
     .catch(err => {
-      console.error("[priceFeed] error:", pair, err.message);
+      console.error("[priceFeed]", pair, err.message);
       delete IN_FLIGHT[pair];
       return null;
     });
