@@ -1,4 +1,9 @@
-// Real-time Binance price feed (WebSocket)
+/* =========================================================
+   Binance WebSocket Price Feed (FINAL)
+   - Sub-second updates
+   - Auto-reconnect
+   - XRP-safe
+========================================================= */
 
 const SYMBOL_MAP = {
   BTC: "btcusdt",
@@ -24,12 +29,12 @@ export function startBinancePriceFeed() {
   socket.onmessage = event => {
     const msg = JSON.parse(event.data);
     const symbol = msg?.data?.s;
-    const price = parseFloat(msg?.data?.p);
+    const price = Number(msg?.data?.p);
 
-    if (!symbol || !price) return;
+    if (!symbol || !Number.isFinite(price)) return;
 
     const asset = Object.keys(SYMBOL_MAP).find(
-      k => SYMBOL_MAP[k].toUpperCase() === symbol
+      k => SYMBOL_MAP[k].toUpperCase() === symbol.toLowerCase()
     );
 
     if (asset) {
@@ -38,7 +43,7 @@ export function startBinancePriceFeed() {
   };
 
   socket.onerror = err => {
-    console.warn("Binance WS error", err);
+    console.warn("[binance-ws] error", err);
   };
 
   socket.onclose = () => {
@@ -47,6 +52,6 @@ export function startBinancePriceFeed() {
   };
 }
 
-export function getBinancePrices() {
-  return { ...prices };
+export function getWsPrice(symbol) {
+  return prices[symbol] ?? null;
 }
