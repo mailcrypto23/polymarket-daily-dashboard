@@ -4,6 +4,8 @@ import ConfidenceWinRateChart from "../components/ConfidenceWinRateChart";
 import EntryTimingPnLChart from "../components/EntryTimingPnLChart";
 import PriceMovement from "../components/PriceMovement";
 import LiquidityHeatmap from "../components/charts/LiquidityHeatmap";
+import DrawdownBanner from "../components/DrawdownBanner";
+import CapitalCurveChart from "../components/CapitalCurveChart";
 
 export default function Dashboard() {
   return (
@@ -18,6 +20,9 @@ export default function Dashboard() {
           Last updated · live
         </p>
       </header>
+
+      {/* 🚨 DRAWDOWN WARNING */}
+      <DrawdownBanner />
 
       {/* 📌 STICKY SIGNAL STRIP */}
       <section className="sticky top-0 z-40 bg-black/70 backdrop-blur border-b border-white/10">
@@ -35,6 +40,11 @@ export default function Dashboard() {
       <section className="grid grid-cols-1 xl:grid-cols-2 gap-6">
         <ConfidenceWinRateChart />
         <EntryTimingPnLChart />
+      </section>
+
+      {/* 💰 CAPITAL CURVE */}
+      <section>
+        <CapitalCurveChart />
       </section>
 
       {/* 📉 PRICE + 🌊 LIQUIDITY */}
