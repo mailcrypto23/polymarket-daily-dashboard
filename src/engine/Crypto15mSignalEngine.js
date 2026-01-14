@@ -1,14 +1,19 @@
 /* =========================================================
-   Crypto 15m Signal Engine — FINAL
-   - WebSocket price-driven
-   - Odds-based PnL
+   Crypto 15m Signal Engine — FINAL (STABLE)
+   - WebSocket / REST price-driven
+   - Confidence calibration
+   - Regime filtering
+   - Kelly sizing (advisory)
    - XRP-safe initialization
-   - Deterministic explanations
+   - UI-safe YES / NO actions
 ========================================================= */
 
 import { getLivePrice } from "./priceFeed";
 import { getPolymarketOdds } from "./polymarketOddsFeed";
 import { calculateEdge } from "./edgeCalculator";
+import { calibrateConfidence } from "./confidenceCalibrator";
+import { isTradeableRegime } from "./regimeFilter";
+import { kellySize } from "./kellySizing";
 import {
   persistResolvedSignal,
   loadResolvedSignals,
@@ -17,7 +22,7 @@ import {
 /* ================= CONFIG ================= */
 
 const ASSETS = ["BTC", "ETH", "SOL", "XRP"];
-const TIMEFRAME_MS = 15 * 60 * 1000;
+const TIMEFRAME_MS = import.meta.env.DEV ? 60_000 : 15 * 60 * 1000;
 const SAFE_ENTRY_RATIO = 0.4;
 const STAKE = 1;
 const EDGE_THRESHOLD = 0.06;
@@ -26,7 +31,11 @@ const EDGE_THRESHOLD = 0.06;
 
 const engineState = {};
 for (const a of ASSETS) {
-  engineState[a] = { activeSignal: null, history: [] };
+  engineState[a] = {
+    activeSignal: null,
+    history: [],
+    recentPrices: [],
+  };
 }
 
 /* ================= UTILS ================= */
@@ -40,52 +49,46 @@ function buildExplanation(signal) {
   const lines = [];
 
   lines.push(
-    `Model favors ${signal.direction} with ${(signal.confidence * 100).toFixed(
-      1
-    )}% confidence.`
+    `Model confidence: ${(signal.confidence * 100).toFixed(1)}% (${signal.direction}).`
   );
 
   if (typeof signal.marketProbability === "number") {
-    const m = (signal.marketProbability * 100).toFixed(1);
-    const e = (signal.edge * 100).toFixed(1);
     lines.push(
-      signal.edge > 0
-        ? `Market implies ${m}%, creating a +${e}% edge.`
-        : `Market odds (${m}%) offer no positive edge.`
+      `Market implied: ${(signal.marketProbability * 100).toFixed(1)}%, edge ${(signal.edge * 100).toFixed(1)}%.`
     );
-  } else {
-    lines.push("Market odds not yet available.");
+  }
+
+  if (!signal.regimeOK) {
+    lines.push("⚠ Market regime unfavorable (low volatility).");
+  }
+
+  if (signal.kellyFraction > 0) {
+    lines.push(
+      `Kelly size suggestion: ${(signal.kellyFraction * 100).toFixed(1)}% of bankroll.`
+    );
   }
 
   lines.push(
     signal.entryOpen
-      ? "Entry window open with sufficient time remaining."
-      : "Entry window closed — late entries underperform."
-  );
-
-  lines.push(
-    signal.mispriced && signal.entryOpen
-      ? "✅ Trade qualifies as positive expected value."
-      : "⚠ Trade does not meet strict EV criteria."
+      ? "Entry window open."
+      : "Entry closed — timing edge decayed."
   );
 
   return lines;
 }
 
-/* ================= CREATE SIGNAL (XRP FIX) ================= */
+/* ================= CREATE SIGNAL ================= */
 
 async function createSignal(symbol) {
   const createdAt = now();
 
   let price = await getLivePrice(symbol);
-  if (!Number.isFinite(price)) {
-    console.warn(`[engine] price missing for ${symbol}, bootstrapping`);
-    price = 0; // critical: never return null
-  }
+  if (!Number.isFinite(price)) price = 0; // XRP-safe
 
-  const confidence = 0.74;
+  const rawConfidence = 0.74;
+  const confidence = calibrateConfidence(rawConfidence);
 
-  const signal = {
+  return {
     id: generateId(symbol),
     symbol,
     timeframe: "15m",
@@ -104,10 +107,12 @@ async function createSignal(symbol) {
     priceAtEntry: null,
     priceAtResolve: null,
 
-    marketOdds: null,
     marketProbability: null,
     edge: null,
     mispriced: false,
+
+    regimeOK: true,
+    kellyFraction: 0,
 
     pnl: 0,
     result: null,
@@ -118,9 +123,6 @@ async function createSignal(symbol) {
 
     explanation: [],
   };
-
-  signal.explanation = buildExplanation(signal);
-  return signal;
 }
 
 /* ================= RESOLUTION ================= */
@@ -150,6 +152,12 @@ export async function runCrypto15mSignalEngine() {
     const state = engineState[asset];
     let s = state.activeSignal;
 
+    const price = await getLivePrice(asset);
+    if (Number.isFinite(price)) {
+      state.recentPrices.push(price);
+      if (state.recentPrices.length > 30) state.recentPrices.shift();
+    }
+
     if (!s) {
       state.activeSignal = await createSignal(asset);
       continue;
@@ -157,13 +165,11 @@ export async function runCrypto15mSignalEngine() {
 
     if (s.entryOpen && t >= s.entryClosesAt) {
       s.entryOpen = false;
-      s.explanation = buildExplanation(s);
     }
 
-    if (!s.marketOdds) {
+    if (!s.marketProbability) {
       const odds = await getPolymarketOdds(asset);
       if (odds) {
-        s.marketOdds = odds;
         s.marketProbability = odds.marketProb;
 
         const edgeObj = calculateEdge({
@@ -171,8 +177,18 @@ export async function runCrypto15mSignalEngine() {
           marketProb: odds.marketProb,
         });
 
-        s.edge = edgeObj?.edge ?? null;
-        s.mispriced = typeof s.edge === "number" && s.edge >= EDGE_THRESHOLD;
+        s.edge = edgeObj?.edge ?? 0;
+        s.mispriced = s.edge >= EDGE_THRESHOLD;
+
+        s.regimeOK = isTradeableRegime(state.recentPrices);
+
+        s.kellyFraction = s.mispriced
+          ? kellySize({
+              edge: s.edge,
+              odds: 1 / odds.marketProb,
+            })
+          : 0;
+
         s.explanation = buildExplanation(s);
       }
     }
@@ -190,6 +206,29 @@ export async function runCrypto15mSignalEngine() {
       state.activeSignal = await createSignal(asset);
     }
   }
+}
+
+/* ================= UI ACTION EXPORTS (REQUIRED) ================= */
+
+export function enterSignal(symbol) {
+  const s = engineState[symbol]?.activeSignal;
+  if (!s || !s.entryOpen) return false;
+
+  s.userAction = "ENTER";
+  s.entryAt = now();
+  s.entryDelayMs = s.entryAt - s.createdAt;
+  s.priceAtEntry = s.priceAtSignal;
+
+  return true;
+}
+
+export function skipSignal(symbol) {
+  const s = engineState[symbol]?.activeSignal;
+  if (!s || !s.entryOpen) return false;
+
+  s.userAction = "SKIP";
+  s.entryOpen = false;
+  return true;
 }
 
 /* ================= SELECTORS ================= */
@@ -214,33 +253,3 @@ export function getLastResolvedSignals(limit = 50) {
     .sort((a, b) => b.resolveAt - a.resolveAt)
     .slice(0, limit);
 }
-/* ================= UI ACTION EXPORTS (REQUIRED) ================= */
-
-// ⚠️ DO NOT MOVE, DO NOT NEST, DO NOT RENAME
-
-export function enterSignal(symbol) {
-  const s = engineState[symbol]?.activeSignal;
-  if (!s || !s.entryOpen) return false;
-
-  s.userAction = "ENTER";
-  s.entryAt = Date.now();
-  s.entryDelayMs = s.entryAt - s.createdAt;
-  s.priceAtEntry = s.priceAtSignal;
-
-  return true;
-}
-
-export function skipSignal(symbol) {
-  const s = engineState[symbol]?.activeSignal;
-  if (!s || !s.entryOpen) return false;
-
-  s.userAction = "SKIP";
-  s.entryOpen = false;
-
-  if (typeof buildExplanation === "function") {
-    s.explanation = buildExplanation(s);
-  }
-
-  return true;
-}
-
