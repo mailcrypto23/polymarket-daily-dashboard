@@ -1,6 +1,6 @@
 import { useCountdown } from "../hooks/useCountdown";
 import { enterSignal, skipSignal } from "../engine/Crypto15mSignalEngine";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 export default function Crypto15mSignalCard({ signal }) {
   const resolve = useCountdown(signal.resolveAt);
@@ -16,6 +16,11 @@ export default function Crypto15mSignalCard({ signal }) {
   const resolved = resolve.isExpired;
   const [clicked, setClicked] = useState(signal.userAction);
 
+  /* 🔁 Sync local UI state with engine state */
+  useEffect(() => {
+    setClicked(signal.userAction);
+  }, [signal.userAction]);
+
   function onYes() {
     if (!entryAllowed) return;
     const ok = enterSignal(signal.symbol);
@@ -23,17 +28,22 @@ export default function Crypto15mSignalCard({ signal }) {
   }
 
   function onNo() {
-    if (!entryAllowed) return;
+    if (signal.userAction || entry.isExpired) return;
     const ok = skipSignal(signal.symbol);
     if (ok) setClicked("SKIP");
   }
 
   /* ===== TRADE STATUS LABEL ===== */
   let statusLabel = "✅ Tradable";
-  if (signal.drawdownBlocked) statusLabel = "⛔ Drawdown limit reached";
-  else if (!signal.regimeOK) statusLabel = "⚠ Low-volatility regime";
-  else if (!signal.mispriced) statusLabel = "⚠ No positive edge";
-  else if (!entryAllowed) statusLabel = "⏳ Entry window closed";
+
+  if (signal.drawdownBlocked)
+    statusLabel = "⛔ Drawdown limit reached";
+  else if (!signal.regimeOK)
+    statusLabel = "⚠ Low-volatility regime";
+  else if (!signal.mispriced)
+    statusLabel = "⚠ No positive edge";
+  else if (entry.isExpired)
+    statusLabel = "⏳ Entry window closed";
 
   return (
     <div className="rounded-xl bg-gradient-to-br from-purple-700 to-purple-900 p-4 shadow-lg relative">
@@ -103,16 +113,16 @@ export default function Crypto15mSignalCard({ signal }) {
 
         <button
           onClick={onNo}
-          disabled={!entryAllowed}
+          disabled={!!signal.userAction}
           className={`flex-1 py-2 rounded-lg text-sm font-semibold transition ${
             clicked === "SKIP"
               ? "bg-red-700 text-black"
-              : entryAllowed
+              : !signal.userAction
               ? "bg-red-500 hover:bg-red-600 text-black"
               : "bg-white/10 text-white/30 cursor-not-allowed"
           }`}
         >
-          {clicked === "SKIPPED" ? "SKIPPED" : "NO"}
+          {clicked === "SKIP" ? "SKIPPED" : "NO"}
         </button>
       </div>
 
