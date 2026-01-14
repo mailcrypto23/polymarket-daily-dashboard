@@ -1,7 +1,6 @@
 /* =========================================================
-   Confidence Calibration Loop
-   - Learns bias between predicted confidence vs realized win-rate
-   - Outputs calibrated confidence
+   Confidence Calibration Loop (FINAL)
+   - Learns bias between predicted confidence vs actual win-rate
 ========================================================= */
 
 import { getLastResolvedSignals } from "./Crypto15mSignalEngine";
