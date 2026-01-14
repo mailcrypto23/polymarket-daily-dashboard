@@ -4,6 +4,7 @@
    - Confidence calibration
    - Regime filtering
    - Kelly sizing (advisory)
+   - Drawdown guard (HARD BLOCK)
    - XRP-safe initialization
    - UI-safe YES / NO actions
 ========================================================= */
@@ -13,6 +14,7 @@ import { getPolymarketOdds } from "./polymarketOddsFeed";
 import { calculateEdge } from "./edgeCalculator";
 import { calibrateConfidence } from "./confidenceCalibrator";
 import { isTradeableRegime } from "./regimeFilter";
+import { getDrawdownState } from "./drawdownGuard";
 import { kellySize } from "./kellySizing";
 import {
   persistResolvedSignal,
@@ -54,17 +56,23 @@ function buildExplanation(signal) {
 
   if (typeof signal.marketProbability === "number") {
     lines.push(
-      `Market implied: ${(signal.marketProbability * 100).toFixed(1)}%, edge ${(signal.edge * 100).toFixed(1)}%.`
+      `Market implied ${(signal.marketProbability * 100).toFixed(
+        1
+      )}%, edge ${(signal.edge * 100).toFixed(1)}%.`
     );
   }
 
   if (!signal.regimeOK) {
-    lines.push("⚠ Market regime unfavorable (low volatility).");
+    lines.push("⚠ Market regime: low volatility (CHOP).");
+  }
+
+  if (signal.drawdownBlocked) {
+    lines.push("⛔ Trading paused: drawdown limit reached.");
   }
 
   if (signal.kellyFraction > 0) {
     lines.push(
-      `Kelly size suggestion: ${(signal.kellyFraction * 100).toFixed(1)}% of bankroll.`
+      `Kelly suggestion: ${(signal.kellyFraction * 100).toFixed(1)}% of bankroll.`
     );
   }
 
@@ -83,7 +91,7 @@ async function createSignal(symbol) {
   const createdAt = now();
 
   let price = await getLivePrice(symbol);
-  if (!Number.isFinite(price)) price = 0; // XRP-safe
+  if (!Number.isFinite(price)) price = 0; // XRP-safe bootstrap
 
   const rawConfidence = 0.74;
   const confidence = calibrateConfidence(rawConfidence);
@@ -108,10 +116,11 @@ async function createSignal(symbol) {
     priceAtResolve: null,
 
     marketProbability: null,
-    edge: null,
+    edge: 0,
     mispriced: false,
 
     regimeOK: true,
+    drawdownBlocked: false,
     kellyFraction: 0,
 
     pnl: 0,
@@ -135,7 +144,10 @@ function resolveSignal(signal) {
 
   signal.result = won ? "WIN" : "LOSS";
 
-  if (signal.userAction === "ENTER" && signal.marketProbability) {
+  if (
+    signal.userAction === "ENTER" &&
+    typeof signal.marketProbability === "number"
+  ) {
     const p = signal.marketProbability;
     signal.pnl = Number(((won ? 1 / p - 1 : -1) * STAKE).toFixed(4));
   }
@@ -147,6 +159,7 @@ function resolveSignal(signal) {
 
 export async function runCrypto15mSignalEngine() {
   const t = now();
+  const drawdown = getDrawdownState();
 
   for (const asset of ASSETS) {
     const state = engineState[asset];
@@ -181,13 +194,15 @@ export async function runCrypto15mSignalEngine() {
         s.mispriced = s.edge >= EDGE_THRESHOLD;
 
         s.regimeOK = isTradeableRegime(state.recentPrices);
+        s.drawdownBlocked = drawdown.blocked;
 
-        s.kellyFraction = s.mispriced
-          ? kellySize({
-              edge: s.edge,
-              odds: 1 / odds.marketProb,
-            })
-          : 0;
+        s.kellyFraction =
+          s.mispriced && s.regimeOK && !s.drawdownBlocked
+            ? kellySize({
+                edge: s.edge,
+                odds: 1 / odds.marketProb,
+              })
+            : 0;
 
         s.explanation = buildExplanation(s);
       }
@@ -208,11 +223,17 @@ export async function runCrypto15mSignalEngine() {
   }
 }
 
-/* ================= UI ACTION EXPORTS (REQUIRED) ================= */
+/* ================= UI ACTION EXPORTS (DO NOT TOUCH) ================= */
 
 export function enterSignal(symbol) {
   const s = engineState[symbol]?.activeSignal;
-  if (!s || !s.entryOpen) return false;
+  if (
+    !s ||
+    !s.entryOpen ||
+    s.drawdownBlocked ||
+    !s.regimeOK
+  )
+    return false;
 
   s.userAction = "ENTER";
   s.entryAt = now();
