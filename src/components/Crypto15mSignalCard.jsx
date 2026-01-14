@@ -1,53 +1,34 @@
 import { useCountdown } from "../hooks/useCountdown";
-import { enterSignal, skipSignal } from "../engine/Crypto15mSignalEngine";
-import { getTradeDecision } from "../engine/tradeDecisionEngine";
-import { getDrawdownState } from "../engine/drawdownGuard";
 import { useState } from "react";
 
 /* =========================================================
-   Crypto15mSignalCard — FINAL (Sequential Q&A + Guarded)
-   - Uses tradeDecisionEngine (single source of truth)
-   - Forces step-by-step review before YES / NO
-   - No duplicated risk logic
+   Crypto15mSignalCard — ANALYTICS ONLY (Approval Safe)
+   - No execution
+   - No trade engines
+   - No wallet access
 ========================================================= */
 
-const QA_STEPS = [
-  "CONFIDENCE",
-  "EDGE",
-  "REGIME",
-  "RISK",
-];
+const QA_STEPS = ["CONFIDENCE", "EDGE", "REGIME", "RISK"];
 
 export default function Crypto15mSignalCard({ signal }) {
   const resolve = useCountdown(signal.resolveAt);
-  const entry = useCountdown(signal.entryClosesAt);
-
   const resolved = resolve.isExpired;
 
-  const drawdownState = getDrawdownState();
-  const decision = getTradeDecision(signal, drawdownState);
-
-  const [clicked, setClicked] = useState(signal.userAction);
   const [step, setStep] = useState(0);
-
   const reviewComplete = step >= QA_STEPS.length;
-  const canAct =
-    reviewComplete && decision.status === "ALLOWED";
 
   function nextStep() {
-    setStep(s => Math.min(s + 1, QA_STEPS.length));
+    setStep((s) => Math.min(s + 1, QA_STEPS.length));
   }
 
-  function onYes() {
-    if (!canAct) return;
-    const ok = enterSignal(signal.symbol);
-    if (ok) setClicked("ENTER");
-  }
-
-  function onNo() {
-    if (!canAct) return;
-    const ok = skipSignal(signal.symbol);
-    if (ok) setClicked("SKIP");
+  function copyThesis() {
+    navigator.clipboard.writeText(
+      `${signal.symbol} · ${signal.direction}
+Confidence: ${(signal.confidence * 100).toFixed(1)}%
+Edge: ${signal.edge ? (signal.edge * 100).toFixed(1) + "%" : "—"}
+Regime: ${signal.regimeOK ? "Trending" : "Low Volatility"}
+Resolve in ${resolve.label}`
+    );
   }
 
   return (
@@ -85,34 +66,12 @@ export default function Crypto15mSignalCard({ signal }) {
         Resolve in {resolve.label}
       </div>
 
-      {/* DECISION STATUS */}
-      <div className="text-xs mb-3 font-semibold">
-        {decision.status === "ALLOWED" && (
-          <span className="text-green-400">🟢 Trade Allowed</span>
-        )}
-        {decision.reason === "DRAWDOWN" && (
-          <span className="text-red-400">
-            ⛔ Blocked: Drawdown limit reached
-          </span>
-        )}
-        {decision.reason === "REGIME" && (
-          <span className="text-yellow-400">
-            ⚠ Blocked: Low-volatility regime
-          </span>
-        )}
-        {decision.reason === "NO_EDGE" && (
-          <span className="text-white/50">
-            ⚪ Blocked: No positive edge
-          </span>
-        )}
-        {decision.reason === "ENTRY_CLOSED" && (
-          <span className="text-white/40">
-            ⚫ Blocked: Entry window closed
-          </span>
-        )}
+      {/* ANALYTICS DISCLAIMER */}
+      <div className="text-[11px] text-white/40 mb-3">
+        Analytics only · No execution · No wallet access
       </div>
 
-      {/* ===== SEQUENTIAL Q&A ===== */}
+      {/* ===== SEQUENTIAL REVIEW ===== */}
       <div className="space-y-2 mb-4">
         <div className="text-[11px] text-white/40">
           Review {Math.min(step, QA_STEPS.length)} / {QA_STEPS.length}
@@ -143,11 +102,7 @@ export default function Crypto15mSignalCard({ signal }) {
         )}
 
         {step >= 3 && (
-          <QAItem title="4. Risk Controls">
-            {drawdownState.blocked
-              ? "Drawdown limit breached."
-              : "Drawdown within limits."}
-            <br />
+          <QAItem title="4. Risk Context">
             Kelly suggestion:{" "}
             {(signal.kellyFraction * 100).toFixed(1)}%
           </QAItem>
@@ -163,38 +118,26 @@ export default function Crypto15mSignalCard({ signal }) {
         )}
       </div>
 
-      {/* ACTION BUTTONS */}
-      <div className="flex gap-2">
-        <button
-          onClick={onYes}
-          disabled={!canAct}
-          className={`flex-1 py-2 rounded-lg text-sm font-semibold ${
-            clicked === "ENTER"
-              ? "bg-green-700 text-black"
-              : canAct
-              ? "bg-green-500 hover:bg-green-600 text-black"
-              : "bg-white/10 text-white/30 cursor-not-allowed"
-          }`}
+      {/* ACTIONS (SAFE) */}
+      <div className="flex gap-3">
+        <a
+          href={`https://polymarket.com`}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="flex-1 py-2 rounded-lg bg-neutral-800 hover:bg-neutral-700 text-white text-sm font-semibold text-center"
         >
-          {clicked === "ENTER" ? "ENTERED ✓" : "YES"}
-        </button>
+          View Market on Polymarket ↗
+        </a>
 
         <button
-          onClick={onNo}
-          disabled={!canAct}
-          className={`flex-1 py-2 rounded-lg text-sm font-semibold ${
-            clicked === "SKIP"
-              ? "bg-red-700 text-black"
-              : canAct
-              ? "bg-red-500 hover:bg-red-600 text-black"
-              : "bg-white/10 text-white/30 cursor-not-allowed"
-          }`}
+          onClick={copyThesis}
+          className="flex-1 py-2 rounded-lg bg-neutral-900 hover:bg-neutral-800 text-white text-sm font-semibold"
         >
-          {clicked === "SKIP" ? "SKIPPED" : "NO"}
+          Copy Thesis
         </button>
       </div>
 
-      {/* RESOLVED OVERLAY */}
+      {/* RESOLVED */}
       {resolved && (
         <div className="absolute inset-0 bg-black/60 rounded-xl flex items-center justify-center text-white text-sm font-semibold">
           RESOLVED
