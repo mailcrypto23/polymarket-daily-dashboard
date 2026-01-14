@@ -1,5 +1,7 @@
 import { useCountdown } from "../hooks/useCountdown";
 import { enterSignal, skipSignal } from "../engine/Crypto15mSignalEngine";
+import { getTradeDecision } from "../engine/tradeDecisionEngine";
+import { getDrawdownState } from "../engine/drawdownGuard";
 import { useState } from "react";
 
 export default function Crypto15mSignalCard({ signal }) {
@@ -9,16 +11,19 @@ export default function Crypto15mSignalCard({ signal }) {
   const entryOpen = !entry.isExpired && !signal.userAction;
   const resolved = resolve.isExpired;
 
+  const drawdownState = getDrawdownState();
+  const decision = getTradeDecision(signal, drawdownState);
+
   const [clicked, setClicked] = useState(signal.userAction);
 
   function onYes() {
-    if (!entryOpen) return;
+    if (decision.status !== "ALLOWED") return;
     const ok = enterSignal(signal.symbol);
     if (ok) setClicked("ENTER");
   }
 
   function onNo() {
-    if (!entryOpen) return;
+    if (decision.status !== "ALLOWED") return;
     const ok = skipSignal(signal.symbol);
     if (ok) setClicked("SKIP");
   }
@@ -48,12 +53,18 @@ export default function Crypto15mSignalCard({ signal }) {
       </div>
 
       {/* Resolve Timer */}
-      <div className={`text-xs mb-2 ${resolve.isUrgent ? "text-red-400 font-semibold" : "text-white/70"}`}>
+      <div
+        className={`text-xs mb-2 ${
+          resolve.isUrgent
+            ? "text-red-400 font-semibold"
+            : "text-white/70"
+        }`}
+      >
         Resolve in {resolve.label}
       </div>
 
       {/* Entry Status */}
-      <div className="text-xs mb-3">
+      <div className="text-xs mb-2">
         {entryOpen ? (
           <span className="text-green-400">
             ENTRY OPEN · closes in {entry.label}
@@ -63,22 +74,42 @@ export default function Crypto15mSignalCard({ signal }) {
         )}
       </div>
 
-      {/* Regime Banner */}
-      {signal.regimeOK === false && (
-        <div className="mb-2 rounded bg-yellow-600/20 text-yellow-300 text-xs px-2 py-1">
-          ⚠ Low-quality market regime — trade discouraged
-        </div>
-      )}
+      {/* Trade Decision Banner */}
+      <div className="text-xs mb-3 font-semibold">
+        {decision.status === "ALLOWED" && (
+          <span className="text-green-400">🟢 Trade Allowed</span>
+        )}
+        {decision.reason === "DRAWDOWN" && (
+          <span className="text-red-400">
+            ⛔ Blocked: Drawdown limit reached
+          </span>
+        )}
+        {decision.reason === "REGIME" && (
+          <span className="text-yellow-400">
+            ⚠ Blocked: Low-volatility regime
+          </span>
+        )}
+        {decision.reason === "NO_EDGE" && (
+          <span className="text-white/50">
+            ⚪ Blocked: No positive edge
+          </span>
+        )}
+        {decision.reason === "ENTRY_CLOSED" && (
+          <span className="text-white/40">
+            ⚫ Blocked: Entry window closed
+          </span>
+        )}
+      </div>
 
       {/* Buttons */}
       <div className="flex gap-2 mb-3">
         <button
           onClick={onYes}
-          disabled={!entryOpen}
+          disabled={decision.status !== "ALLOWED"}
           className={`flex-1 py-2 rounded-lg text-sm font-semibold transition ${
             clicked === "ENTER"
               ? "bg-green-700 text-black"
-              : entryOpen
+              : decision.status === "ALLOWED"
               ? "bg-green-500 hover:bg-green-600 text-black"
               : "bg-white/10 text-white/30 cursor-not-allowed"
           }`}
@@ -88,11 +119,11 @@ export default function Crypto15mSignalCard({ signal }) {
 
         <button
           onClick={onNo}
-          disabled={!entryOpen}
+          disabled={decision.status !== "ALLOWED"}
           className={`flex-1 py-2 rounded-lg text-sm font-semibold transition ${
             clicked === "SKIP"
               ? "bg-red-700 text-black"
-              : entryOpen
+              : decision.status === "ALLOWED"
               ? "bg-red-500 hover:bg-red-600 text-black"
               : "bg-white/10 text-white/30 cursor-not-allowed"
           }`}
@@ -116,7 +147,11 @@ export default function Crypto15mSignalCard({ signal }) {
 
       {/* Debug Row */}
       <div className="mt-2 text-[10px] text-white/40">
-        Edge: {signal.edge?.toFixed(3) ?? "—"} | Kelly: {(signal.kelly * 100 || 0).toFixed(1)}%
+        Edge: {signal.edge?.toFixed(3) ?? "—"} | Kelly:{" "}
+        {signal.kellyFraction
+          ? (signal.kellyFraction * 100).toFixed(1)
+          : "0.0"}
+        %
       </div>
 
       {/* Resolved Overlay */}
