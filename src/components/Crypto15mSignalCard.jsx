@@ -4,40 +4,62 @@ import { getTradeDecision } from "../engine/tradeDecisionEngine";
 import { getDrawdownState } from "../engine/drawdownGuard";
 import { useState } from "react";
 
+/* =========================================================
+   Crypto15mSignalCard — FINAL (Sequential Q&A + Guarded)
+   - Uses tradeDecisionEngine (single source of truth)
+   - Forces step-by-step review before YES / NO
+   - No duplicated risk logic
+========================================================= */
+
+const QA_STEPS = [
+  "CONFIDENCE",
+  "EDGE",
+  "REGIME",
+  "RISK",
+];
+
 export default function Crypto15mSignalCard({ signal }) {
   const resolve = useCountdown(signal.resolveAt);
   const entry = useCountdown(signal.entryClosesAt);
 
-  const entryOpen = !entry.isExpired && !signal.userAction;
   const resolved = resolve.isExpired;
 
   const drawdownState = getDrawdownState();
   const decision = getTradeDecision(signal, drawdownState);
 
   const [clicked, setClicked] = useState(signal.userAction);
+  const [step, setStep] = useState(0);
+
+  const reviewComplete = step >= QA_STEPS.length;
+  const canAct =
+    reviewComplete && decision.status === "ALLOWED";
+
+  function nextStep() {
+    setStep(s => Math.min(s + 1, QA_STEPS.length));
+  }
 
   function onYes() {
-    if (decision.status !== "ALLOWED") return;
+    if (!canAct) return;
     const ok = enterSignal(signal.symbol);
     if (ok) setClicked("ENTER");
   }
 
   function onNo() {
-    if (decision.status !== "ALLOWED") return;
+    if (!canAct) return;
     const ok = skipSignal(signal.symbol);
     if (ok) setClicked("SKIP");
   }
 
   return (
-    <div className="rounded-xl bg-gradient-to-br from-purple-700 to-purple-900 p-4 shadow-lg relative">
+    <div className="rounded-xl bg-black/60 border border-white/10 p-4 shadow-lg relative">
 
-      {/* Header */}
+      {/* HEADER */}
       <div className="flex justify-between items-start mb-2">
         <div>
           <h3 className="font-semibold text-white text-sm">
             {signal.symbol} · 15m
           </h3>
-          <p className="text-xs text-white/70">
+          <p className="text-xs text-white/60">
             Signal @ {new Date(signal.createdAt).toLocaleTimeString()}
           </p>
         </div>
@@ -46,35 +68,24 @@ export default function Crypto15mSignalCard({ signal }) {
           <div className="text-lg font-bold text-white">
             {(signal.confidence * 100).toFixed(0)}%
           </div>
-          <div className="text-xs text-white/70">
+          <div className="text-xs text-white/60">
             {signal.direction}
           </div>
         </div>
       </div>
 
-      {/* Resolve Timer */}
+      {/* TIMER */}
       <div
         className={`text-xs mb-2 ${
           resolve.isUrgent
             ? "text-red-400 font-semibold"
-            : "text-white/70"
+            : "text-white/60"
         }`}
       >
         Resolve in {resolve.label}
       </div>
 
-      {/* Entry Status */}
-      <div className="text-xs mb-2">
-        {entryOpen ? (
-          <span className="text-green-400">
-            ENTRY OPEN · closes in {entry.label}
-          </span>
-        ) : (
-          <span className="text-white/40">ENTRY LOCKED</span>
-        )}
-      </div>
-
-      {/* Trade Decision Banner */}
+      {/* DECISION STATUS */}
       <div className="text-xs mb-3 font-semibold">
         {decision.status === "ALLOWED" && (
           <span className="text-green-400">🟢 Trade Allowed</span>
@@ -101,15 +112,66 @@ export default function Crypto15mSignalCard({ signal }) {
         )}
       </div>
 
-      {/* Buttons */}
-      <div className="flex gap-2 mb-3">
+      {/* ===== SEQUENTIAL Q&A ===== */}
+      <div className="space-y-2 mb-4">
+        <div className="text-[11px] text-white/40">
+          Review {Math.min(step, QA_STEPS.length)} / {QA_STEPS.length}
+        </div>
+
+        {step >= 0 && (
+          <QAItem title="1. Confidence">
+            Model confidence is{" "}
+            {(signal.confidence * 100).toFixed(1)}%.
+          </QAItem>
+        )}
+
+        {step >= 1 && (
+          <QAItem title="2. Market Edge">
+            Edge detected:{" "}
+            {signal.edge
+              ? (signal.edge * 100).toFixed(1) + "%"
+              : "—"}
+          </QAItem>
+        )}
+
+        {step >= 2 && (
+          <QAItem title="3. Market Regime">
+            {signal.regimeOK
+              ? "Regime acceptable (trending)."
+              : "Low volatility (chop)."}
+          </QAItem>
+        )}
+
+        {step >= 3 && (
+          <QAItem title="4. Risk Controls">
+            {drawdownState.blocked
+              ? "Drawdown limit breached."
+              : "Drawdown within limits."}
+            <br />
+            Kelly suggestion:{" "}
+            {(signal.kellyFraction * 100).toFixed(1)}%
+          </QAItem>
+        )}
+
+        {step < QA_STEPS.length && (
+          <button
+            onClick={nextStep}
+            className="w-full rounded-md bg-white/10 hover:bg-white/20 text-white text-xs py-2"
+          >
+            Next
+          </button>
+        )}
+      </div>
+
+      {/* ACTION BUTTONS */}
+      <div className="flex gap-2">
         <button
           onClick={onYes}
-          disabled={decision.status !== "ALLOWED"}
-          className={`flex-1 py-2 rounded-lg text-sm font-semibold transition ${
+          disabled={!canAct}
+          className={`flex-1 py-2 rounded-lg text-sm font-semibold ${
             clicked === "ENTER"
               ? "bg-green-700 text-black"
-              : decision.status === "ALLOWED"
+              : canAct
               ? "bg-green-500 hover:bg-green-600 text-black"
               : "bg-white/10 text-white/30 cursor-not-allowed"
           }`}
@@ -119,11 +181,11 @@ export default function Crypto15mSignalCard({ signal }) {
 
         <button
           onClick={onNo}
-          disabled={decision.status !== "ALLOWED"}
-          className={`flex-1 py-2 rounded-lg text-sm font-semibold transition ${
+          disabled={!canAct}
+          className={`flex-1 py-2 rounded-lg text-sm font-semibold ${
             clicked === "SKIP"
               ? "bg-red-700 text-black"
-              : decision.status === "ALLOWED"
+              : canAct
               ? "bg-red-500 hover:bg-red-600 text-black"
               : "bg-white/10 text-white/30 cursor-not-allowed"
           }`}
@@ -132,34 +194,21 @@ export default function Crypto15mSignalCard({ signal }) {
         </button>
       </div>
 
-      {/* WHY THIS TRADE */}
-      <div className="relative group text-xs text-white/60 cursor-help">
-        Why this trade?
-
-        <div className="absolute bottom-full left-0 mb-2 w-80 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-20">
-          <div className="bg-black/80 backdrop-blur border border-white/10 rounded-lg p-3 shadow-xl text-xs text-gray-200">
-            {signal.explanation?.map((line, i) => (
-              <div key={i} className="mb-1">{line}</div>
-            ))}
-          </div>
-        </div>
-      </div>
-
-      {/* Debug Row */}
-      <div className="mt-2 text-[10px] text-white/40">
-        Edge: {signal.edge?.toFixed(3) ?? "—"} | Kelly:{" "}
-        {signal.kellyFraction
-          ? (signal.kellyFraction * 100).toFixed(1)
-          : "0.0"}
-        %
-      </div>
-
-      {/* Resolved Overlay */}
+      {/* RESOLVED OVERLAY */}
       {resolved && (
         <div className="absolute inset-0 bg-black/60 rounded-xl flex items-center justify-center text-white text-sm font-semibold">
           RESOLVED
         </div>
       )}
+    </div>
+  );
+}
+
+function QAItem({ title, children }) {
+  return (
+    <div className="rounded-md border border-white/10 bg-black/40 p-2 text-xs text-white/80">
+      <div className="font-semibold mb-1">{title}</div>
+      <div className="text-white/60">{children}</div>
     </div>
   );
 }
