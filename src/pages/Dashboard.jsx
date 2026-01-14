@@ -6,6 +6,7 @@ import PriceMovement from "../components/PriceMovement";
 import LiquidityHeatmap from "../components/charts/LiquidityHeatmap";
 import DrawdownBanner from "../components/DrawdownBanner";
 import CapitalCurveChart from "../components/CapitalCurveChart";
+import ExportTradesButton from "../components/ExportTradesButton";
 
 export default function Dashboard() {
   return (
@@ -34,6 +35,14 @@ export default function Dashboard() {
       {/* 📊 TRACTION */}
       <section>
         <TractionPanel variant="compact" />
+      </section>
+
+      {/* 📈 ANALYTICS HEADER + EXPORT */}
+      <section className="flex justify-between items-center">
+        <h2 className="text-lg font-semibold text-white">
+          Performance Analytics
+        </h2>
+        <ExportTradesButton />
       </section>
 
       {/* 📈 ANALYTICS */}
