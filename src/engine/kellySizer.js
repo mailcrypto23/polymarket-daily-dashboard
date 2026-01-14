@@ -10,7 +10,8 @@ export function kellySize({
   odds,
   maxFraction = 0.25,
 }) {
-  if (!edge || edge <= 0 || !odds || odds <= 1) return 0;
+  if (!Number.isFinite(edge) || edge <= 0) return 0;
+  if (!Number.isFinite(odds) || odds <= 1) return 0;
 
   const b = odds - 1;
   const p = edge + 1 / odds;
