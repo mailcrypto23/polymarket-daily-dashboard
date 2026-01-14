@@ -12,6 +12,8 @@ const BUCKETS = [
   [0.8, 0.85],
 ];
 
+const MIN_SAMPLE = 10;
+
 export function getConfidenceBuckets() {
   const resolved = getLastResolvedSignals(500);
 
@@ -26,8 +28,11 @@ export function getConfidenceBuckets() {
     return {
       range: `${Math.round(min * 100)}–${Math.round(max * 100)}%`,
       count: group.length,
-      winRate: group.length ? wins / group.length : null,
-      pnl,
+      winRate:
+        group.length >= MIN_SAMPLE
+          ? wins / group.length
+          : null,
+      pnl: Number(pnl.toFixed(4)),
     };
   });
 }
