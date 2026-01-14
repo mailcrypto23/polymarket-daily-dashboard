@@ -1,158 +1,153 @@
-import { useCountdown } from "../hooks/useCountdown";
-import { enterSignal, skipSignal } from "../engine/Crypto15mSignalEngine";
-import { useEffect, useState } from "react";
+/* =========================================================
+   Crypto 15m Signal Engine — FINAL (STABLE)
+========================================================= */
 
-export default function Crypto15mSignalCard({ signal }) {
-  const resolve = useCountdown(signal.resolveAt);
-  const entry = useCountdown(signal.entryClosesAt);
+import { getLivePrice } from "./priceFeed";
+import { getPolymarketOdds } from "./polymarketOddsFeed";
+import { calculateEdge } from "./edgeCalculator";
+import { calibrateConfidence } from "./confidenceCalibrator";
+import { isTradeableRegime } from "./regimeFilter";
+import { getDrawdownState } from "./drawdownGuard";
+import { kellySize } from "./kellySizing";
+import {
+  persistResolvedSignal,
+  loadResolvedSignals,
+} from "./signalPersistence";
 
-  const entryAllowed =
-    !entry.isExpired &&
-    !signal.userAction &&
-    signal.regimeOK &&
-    !signal.drawdownBlocked &&
-    signal.mispriced;
+const ASSETS = ["BTC", "ETH", "SOL", "XRP"];
+const TIMEFRAME_MS = import.meta.env.DEV ? 60_000 : 15 * 60 * 1000;
+const SAFE_ENTRY_RATIO = 0.4;
+const STAKE = 1;
+const EDGE_THRESHOLD = 0.06;
 
-  const resolved = resolve.isExpired;
-  const [clicked, setClicked] = useState(signal.userAction);
+const engineState = {};
+for (const a of ASSETS) {
+  engineState[a] = { activeSignal: null, history: [], recentPrices: [] };
+}
 
-  /* 🔁 Sync local UI state with engine state */
-  useEffect(() => {
-    setClicked(signal.userAction);
-  }, [signal.userAction]);
+const now = () => Date.now();
+const id = s => `${s}-15m-${Date.now()}`;
 
-  function onYes() {
-    if (!entryAllowed) return;
-    const ok = enterSignal(signal.symbol);
-    if (ok) setClicked("ENTER");
+async function createSignal(symbol) {
+  const createdAt = now();
+  let price = await getLivePrice(symbol);
+  if (!Number.isFinite(price)) price = 0;
+
+  const confidence = calibrateConfidence(0.74);
+
+  return {
+    id: id(symbol),
+    symbol,
+    confidence,
+    direction: confidence >= 0.5 ? "UP" : "DOWN",
+    createdAt,
+    resolveAt: createdAt + TIMEFRAME_MS,
+    entryClosesAt: createdAt + TIMEFRAME_MS * SAFE_ENTRY_RATIO,
+    entryOpen: true,
+    priceAtSignal: price,
+    priceAtEntry: null,
+    priceAtResolve: null,
+    marketProbability: null,
+    edge: 0,
+    mispriced: false,
+    regimeOK: true,
+    drawdownBlocked: false,
+    kellyFraction: 0,
+    pnl: 0,
+    result: null,
+    userAction: null,
+    entryDelayMs: null,
+    resolved: false,
+    explanation: [],
+  };
+}
+
+function resolveSignal(s) {
+  const won =
+    s.direction === "UP"
+      ? s.priceAtResolve > s.priceAtEntry
+      : s.priceAtResolve < s.priceAtEntry;
+
+  s.result = won ? "WIN" : "LOSS";
+  if (s.userAction === "ENTER" && s.marketProbability) {
+    const p = s.marketProbability;
+    s.pnl = Number(((won ? 1 / p - 1 : -1) * STAKE).toFixed(4));
   }
+  s.resolved = true;
+}
 
-  function onNo() {
-    if (signal.userAction || entry.isExpired) return;
-    const ok = skipSignal(signal.symbol);
-    if (ok) setClicked("SKIP");
+export async function runCrypto15mSignalEngine() {
+  const t = now();
+  const drawdown = getDrawdownState();
+
+  for (const asset of ASSETS) {
+    const state = engineState[asset];
+    let s = state.activeSignal;
+
+    const price = await getLivePrice(asset);
+    if (Number.isFinite(price)) {
+      state.recentPrices.push(price);
+      if (state.recentPrices.length > 30) state.recentPrices.shift();
+    }
+
+    if (!s) {
+      state.activeSignal = await createSignal(asset);
+      continue;
+    }
+
+    if (!s.marketProbability) {
+      const odds = await getPolymarketOdds(asset);
+      if (odds) {
+        s.marketProbability = odds.marketProb;
+        const e = calculateEdge({
+          confidence: s.confidence,
+          marketProb: odds.marketProb,
+        });
+        s.edge = e?.edge ?? 0;
+        s.mispriced = s.edge >= EDGE_THRESHOLD;
+        s.regimeOK = isTradeableRegime(state.recentPrices);
+        s.drawdownBlocked = drawdown.blocked;
+        s.kellyFraction =
+          s.mispriced && s.regimeOK && !s.drawdownBlocked
+            ? kellySize({ edge: s.edge, odds: 1 / odds.marketProb })
+            : 0;
+      }
+    }
+
+    if (!s.resolved && t >= s.resolveAt) {
+      s.priceAtResolve = await getLivePrice(asset);
+      s.priceAtEntry ||= s.priceAtSignal;
+      resolveSignal(s);
+      state.history.unshift(s);
+      persistResolvedSignal(s);
+      state.activeSignal = await createSignal(asset);
+    }
   }
+}
 
-  /* ===== TRADE STATUS LABEL ===== */
-  let statusLabel = "✅ Tradable";
+export function enterSignal(symbol) {
+  const s = engineState[symbol]?.activeSignal;
+  if (!s || !s.entryOpen || s.drawdownBlocked || !s.regimeOK) return false;
+  s.userAction = "ENTER";
+  s.entryDelayMs = now() - s.createdAt;
+  s.priceAtEntry = s.priceAtSignal;
+  return true;
+}
 
-  if (signal.drawdownBlocked)
-    statusLabel = "⛔ Drawdown limit reached";
-  else if (!signal.regimeOK)
-    statusLabel = "⚠ Low-volatility regime";
-  else if (!signal.mispriced)
-    statusLabel = "⚠ No positive edge";
-  else if (entry.isExpired)
-    statusLabel = "⏳ Entry window closed";
+export function skipSignal(symbol) {
+  const s = engineState[symbol]?.activeSignal;
+  if (!s || !s.entryOpen) return false;
+  s.userAction = "SKIP";
+  s.entryOpen = false;
+  return true;
+}
 
-  return (
-    <div className="rounded-xl bg-gradient-to-br from-purple-700 to-purple-900 p-4 shadow-lg relative">
+export function getActive15mSignals() {
+  const out = {};
+  for (const a of ASSETS) out[a] = engineState[a].activeSignal;
+  return out;
+}
 
-      {/* Header */}
-      <div className="flex justify-between items-start mb-2">
-        <div>
-          <h3 className="font-semibold text-white text-sm">
-            {signal.symbol} · 15m
-          </h3>
-          <p className="text-xs text-white/60">
-            Signal @ {new Date(signal.createdAt).toLocaleTimeString()}
-          </p>
-        </div>
-
-        <div className="text-right">
-          <div className="text-lg font-bold text-white">
-            {(signal.confidence * 100).toFixed(0)}%
-          </div>
-          <div className="text-xs text-white/70">
-            {signal.direction}
-          </div>
-        </div>
-      </div>
-
-      {/* Resolve Timer */}
-      <div
-        className={`text-xs mb-2 ${
-          resolve.isUrgent
-            ? "text-red-400 font-semibold"
-            : "text-white/60"
-        }`}
-      >
-        Resolve in {resolve.label}
-      </div>
-
-      {/* Status Banner */}
-      <div className="mb-2 text-xs">
-        <span
-          className={
-            statusLabel.startsWith("✅")
-              ? "text-green-400"
-              : statusLabel.startsWith("⚠")
-              ? "text-yellow-400"
-              : "text-red-400"
-          }
-        >
-          {statusLabel}
-        </span>
-      </div>
-
-      {/* Buttons */}
-      <div className="flex gap-2 mb-3">
-        <button
-          onClick={onYes}
-          disabled={!entryAllowed}
-          className={`flex-1 py-2 rounded-lg text-sm font-semibold transition ${
-            clicked === "ENTER"
-              ? "bg-green-700 text-black"
-              : entryAllowed
-              ? "bg-green-500 hover:bg-green-600 text-black"
-              : "bg-white/10 text-white/30 cursor-not-allowed"
-          }`}
-        >
-          {clicked === "ENTER" ? "ENTERED ✓" : "YES"}
-        </button>
-
-        <button
-          onClick={onNo}
-          disabled={!!signal.userAction}
-          className={`flex-1 py-2 rounded-lg text-sm font-semibold transition ${
-            clicked === "SKIP"
-              ? "bg-red-700 text-black"
-              : !signal.userAction
-              ? "bg-red-500 hover:bg-red-600 text-black"
-              : "bg-white/10 text-white/30 cursor-not-allowed"
-          }`}
-        >
-          {clicked === "SKIP" ? "SKIPPED" : "NO"}
-        </button>
-      </div>
-
-      {/* WHY THIS TRADE */}
-      <div className="relative group text-xs text-white/60 cursor-help">
-        Why this trade?
-
-        <div className="absolute bottom-full left-0 mb-2 w-80 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-20">
-          <div className="bg-black/80 backdrop-blur border border-white/10 rounded-lg p-3 shadow-xl text-xs text-gray-200">
-            {signal.explanation?.map((line, i) => (
-              <div key={i} className="mb-1">
-                {line}
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
-
-      {/* Debug Row */}
-      <div className="mt-2 text-[10px] text-white/40">
-        Edge: {signal.edge?.toFixed(3) ?? "—"} · Kelly:{" "}
-        {(signal.kellyFraction * 100).toFixed(1)}%
-      </div>
-
-      {/* Resolved Overlay */}
-      {resolved && (
-        <div className="absolute inset-0 bg-black/60 rounded-xl flex items-center justify-center text-white text-sm font-semibold">
-          RESOLVED
-        </div>
-      )}
-    </div>
-  );
+export function getLastResolvedSignals(limit = 50) {
+  return loadResolvedSignals().slice(0, limit);
 }
