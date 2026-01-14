@@ -1,7 +1,7 @@
 import { getCapitalCurve } from "../engine/capitalCurve";
 
 export default function CapitalCurveChart() {
-  const { curve, start, end } = getCapitalCurve();
+  const curve = getCapitalCurve();
 
   if (!curve.length) {
     return (
@@ -11,25 +11,20 @@ export default function CapitalCurveChart() {
     );
   }
 
-  const max = Math.max(...curve.map(p => p.capital));
-  const min = Math.min(...curve.map(p => p.capital));
+  const values = curve.map(p => p.capital);
+  const max = Math.max(...values);
+  const min = Math.min(...values);
 
   return (
     <div className="rounded-xl bg-gradient-to-br from-purple-900 to-black p-4">
-      <div className="text-sm text-white mb-2 font-semibold">
+      <div className="text-sm font-semibold text-white mb-2">
         Capital Curve (Simulated)
-      </div>
-
-      <div className="text-xs text-white/60 mb-3">
-        Start: {start.toFixed(2)} → Current: {end.toFixed(2)}
       </div>
 
       <div className="flex items-end gap-[2px] h-24">
         {curve.map((p, i) => {
           const h =
-            max > min
-              ? ((p.capital - min) / (max - min)) * 100
-              : 50;
+            max > min ? ((p.capital - min) / (max - min)) * 100 : 50;
 
           return (
             <div
