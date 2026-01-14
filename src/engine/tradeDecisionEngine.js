@@ -1,57 +1,30 @@
-// src/engine/tradeDecisionEngine.js
+/* =========================================================
+   Trade Decision Engine (FINAL)
+   - Read-only
+   - Deterministic
+   - UI-safe
+========================================================= */
 
-const STORAGE_KEY = "pm_signal_history";
-
-const CONFIDENCE_THRESHOLD = 75;
-const TF_MS = 15 * 60 * 1000;
-const SAFE_WINDOW_PCT = 0.6;
-
-export function autoEnterSignals() {
-  if (typeof window === "undefined") return;
-
-  let signals = [];
-  try {
-    signals = JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]");
-  } catch {
-    return;
+export function getTradeDecision(signal, drawdownState) {
+  if (!signal) {
+    return { status: "BLOCKED", reason: "NO_SIGNAL" };
   }
 
-  let changed = false;
-  const now = Date.now();
-
-  signals.forEach(signal => {
-    if (
-      signal &&
-      signal.outcome === "pending" &&
-      !signal.userDecision &&
-      typeof signal.createdAt === "number" &&
-      typeof signal.confidence === "number"
-    ) {
-      const elapsed = now - signal.createdAt;
-      const safeWindowMs = TF_MS * SAFE_WINDOW_PCT;
-
-      // 🚨 STRICT RULES (NO EXCEPTIONS)
-      if (
-        signal.confidence >= CONFIDENCE_THRESHOLD &&
-        elapsed <= safeWindowMs
-      ) {
-        signal.userDecision = "ENTER";
-        signal.entryPrice = signal.priceAtSignal;
-        signal.enteredAt = now;
-
-        console.log(
-          `[tradeDecision] ENTER ${signal.id} @ ${signal.entryPrice}`
-        );
-        changed = true;
-      } else if (elapsed > safeWindowMs) {
-        signal.userDecision = "SKIP";
-        signal.skippedAt = now;
-        changed = true;
-      }
-    }
-  });
-
-  if (changed) {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(signals));
+  if (drawdownState?.blocked) {
+    return { status: "BLOCKED", reason: "DRAWDOWN" };
   }
+
+  if (signal.regimeOK === false) {
+    return { status: "BLOCKED", reason: "REGIME" };
+  }
+
+  if (!signal.mispriced) {
+    return { status: "BLOCKED", reason: "NO_EDGE" };
+  }
+
+  if (!signal.entryOpen) {
+    return { status: "BLOCKED", reason: "ENTRY_CLOSED" };
+  }
+
+  return { status: "ALLOWED", reason: "OK" };
 }
