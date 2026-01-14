@@ -1,6 +1,7 @@
 /* =========================================================
-   Market Regime Filter
-   - Blocks signals in low-volatility chop
+   Market Regime Filter (FINAL)
+   - Blocks low-volatility chop
+   - Uses recent price returns
 ========================================================= */
 
 export function isTradeableRegime(prices) {
@@ -13,6 +14,6 @@ export function isTradeableRegime(prices) {
   const avgVol =
     returns.reduce((a, b) => a + b, 0) / returns.length;
 
-  // Below ~0.12% avg move → chop
+  // Below ~0.12% average move = chop
   return avgVol > 0.0012;
 }
