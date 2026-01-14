@@ -21,7 +21,7 @@ export default function ExportTradesButton() {
     const blob = new Blob([csv], { type: "text/csv" });
     const a = document.createElement("a");
     a.href = URL.createObjectURL(blob);
-    a.download = "trade_journal.csv";
+    a.download = "polymarket_trade_journal.csv";
     a.click();
   }
 
