@@ -1,9 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import {
-  getActive15mSignals,
-  enterSignal,
-  skipSignal,
-} from "../engine/Crypto15mSignalEngine";
+import { getActive15mSignals } from "../engine/Crypto15mSignalEngine";
 import ConfidenceExplanation from "./ConfidenceExplanation";
 
 const ASSETS = ["BTC", "ETH", "SOL", "XRP"];
@@ -43,9 +39,8 @@ export default function Crypto15mSignalGrid() {
         if (!s) return null;
 
         const remaining = s.resolveAt - Date.now();
-        const locked = !s.entryOpen;
         const confidencePct = Math.round(s.confidence * 100);
-        const isUrgent = remaining < 5 * 60 * 1000; // last 5 minutes
+        const isUrgent = remaining < 5 * 60 * 1000;
 
         return (
           <div
@@ -84,43 +79,22 @@ export default function Crypto15mSignalGrid() {
               </div>
             </div>
 
-            {/* ENTRY */}
-            <div className="text-sm font-semibold">
-              {locked ? (
-                <span className="text-white/40">ENTRY LOCKED</span>
-              ) : (
-                <span className="text-green-400 animate-pulse">
-                  ENTRY OPEN
-                </span>
-              )}
+            {/* ANALYTICS STATUS */}
+            <div className="text-sm font-semibold text-white/40">
+              Analytics only · Execution disabled
             </div>
 
-            {/* ACTIONS */}
+            {/* ACTIONS (SAFE) */}
             <div className="flex gap-3">
-              <button
-                disabled={locked}
-                onClick={() => enterSignal(asset)}
-                className="flex-1 py-2 rounded-lg bg-green-500 text-black font-bold text-sm disabled:opacity-30"
+              <a
+                href="https://polymarket.com"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex-1 py-2 rounded-lg bg-neutral-800 hover:bg-neutral-700 text-white text-sm font-semibold text-center"
               >
-                YES
-              </button>
-              <button
-                disabled={locked}
-                onClick={() => skipSignal(asset)}
-                className="flex-1 py-2 rounded-lg bg-red-500 text-white font-bold text-sm disabled:opacity-30"
-              >
-                NO
-              </button>
-            </div>
+                View Market ↗
+              </a>
 
-            {/* CONFIDENCE */}
-            <div className="bg-black/40 rounded-lg p-3 decay">
-              <ConfidenceExplanation signal={s} />
-            </div>
-
-            {/* FOOTER */}
-            <div className="flex justify-between text-sm text-white/50">
-              <span>Why this signal?</span>
               <button
                 onClick={() =>
                   navigator.clipboard.writeText(
@@ -129,10 +103,21 @@ export default function Crypto15mSignalGrid() {
                     )}`
                   )
                 }
-                className="hover:text-white"
+                className="flex-1 py-2 rounded-lg bg-neutral-900 hover:bg-neutral-800 text-white text-sm font-semibold"
               >
-                Copy thesis
+                Copy Thesis
               </button>
+            </div>
+
+            {/* CONFIDENCE EXPLANATION */}
+            <div className="bg-black/40 rounded-lg p-3 decay">
+              <ConfidenceExplanation signal={s} />
+            </div>
+
+            {/* FOOTER */}
+            <div className="flex justify-between text-sm text-white/50">
+              <span>Why this signal?</span>
+              <span className="italic">Model-derived analytics</span>
             </div>
           </div>
         );
