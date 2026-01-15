@@ -1,4 +1,15 @@
-# 📊 Polymarket Premium Dashboard  
+# 📊 Polymarket Premium Dashboard
+
+> **TL;DR for Reviewers**
+> - Analytics-only, read-only dashboard (no execution)
+> - No simulated or fabricated performance
+> - Execution hard-disabled by code (execution gate)
+> - Uses public data with mock fallback today
+> - Designed to improve decision quality, not trade frequency
+> - Ready to connect to live Polymarket CLOB data post-approval
+
+---
+
 ## 🌐 Live Dashboard
 
 - **Primary (Cloudflare Pages)**  
@@ -10,259 +21,221 @@
 - **Source Code**  
   👉 https://github.com/mailcrypto23/polymarket-daily-dashboard
 
-  ## v1.1 — Live Polymarket Public API Integration
+---
 
-This release introduces live, read-only integration with Polymarket’s public Gamma Markets API.
+## 📌 Project Summary
 
-### What’s new
-- Live market data ingestion via public Gamma API (no auth required)
-- Spread Scanner now computes real-time YES/NO spreads when available
-- Automatic fallback to mock data to ensure production stability
-- Clear data source labeling (Live / Mock)
-- Direct routing to Polymarket event pages (“Trade →”)
+**Polymarket Premium Dashboard** is a **read-only analytics and decision-support interface** built specifically for Polymarket prediction markets.
 
-### Why this matters
-- Demonstrates real ecosystem integration without execution risk
-- Provides actionable analytics for traders (spreads, confidence signals)
-- Designed for future upgrade to CLOB / builder APIs once approved
+The dashboard focuses on **market structure, liquidity behavior, and confidence formation**, transforming raw market data into structured, interpretable analytics — **without executing, simulating, or automating trades**.
 
-### Notes
-- This dashboard is analytics-only and does not place or simulate trades
-- All integrations are read-only and compliant with public API access
-
-
-**All-in-One Analytics & AI Toolkit for Prediction Markets**
-
-A professional, trader-focused analytics dashboard built specifically for **Polymarket**, combining liquidity visualization, AI-assisted signals, and market discovery into a single premium interface.
-
-This project is designed to improve decision-making in prediction markets by turning raw orderbook and liquidity data into **clear, actionable insights**.
+The objective is to help users make **more cautious, informed, and disciplined decisions**, rather than encouraging frequent or impulsive trading.
 
 ---
 
-## 📌 Overview
+## 🔐 Execution Policy (Critical)
 
-- **Primary (Cloudflare Pages)**  
-  👉 https://polymarket-daily-dashboard.pages.dev
+This project is intentionally designed as **analytics-only**.
 
-- **Backup (Vercel)**  
-  👉 https://polymarket-daily-dashboard.vercel.app
+- ❌ No order placement  
+- ❌ No transaction signing  
+- ❌ No bots, relayers, or automation  
+- ❌ No simulated or fabricated PnL  
 
----
+Execution is **hard-disabled at the code level** via a global execution gate.
 
-## 🎯 Problem Statement
-
-Prediction markets are powerful but difficult to interpret in real time.
-
-Users struggle with:
-- Understanding liquidity concentration
-- Identifying whale participation
-- Comparing multiple markets efficiently
-- Knowing *where confidence is actually forming*
-
-**Polymarket Premium Dashboard solves this by converting market micro-structure into intuitive visuals and AI-assisted signals.**
+Any attempt to enable execution without official Polymarket Builder / CLOB API approval will fail by design.
 
 ---
 
-## 🧠 Core Features (User-Focused)
+## 📉 Why Some Analytics Are Empty (By Design)
 
-### 1️⃣ AI Signal Strip (Instant Market Context)
-Displayed directly below the dashboard header.
+Some analytics panels (e.g. **Win Rate**, **PnL**, **Entry Timing**) may appear empty.
 
-Shows:
-- Active market (ETH / BTC / etc.)
-- Dominant side (YES / NO)
-- Whale bias indicator
-- Confidence score (%)
+This is **intentional**.
 
-**User value:** Immediate bias recognition without scrolling.
+- The dashboard does **not fabricate historical results**
+- No simulated trades or backfilled performance are shown
+- Metrics populate **only after real Polymarket market resolutions**
 
----
-
-### 2️⃣ High-Confidence Opportunities
-Curated markets with:
-- Probability %
-- Volume
-- Clear YES / NO action buttons
-
-**User value:** Quickly find high-signal, high-liquidity markets.
+Empty analytics reflect **data integrity and risk awareness**, not missing functionality.
 
 ---
 
-### 3️⃣ Liquidity Heatmap (Core Feature)
-Visual grid representing:
-- Liquidity clusters
+## 🔁 Why Mock Data Exists Alongside Real Data
+
+The dashboard currently displays **mock data together with real public data**.
+
+This design serves three purposes:
+
+1. **UI and model validation** without execution risk  
+2. **User learning**, allowing exploration of analytics without financial pressure  
+3. **Safe progression** toward live data once Builder API access is approved  
+
+Mock data is clearly labeled and is **never mixed with real performance metrics**.
+
+---
+
+## 🔑 Why Builder API Access Matters
+
+Today’s prediction market environment is often influenced by **mixed emotions and conflicting information** shared across social platforms.
+
+Without accurate, real-time market data, users may act on incomplete signals, emotional narratives, or misleading liquidity conditions — increasing the likelihood of poor decisions.
+
+Builder API access enables this dashboard to provide **higher-fidelity, real-time analytics** that help users:
+
+- Filter noise and emotionally-driven information  
+- Understand true liquidity and orderbook depth  
+- Detect confidence decay and late-stage momentum  
+- Evaluate markets more cautiously and deliberately  
+
+The goal is **not** to eliminate risk or promise outcomes, but to improve **information quality**, allowing users to protect themselves from avoidable mistakes in emotionally charged markets.
+
+---
+
+## 🔁 Demo-Safe → Live Data Transition
+
+### Current Mode (Demo / Review Safe)
+- Public Polymarket Gamma API (read-only)
+- Deterministic mock data fallback
+- No execution or order routing
+- No simulated outcomes
+- Analytics remain empty until real resolutions occur
+
+### Post-Approval Mode (Live Data)
+After Polymarket Builder / CLOB API approval:
+
+- Mock feeds are replaced with **live Polymarket market data**
+- Analytics populate **only from real outcomes**
+- Signals remain **decision-support only**
+- Users execute trades manually on Polymarket’s official interface
+
+🚫 **What does NOT change after approval**
+- No automated trading
+- No bot execution
+- No custody of user funds
+- No artificial volume generation
+
+---
+
+### Design Principle
+
+> **The dashboard is designed to improve trade quality and decision confidence rather than automate or increase trade frequency, ensuring any resulting activity is organic and user-driven.**
+
+---
+
+## 🧠 Core Features
+
+### High-Confidence Signal Grid
+- Model-derived confidence
+- Directional analytical bias (**Leans YES / Leans NO**)
+- Resolution countdown
+- Manual market navigation
+
+Directional labels represent **analytical bias only**, not trade actions.
+
+---
+
+### Liquidity Heatmap
+- Liquidity clustering
 - Support / resistance zones
-- Whale liquidity walls
-
-Includes:
+- Whale-scale liquidity detection
 - Timeframes: **5m / 15m / 1h**
-- Color intelligence (thin → strong → whale)
-- Smooth transitions between intervals
-
-**User value:** See where real money is positioned.
 
 ---
 
-### 4️⃣ AI Market Insight (Contextual Intelligence)
-Paired directly with the heatmap.
-
-Explains:
-- Liquidity dominance
-- Whale detection count
-- Orderflow imbalance
-- Confidence meter
-
-**User value:** Understand *why* a market is bullish or bearish.
+### Market Depth & Spread Analytics
+- Buy vs sell pressure
+- Spread inefficiencies
+- Early imbalance detection
 
 ---
 
-### 5️⃣ Market Depth Visualization
-Displays:
-- Buy-side vs sell-side pressure
-- Depth imbalance waves
+### Performance Analytics (Resolution-Based)
+- Confidence vs Win Rate
+- Entry Timing vs Edge Decay
+- Decision journaling for learning
 
-**User value:** Spot hidden pressure before price reaction.
-
----
-
-### 6️⃣ Spread Scanner
-Lists markets with:
-- Pricing inefficiencies
-- Opportunity percentages
-
-**User value:** Identify mispriced markets quickly.
+Metrics activate **only after real market resolutions**.
 
 ---
 
-### 7️⃣ Smart Money Leaderboard
-Highlights:
-- High-volume winning participants
-- Market focus
-- Confidence tier
+## 🧊 UI Philosophy
 
-**User value:** Follow informed participation instead of noise.
-
----
-
-## 🧊 UI Philosophy (Intentional Design)
-
-- ❌ No clutter
-- ❌ No duplicated AI panels
-- ❌ No unnecessary animations
-- ✅ Clear information hierarchy
-- ✅ Fast scanning
+- ❌ No fake performance
+- ❌ No execution shortcuts
+- ❌ No misleading backtests
+- ✅ Clear analytics
 - ✅ Trader-first UX
+- ✅ Builder-review safe
 
-The UI is **frozen and stable** for API review and grant evaluation.
+The UI is **stable and intentionally frozen** for review.
 
 ---
 
 ## 🛠 Tech Stack
 
 - React
-- Tailwind CSS
 - Vite
-- Modular component architecture
+- Tailwind CSS
+- Modular analytics engine
 - Polymarket-ready API abstraction
+- Explicit execution gate (read-only enforcement)
 
 ---
-
-## 🔌 API Status
-
-Currently running on **demo / simulated data**.
-
-The system is fully architected to connect directly to the **Polymarket CLOB API** immediately after API key approval.
-
----
-
-## 🗂 Project Structure (Active Files)
-
+# 🗂 Project Structure (Active)
 
 polymarket-daily-dashboard/
 ├─ public/
-│  └─ assets/
+│ └─ assets/
 ├─ src/
-│  ├─ components/
-│  │  ├─ ai/
-│  │  │  ├─ AISignalStrip.jsx
-│  │  │  └─ HeatmapInsight.jsx
-│  │  ├─ cards/
-│  │  │  └─ LastWinningBet.jsx
-│  │  ├─ charts/
-│  │  │  ├─ LinePriceChart.jsx
-│  │  │  ├─ MarketDepth.jsx
-│  │  │  ├─ LiquidityHeatmap.jsx
-│  │  │  └─ SpreadScanner.jsx
-│  │  ├─ leaderboard/
-│  │  │  └─ SmartMoneyLeaderboard.jsx
-│  │  ├─ orderflow/
-│  │  │  └─ MarketSelector.jsx
-│  │  └─ NeonPriceTicker.jsx
-│  ├─ layouts/
-│  │  └─ Layout.jsx
-│  ├─ pages/
-│  │  └─ Dashboard.jsx
-│  ├─ styles/
-│  │  ├─ tailwind.css
-│  │  ├─ theme.css
-│  │  └─ premium-variables.css
-│  ├─ mock-data/
-│  └─ utils/
+│ ├─ components/
+│ ├─ engine/ # analytics, confidence math, risk logic (read-only)
+│ ├─ hooks/
+│ ├─ layouts/
+│ ├─ pages/
+│ ├─ services/
+│ ├─ styles/
+│ ├─ utils/
+│ │ └─ executionGate.js
+│ └─ mock-data/
 ├─ index.html
 ├─ package.json
 └─ README.md
 
----
-
-## 🛣 Roadmap (User-Centric)
-
-### Phase 1 — Live Polymarket Data
-- Connect Polymarket CLOB API
-- Real-time orderbook ingestion
-- Live liquidity heatmap
-- Streaming market depth
-
-**User impact:** Signals become fully real and trade-ready.
+Architecture summary:  
+**UI → Analytics Engine → Read-only Data Sources → Visualization (no execution path)**
 
 ---
 
-### Phase 2 — Advanced Intelligence
-- Live whale detection
-- Liquidity persistence tracking
-- Market-specific confidence tuning
-- Improved AI explanations
+## 🛣 Roadmap (Conditional)
 
-**User impact:** Higher conviction, fewer random bets.
+All roadmap items are **conditional on Polymarket approval and compliance review**.
 
----
+### Phase 1 — Polymarket Crypto (Current)
+- Analytics-only signals
+- Liquidity & spread intelligence
+- Resolution-based learning metrics
 
-### Phase 3 — Power User Tools
-- Watchlists
-- Liquidity alerts
-- Market comparison mode
-- Strategy session insights
+### Phase 2 — Polymarket Politics
+- Event-driven confidence models
+- Time-to-resolution decay analytics
+- Multi-outcome market analysis
 
-**User impact:** Daily trading workflow inside one dashboard.
-
----
-
-### Phase 4 — Ecosystem Expansion
-- Public release
-- Polymarket user onboarding
-- Community feedback loop
-- Continuous signal improvement
-
-**User impact:** Stronger decision tools for the Polymarket ecosystem.
+### Phase 3 — Stocks & Macro
+- Earnings & macro event markets
+- ETF & policy-driven prediction markets
+- Cross-market confidence comparison
 
 ---
 
 ## 🏁 Current Status
 
 - ✅ Live demo deployed
-- ✅ UI frozen & stable
-- ✅ Grant-ready
-- ✅ API-ready
-- ✅ Built specifically for Polymarket
+- ✅ Analytics-only
+- ✅ Execution gated
+- ✅ Builder-review ready
+- ✅ Built specifically for the Polymarket ecosystem
 
 ---
 
@@ -273,6 +246,8 @@ GitHub: https://github.com/mailcrypto23/polymarket-daily-dashboard
 
 ---
 
-*This dashboard is designed to enhance transparency, confidence, and decision-making for prediction market participants.*
+*This project prioritizes transparency, analytical integrity, and responsible market tooling.*
 
+
+## 🗂 Project Structure (Active)
 
