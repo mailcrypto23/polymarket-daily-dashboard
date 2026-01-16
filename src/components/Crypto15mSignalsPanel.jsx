@@ -1,4 +1,5 @@
 // src/components/Crypto15mSignalsPanel.jsx
+
 import { useEffect, useState } from "react";
 import Crypto15mSignalCard from "./Crypto15mSignalCard";
 
@@ -11,7 +12,7 @@ export default function Crypto15mSignalsPanel() {
     const poll = () => {
       try {
         const raw = JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]");
-        const active = raw.find(s => s.outcome === "pending");
+        const active = raw.find(s => !s.resolved);
         setSignal(active || null);
       } catch {
         setSignal(null);
@@ -23,10 +24,10 @@ export default function Crypto15mSignalsPanel() {
     return () => clearInterval(i);
   }, []);
 
-  const handleDecision = (id, decision) => {
+  const handleNote = (id, note) => {
     const raw = JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]");
     const idx = raw.findIndex(s => s.id === id);
-    if (idx !== -1) raw[idx].userDecision = decision;
+    if (idx !== -1) raw[idx].userNote = note;
     localStorage.setItem(STORAGE_KEY, JSON.stringify(raw));
   };
 
@@ -34,14 +35,14 @@ export default function Crypto15mSignalsPanel() {
     <div className="space-y-4">
       {!signal && (
         <div className="text-white/40 text-sm">
-          Waiting for next 15m signal…
+          Waiting for next 15-minute observation…
         </div>
       )}
 
       {signal && (
         <Crypto15mSignalCard
           signal={signal}
-          onDecision={handleDecision}
+          onNote={handleNote}
         />
       )}
     </div>
