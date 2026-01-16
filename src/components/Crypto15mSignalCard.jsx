@@ -11,11 +11,10 @@ import { useState } from "react";
 const QA_STEPS = ["CONFIDENCE", "EDGE", "REGIME", "RISK"];
 
 export default function Crypto15mSignalCard({ signal }) {
-  const resolve = useCountdown(signal.resolveAt);
+  const resolve = useCountdown(signal.observeUntil);
   const resolved = resolve.isExpired;
 
   const [step, setStep] = useState(0);
-  const reviewComplete = step >= QA_STEPS.length;
 
   function nextStep() {
     setStep((s) => Math.min(s + 1, QA_STEPS.length));
@@ -23,10 +22,14 @@ export default function Crypto15mSignalCard({ signal }) {
 
   function copyThesis() {
     navigator.clipboard.writeText(
-      `${signal.symbol} · ${signal.direction}
+      `${signal.symbol} · ${signal.bias}
 Confidence: ${(signal.confidence * 100).toFixed(1)}%
+Market probability: ${
+        signal.marketProbability
+          ? (signal.marketProbability * 100).toFixed(1) + "%"
+          : "—"
+      }
 Edge: ${signal.edge ? (signal.edge * 100).toFixed(1) + "%" : "—"}
-Regime: ${signal.regimeOK ? "Trending" : "Low Volatility"}
 Resolve in ${resolve.label}`
     );
   }
@@ -41,7 +44,7 @@ Resolve in ${resolve.label}`
             {signal.symbol} · 15m
           </h3>
           <p className="text-xs text-white/60">
-            Signal @ {new Date(signal.createdAt).toLocaleTimeString()}
+            Observed @ {new Date(signal.createdAt).toLocaleTimeString()}
           </p>
         </div>
 
@@ -50,7 +53,7 @@ Resolve in ${resolve.label}`
             {(signal.confidence * 100).toFixed(0)}%
           </div>
           <div className="text-xs text-white/60">
-            {signal.direction}
+            {signal.bias.replace("_", " ")}
           </div>
         </div>
       </div>
@@ -63,7 +66,7 @@ Resolve in ${resolve.label}`
             : "text-white/60"
         }`}
       >
-        Resolve in {resolve.label}
+        Observing for {resolve.label}
       </div>
 
       {/* ANALYTICS DISCLAIMER */}
@@ -79,32 +82,30 @@ Resolve in ${resolve.label}`
 
         {step >= 0 && (
           <QAItem title="1. Confidence">
-            Model confidence is{" "}
-            {(signal.confidence * 100).toFixed(1)}%.
+            Confidence reflects recent price movement, liquidity, and volatility.
           </QAItem>
         )}
 
         {step >= 1 && (
           <QAItem title="2. Market Edge">
-            Edge detected:{" "}
             {signal.edge
-              ? (signal.edge * 100).toFixed(1) + "%"
-              : "—"}
+              ? `Observed edge: ${(signal.edge * 100).toFixed(1)}%`
+              : "No measurable edge detected."}
           </QAItem>
         )}
 
         {step >= 2 && (
           <QAItem title="3. Market Regime">
             {signal.regimeOK
-              ? "Regime acceptable (trending)."
-              : "Low volatility (chop)."}
+              ? "Market regime appears stable."
+              : "Market conditions are noisy or low conviction."}
           </QAItem>
         )}
 
         {step >= 3 && (
           <QAItem title="4. Risk Context">
-            Kelly suggestion:{" "}
-            {(signal.kellyFraction * 100).toFixed(1)}%
+            Drawdown guard:{" "}
+            {signal.drawdownBlocked ? "Active" : "Clear"}
           </QAItem>
         )}
 
@@ -121,26 +122,26 @@ Resolve in ${resolve.label}`
       {/* ACTIONS (SAFE) */}
       <div className="flex gap-3">
         <a
-          href={`https://polymarket.com`}
+          href="https://polymarket.com/crypto/15M"
           target="_blank"
           rel="noopener noreferrer"
           className="flex-1 py-2 rounded-lg bg-neutral-800 hover:bg-neutral-700 text-white text-sm font-semibold text-center"
         >
-          View Market on Polymarket ↗
+          View Market ↗
         </a>
 
         <button
           onClick={copyThesis}
           className="flex-1 py-2 rounded-lg bg-neutral-900 hover:bg-neutral-800 text-white text-sm font-semibold"
         >
-          Copy Thesis
+          Copy Summary
         </button>
       </div>
 
       {/* RESOLVED */}
       {resolved && (
         <div className="absolute inset-0 bg-black/60 rounded-xl flex items-center justify-center text-white text-sm font-semibold">
-          RESOLVED
+          OBSERVATION COMPLETE
         </div>
       )}
     </div>
